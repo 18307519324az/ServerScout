@@ -82,6 +82,26 @@ public class SubdomainService {
             log.warn("DNS brute failed for {}: {}", cleanDomain, e.getMessage());
         }
 
+        // Source 3: AlienVault OTX passive DNS
+        try {
+            Set<String> otxResults = queryOtxPassiveDns(cleanDomain);
+            found.addAll(otxResults);
+            if (!otxResults.isEmpty() && !activeSources.contains("otx")) activeSources.add("otx");
+            log.info("AlienVault OTX found {} subdomains for {}", otxResults.size(), cleanDomain);
+        } catch (Exception e) {
+            log.warn("OTX query failed for {}: {}", cleanDomain, e.getMessage());
+        }
+
+        // Source 4: URLScan.io
+        try {
+            Set<String> urlScanResults = queryUrlScan(cleanDomain);
+            found.addAll(urlScanResults);
+            if (!urlScanResults.isEmpty() && !activeSources.contains("urlscan")) activeSources.add("urlscan");
+            log.info("URLScan found {} subdomains for {}", urlScanResults.size(), cleanDomain);
+        } catch (Exception e) {
+            log.warn("URLScan query failed for {}: {}", cleanDomain, e.getMessage());
+        }
+
         // Save new results with correct source tracking
         int newCount = 0;
         Set<String> crtResults = activeSources.contains("crtsh") ? queryCrtSh(cleanDomain) : Set.of();
@@ -127,6 +147,76 @@ public class SubdomainService {
 
         log.info("Subdomain enum for {}: {} total, {} new", cleanDomain, found.size(), newCount);
         return new SubdomainResult(cleanDomain, found.size(), newCount, activeSources);
+    }
+
+    /**
+     * Query AlienVault OTX passive DNS for subdomains.
+     */
+    private Set<String> queryOtxPassiveDns(String domain) {
+        Set<String> results = new LinkedHashSet<>();
+        try {
+            String url = "https://otx.alienvault.com/api/v1/indicators/domain/" + domain + "/passive_dns";
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("User-Agent", "ServerScout/1.0")
+                    .GET().build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonNode root = objectMapper.readTree(response.body());
+                JsonNode dnsRecords = root.get("passive_dns");
+                if (dnsRecords != null) {
+                    for (JsonNode record : dnsRecords) {
+                        String hostname = record.has("hostname") ? record.get("hostname").asText() : null;
+                        if (hostname != null && hostname.endsWith("." + domain) && !hostname.equals(domain) && hostname.length() > domain.length() + 1) {
+                            results.add(hostname.trim().toLowerCase());
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("OTX passive DNS failed: {}", e.getMessage());
+        }
+        return results;
+    }
+
+    /**
+     * Query URLScan.io for subdomains.
+     */
+    private Set<String> queryUrlScan(String domain) {
+        Set<String> results = new LinkedHashSet<>();
+        try {
+            String url = "https://urlscan.io/api/v1/search/?q=domain:" + domain + "&size=100";
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("User-Agent", "ServerScout/1.0")
+                    .GET().build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonNode root = objectMapper.readTree(response.body());
+                JsonNode resultsNode = root.get("results");
+                if (resultsNode != null) {
+                    for (JsonNode r : resultsNode) {
+                        String pageUrl = r.has("page") && r.get("page").has("url")
+                                ? r.get("page").get("url").asText() : null;
+                        if (pageUrl != null) {
+                            try {
+                                String host = new java.net.URL(pageUrl).getHost().toLowerCase();
+                                if (host.endsWith("." + domain) && !host.equals(domain) && host.length() > domain.length() + 1) {
+                                    results.add(host);
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("URLScan query failed: {}", e.getMessage());
+        }
+        return results;
     }
 
     /**

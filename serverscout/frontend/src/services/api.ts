@@ -96,3 +96,28 @@ export const downloadPdfReport = (taskId: number) =>
 
 export const downloadExcelReport = (taskId: number) =>
   http.get('/v1/reports/excel', { params: { taskId }, responseType: 'blob' })
+
+// External Threat Intelligence
+export const lookupIpIntel = (ip: string) =>
+  http.get<ApiResponse<any>>(`/v1/intel/ip/${ip}`)
+
+export const lookupCveDetails = (cveId: string) =>
+  http.get<ApiResponse<any>>(`/v1/intel/cve/${cveId}`)
+
+export const searchCvesExternal = (params: { keyword: string; page?: number; size?: number }) =>
+  http.get<ApiResponse<any>>('/v1/intel/cves/search', { params })
+
+export const getLatestCves = (limit: number = 20) =>
+  http.get<ApiResponse<any>>('/v1/intel/cves/latest', { params: { limit } })
+
+export const getEpssScore = (cveId: string) =>
+  http.get<ApiResponse<any>>(`/v1/intel/cve/${cveId}/epss`)
+
+export const lookupDomainIntel = (domain: string) =>
+  http.get<ApiResponse<any>>(`/v1/intel/domain/${domain}`)
+
+export const lookupIpReputation = (ip: string) =>
+  http.get<ApiResponse<any>>(`/v1/intel/ip/${ip}/reputation`)
+
+export const getCombinedReport = (target: string) =>
+  http.get<ApiResponse<any>>('/v1/intel/report', { params: { target } })

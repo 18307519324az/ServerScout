@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { Shield, LayoutDashboard, Server, ScanLine, Bug, Network, FileText, Settings } from 'lucide-react'
+import { Shield, LayoutDashboard, Server, ScanLine, Bug, Network, FileText, Settings, Globe } from 'lucide-react'
 
 const nav = [
   { path: '/dashboard', label: '仪表盘', icon: LayoutDashboard },
@@ -7,6 +7,7 @@ const nav = [
   { path: '/scan-tasks', label: '扫描任务', icon: ScanLine },
   { path: '/vulnerabilities', label: '漏洞管理', icon: Bug },
   { path: '/topology', label: '拓扑图', icon: Network },
+  { path: '/intel', label: '外部情报', icon: Globe },
   { path: '/reports', label: '报告中心', icon: FileText },
   { path: '/settings', label: '系统设置', icon: Settings },
 ]
