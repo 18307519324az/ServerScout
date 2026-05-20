@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+target/
+.vite/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Java
+*.class
+*.jar
+*.war
+
+# Claude Code
+.claude/
+CLAUDE.md
+.mcp.json
+
+# Screenshots and temp test output
+*.png
+*.jpg
+*.txt
+.playwright-mcp/
