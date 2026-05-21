@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchScanTaskDetail } from '../services/api'
 import StatusBadge from '../components/StatusBadge'
 import ProgressBar from '../components/ProgressBar'
-import { ArrowLeft, Loader2, Server, Shield, Globe, Bug } from 'lucide-react'
+import { ArrowLeft, Loader2, Server, Shield, Globe, Bug, Layers, CheckCircle2, Circle } from 'lucide-react'
 
 interface DiscoveryEvent {
   type: string
@@ -153,18 +153,29 @@ export default function ScanTaskDetailPage() {
 
           {/* 实时进度信息 */}
           {isRunning && progressMsg && (
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
-              <p className="text-blue-700 font-medium flex items-center gap-2">
+            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm">
+              <p className="text-blue-700 dark:text-blue-400 font-medium flex items-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 {progressMsg}
               </p>
               {progressAssets > 0 && (
-                <p className="text-blue-500 text-xs mt-1">已发现 {progressAssets} 个资产</p>
+                <p className="text-blue-500 dark:text-blue-400 text-xs mt-1">已发现 {progressAssets} 个资产</p>
               )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Shannon-style Pipeline Visualization */}
+      {isRunning && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-5 mb-6">
+          <h3 className="font-semibold mb-4 dark:text-white flex items-center gap-2">
+            <Layers className="w-4 h-4 text-purple-600" />
+            扫描 Pipeline (Shannon 风格)
+          </h3>
+          <PipelineProgress progress={task.progress} />
+        </div>
+      )}
 
       {/* Live discovery feed */}
       {discoveries.length > 0 && (
@@ -246,6 +257,43 @@ export default function ScanTaskDetailPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Shannon-style scan pipeline visualization
+function PipelineProgress({ progress }: { progress: number }) {
+  const phases = [
+    { label: 'Recon', desc: '端口扫描', threshold: 30, icon: Server, color: 'text-blue-600' },
+    { label: 'Fingerprint', desc: 'Web指纹', threshold: 55, icon: Globe, color: 'text-green-600' },
+    { label: 'Vuln Scan', desc: '漏洞扫描', threshold: 67, icon: Bug, color: 'text-orange-600' },
+    { label: 'CVE Match', desc: 'CVE匹配', threshold: 75, icon: Shield, color: 'text-red-600' },
+    { label: 'Report', desc: '报告生成', threshold: 100, icon: CheckCircle2, color: 'text-purple-600' },
+  ]
+
+  return (
+    <div className="flex items-center gap-1">
+      {phases.map((phase, i) => {
+        const done = progress >= phase.threshold
+        const active = !done && (i === 0 || progress >= phases[i - 1].threshold)
+        return (
+          <div key={phase.label} className="flex-1 flex items-center">
+            <div className={`flex flex-col items-center gap-1 px-2 py-3 rounded-lg flex-1 ${
+              done ? 'bg-green-50 dark:bg-green-900/20' : active ? 'bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-300 dark:ring-blue-700' : 'bg-gray-50 dark:bg-gray-800'}`}>
+              {done ? <CheckCircle2 className="w-5 h-5 text-green-500" />
+               : active ? <Loader2 className={`w-5 h-5 animate-spin ${phase.color}`} />
+               : <Circle className="w-5 h-5 text-gray-300 dark:text-gray-600" />}
+              <span className={`text-xs font-bold ${done ? 'text-green-600' : active ? phase.color : 'text-gray-400'}`}>
+                {phase.label}
+              </span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500">{phase.desc}</span>
+            </div>
+            {i < phases.length - 1 && (
+              <div className={`h-0.5 w-4 -mx-0.5 ${progress >= phase.threshold ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

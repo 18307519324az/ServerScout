@@ -174,6 +174,36 @@ export default function ScanTaskListPage() {
                 {targetError && <p className="text-red-500 text-xs mt-1">{targetError}</p>}
                 <p className="text-gray-400 text-xs mt-1">多个目标用逗号分隔；端口在下方单独设置（1-1000 为推荐范围）</p>
               </div>
+              {/* Scan Preset */}
+              <div>
+                <label className="block text-sm font-medium mb-1">扫描模板预设</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { id: 'quick', label: 'Quick', desc: '主机发现', color: 'border-blue-300 bg-blue-50 text-blue-700' },
+                    { id: 'stealth', label: 'Stealth', desc: '隐匿扫描', color: 'border-purple-300 bg-purple-50 text-purple-700' },
+                    { id: 'web', label: 'Web', desc: 'Web 专用', color: 'border-green-300 bg-green-50 text-green-700' },
+                    { id: 'full', label: 'Full', desc: '全端口+OS', color: 'border-red-300 bg-red-50 text-red-700' },
+                  ].map(p => (
+                    <label key={p.id} className={`cursor-pointer border rounded-lg p-2 text-center hover:shadow transition ${p.color}`}>
+                      <input type="radio" name="preset" value={p.id} defaultChecked={p.id === 'quick'}
+                        onChange={() => {
+                          const form = document.querySelector('form')!
+                          const scanType = form.querySelector<HTMLSelectElement>('select[name="scanType"]')!
+                          const portRange = form.querySelector<HTMLInputElement>('input[name="portRange"]')!
+                          const vulnCheck = form.querySelector<HTMLInputElement>('input[name="enableVulnScan"]')!
+                          if (p.id === 'quick') { scanType.value = 'quick'; portRange.value = '1-1000'; }
+                          if (p.id === 'stealth') { scanType.value = 'quick'; portRange.value = '1-1000'; }
+                          if (p.id === 'web') { scanType.value = 'quick'; portRange.value = '80,443,8080,8443,3000,5000,7000'; vulnCheck.checked = true; }
+                          if (p.id === 'full') { scanType.value = 'full'; portRange.value = '1-65535'; vulnCheck.checked = true; }
+                        }}
+                        className="sr-only"
+                      />
+                      <p className="text-sm font-bold">{p.label}</p>
+                      <p className="text-xs text-gray-500">{p.desc}</p>
+                    </label>
+                  ))}
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium mb-1">扫描类型</label>
@@ -183,7 +213,7 @@ export default function ScanTaskListPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">端口范围 (如 1-1000 或 80,443)</label>
+                  <label className="block text-sm font-medium mb-1">端口范围</label>
                   <input name="portRange" defaultValue="1-1000" placeholder="1-1000"
                     className="w-full px-3 py-2 border rounded-lg text-sm font-mono outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>

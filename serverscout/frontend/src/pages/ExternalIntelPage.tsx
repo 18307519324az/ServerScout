@@ -3,11 +3,11 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
   lookupIpIntel, lookupCveDetails, searchCvesExternal, getLatestCves,
-  lookupDomainIntel,
+  lookupDomainIntel, getEpssScore, getCombinedReport,
 } from '../services/api'
-import { Search, Globe, ExternalLink, AlertTriangle, Info, ChevronDown, ChevronRight, Loader2, Server, Shield, Bug, ArrowRight } from 'lucide-react'
+import { Search, Globe, ExternalLink, AlertTriangle, Info, ChevronDown, ChevronRight, Loader2, Server, Shield, Bug, ArrowRight, FileSearch, Zap } from 'lucide-react'
 
-type TabKey = 'ip' | 'cve' | 'domain'
+type TabKey = 'ip' | 'cve' | 'domain' | 'combined'
 
 const EXT_LINKS = {
   shodan: (ip: string) => `https://www.shodan.io/host/${ip}`,
@@ -16,6 +16,7 @@ const EXT_LINKS = {
   crtsh: (domain: string) => `https://crt.sh/?q=${domain}`,
   securitytrails: (domain: string) => `https://securitytrails.com/domain/${domain}`,
   urlscan: (domain: string) => `https://urlscan.io/search/#${domain}`,
+  mitre: (cveId: string) => `https://cve.mitre.org/cgi-bin/cvename.cgi?name=${cveId}`,
 }
 
 export default function ExternalIntelPage() {
@@ -94,24 +95,25 @@ export default function ExternalIntelPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-fit flex-wrap">
         {[
           { key: 'ip' as TabKey, label: 'IP 情报', icon: Server, desc: 'Shodan + 本地资产' },
           { key: 'cve' as TabKey, label: 'CVE 查询', icon: Bug, desc: 'NVD + EPSS' },
           { key: 'domain' as TabKey, label: '域名情报', icon: Globe, desc: 'OTX + URLScan' },
+          { key: 'combined' as TabKey, label: '综合报告', icon: FileSearch, desc: '一键聚合查询' },
         ].map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-              tab === t.key ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:text-gray-900'
+              tab === t.key ? 'bg-white dark:bg-gray-700 shadow text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
             }`}
           >
             <span className="flex items-center gap-1.5">
               <t.icon className="w-3.5 h-3.5" />
               {t.label}
             </span>
-            <span className="block text-xs text-gray-400 font-normal">{t.desc}</span>
+            <span className="block text-xs text-gray-400 dark:text-gray-500 font-normal">{t.desc}</span>
           </button>
         ))}
       </div>
@@ -280,6 +282,9 @@ export default function ExternalIntelPage() {
           {domainData?.data?.data && <DomainResultCard data={domainData.data.data} />}
         </div>
       )}
+
+      {/* ==================== Combined Report ==================== */}
+      {tab === 'combined' && <CombinedReportTab />}
     </div>
   )
 }
@@ -544,7 +549,7 @@ function CveDetailCard({ data, severityColor }: any) {
           <div className="mb-4">
             <h4 className="text-sm font-semibold mb-1">弱点枚举 (CWE)</h4>
             <div className="flex flex-wrap gap-1">
-              {[...new Set(data.cwes)].map((cwe: string) => (
+              {[...new Set<string>(data.cwes as string[])].map((cwe: string) => (
                 <span key={cwe} className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">{cwe}</span>
               ))}
             </div>
@@ -746,6 +751,155 @@ function InfoRow({ label, value }: { label: string; value: any }) {
     <div>
       <span className="text-gray-500 text-xs">{label}</span>
       <div className="text-gray-700 text-sm font-medium">{typeof value === 'number' ? value : String(value)}</div>
+    </div>
+  )
+}
+
+// ==================== Combined Report Tab ====================
+function CombinedReportTab() {
+  const [target, setTarget] = useState('')
+  const [lookupTarget, setLookupTarget] = useState('')
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['intel-combined', lookupTarget],
+    queryFn: () => getCombinedReport(lookupTarget),
+    enabled: !!lookupTarget,
+  })
+  const report = data?.data?.data
+
+  return (
+    <div>
+      <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6 shadow-sm mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <FileSearch className="w-5 h-5 text-purple-600" />
+          <h3 className="font-semibold dark:text-white">综合情报查询</h3>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          输入 IP 地址或域名，同时查询 Shodan、OTX 和本地资产库，生成综合威胁情报报告
+        </p>
+        <div className="flex gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+            <input
+              placeholder="输入 IP 地址（如 8.8.8.8）或域名（如 example.com）"
+              className="pl-9 pr-3 py-2.5 border dark:border-gray-600 rounded-lg w-full text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-white"
+              value={target}
+              onChange={e => setTarget(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && target.trim() && setLookupTarget(target.trim())}
+            />
+          </div>
+          <button
+            onClick={() => target.trim() && setLookupTarget(target.trim())}
+            disabled={isLoading}
+            className="px-6 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+            综合查询
+          </button>
+        </div>
+      </div>
+
+      {isError && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm mb-4">
+          查询失败，请检查输入格式
+        </div>
+      )}
+
+      {report && (
+        <div className="space-y-6">
+          {/* IP Report */}
+          {report.type === 'ip' && report.internetDb && (
+            <div>
+              <h3 className="font-semibold mb-3 dark:text-white flex items-center gap-2">
+                <Server className="w-4 h-4" /> IP 情报
+                <a href={EXT_LINKS.shodan(report.target)} target="_blank" rel="noopener noreferrer"
+                  className="text-blue-600 text-xs hover:underline">Shodan <ExternalLink className="w-3 h-3 inline" /></a>
+                <a href={EXT_LINKS.censys(report.target)} target="_blank" rel="noopener noreferrer"
+                  className="text-gray-400 text-xs hover:underline">Censys <ExternalLink className="w-3 h-3 inline" /></a>
+              </h3>
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                  <StatBox label="开放端口" value={(report.internetDb.ports || []).length} />
+                  <StatBox label="漏洞数" value={(report.internetDb.vulns || []).length} color="text-red-600" />
+                  <StatBox label="主机名" value={(report.internetDb.hostnames || []).length} />
+                  <StatBox label="CPE/标签" value={(report.internetDb.cpes || []).length + (report.internetDb.tags || []).length} />
+                </div>
+                {report.internetDb.vulns?.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {report.internetDb.vulns.map((v: string) => (
+                      <a key={v} href={EXT_LINKS.nvd(v)} target="_blank" rel="noopener noreferrer"
+                        className="px-2 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded text-xs font-mono hover:underline">
+                        {v}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Reputation */}
+          {report.reputation && (
+            <div>
+              <h3 className="font-semibold mb-3 dark:text-white flex items-center gap-2">
+                <Shield className="w-4 h-4" /> IP 信誉 (AlienVault OTX)
+              </h3>
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <StatBox label="威胁情报数量" value={report.reputation.pulseCount || 0} color="text-orange-600" />
+                  <StatBox label="国家" value={0} />
+                  <StatBox label="城市" value={0} />
+                </div>
+                {report.reputation.pulses?.length > 0 && (
+                  <div className="mt-3 space-y-1 max-h-40 overflow-y-auto">
+                    {report.reputation.pulses.slice(0, 5).map((p: any, i: number) => (
+                      <div key={i} className="text-xs text-gray-600 dark:text-gray-400 p-2 bg-white dark:bg-gray-700 rounded">
+                        <span className="font-medium">{p.name}</span>
+                        {p.tags?.length > 0 && (
+                          <span className="ml-2 text-gray-400">{p.tags.slice(0, 3).join(', ')}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Domain Report */}
+          {report.type === 'domain' && report.otx && (
+            <div>
+              <h3 className="font-semibold mb-3 dark:text-white flex items-center gap-2">
+                <Globe className="w-4 h-4" /> 域名情报
+                <a href={EXT_LINKS.crtsh(report.target)} target="_blank" rel="noopener noreferrer"
+                  className="text-blue-600 text-xs hover:underline">crt.sh <ExternalLink className="w-3 h-3 inline" /></a>
+              </h3>
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 p-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <StatBox label="Passive DNS" value={report.otx.passiveDnsCount || 0} />
+                  <StatBox label="子域名" value={(report.otx.subdomains || []).length} />
+                  <StatBox label="URLScan 结果" value={(report.otx.urlScanResults || []).length} />
+                </div>
+                {report.otx.subdomains?.length > 0 && (
+                  <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-1 max-h-40 overflow-y-auto">
+                    {report.otx.subdomains.slice(0, 30).map((s: string) => (
+                      <span key={s} className="text-xs text-gray-600 dark:text-gray-400 font-mono px-2 py-1 bg-white dark:bg-gray-700 rounded truncate">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!report && !isLoading && (
+        <div className="text-center py-20 text-gray-400 dark:text-gray-500">
+          <FileSearch className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          输入目标 IP 或域名进行综合查询，将同时获取 Shodan、OTX 和本地资产库信息
+        </div>
+      )}
     </div>
   )
 }

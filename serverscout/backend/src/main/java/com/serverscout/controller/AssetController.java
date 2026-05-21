@@ -4,6 +4,7 @@ import com.serverscout.dto.ApiResponse;
 import com.serverscout.dto.AssetResponse;
 import com.serverscout.dto.TopologyResponse;
 import com.serverscout.service.AssetService;
+import com.serverscout.service.AttackSurfaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -18,6 +19,7 @@ import java.util.Map;
 public class AssetController {
 
     private final AssetService assetService;
+    private final AttackSurfaceService attackSurfaceService;
 
     @GetMapping
     public ApiResponse<?> listAssets(
@@ -60,5 +62,10 @@ public class AssetController {
     @GetMapping("/topology")
     public ApiResponse<TopologyResponse> getTopology() {
         return ApiResponse.success(assetService.getTopology());
+    }
+
+    @GetMapping("/attack-surface")
+    public ApiResponse<Map<String, Object>> getAttackSurface() {
+        return ApiResponse.success(attackSurfaceService.buildAttackSurfaceMap());
     }
 }

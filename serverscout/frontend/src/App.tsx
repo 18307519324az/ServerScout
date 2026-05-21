@@ -13,6 +13,7 @@ import TopologyPage from './pages/TopologyPage'
 import ReportCenterPage from './pages/ReportCenterPage'
 import SettingsPage from './pages/SettingsPage'
 import ExternalIntelPage from './pages/ExternalIntelPage'
+import AttackSurfacePage from './pages/AttackSurfacePage'
 
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
@@ -68,6 +69,7 @@ export default function App() {
             <Route path="reports" element={<ReportCenterPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="topology" element={<TopologyPage />} />
+            <Route path="attack-surface" element={<AttackSurfacePage />} />
             <Route path="intel" element={<ExternalIntelPage />} />
           </Route>
         </Routes>

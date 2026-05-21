@@ -41,6 +41,9 @@ export const updateAssetTags = (id: number, tags: string[]) =>
 export const deleteAsset = (id: number) =>
   http.delete(`/v1/assets/${id}`)
 
+export const fetchAttackSurface = () =>
+  http.get<ApiResponse<any>>('/v1/assets/attack-surface')
+
 export const mergeAssets = (sourceIds: number[], targetId: number) =>
   http.post<ApiResponse<Asset>>('/v1/assets/merge', { sourceIds, targetId })
 
@@ -79,6 +82,9 @@ export const deleteVulnerability = (id: number) =>
 // Dashboard
 export const fetchDashboardStats = () =>
   http.get<ApiResponse<DashboardStats>>('/v1/dashboard/stats')
+
+export const fetchTechStack = () =>
+  http.get<ApiResponse<any>>('/v1/dashboard/tech-stack')
 
 // Subdomains
 export const enumerateSubdomains = (domain: string) =>
