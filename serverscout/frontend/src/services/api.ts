@@ -2,7 +2,7 @@ import axios from 'axios'
 import type {
   ApiResponse, PageData, Asset, ScanTask, Vulnerability,
   DashboardStats, TopologyData, CreateScanTaskRequest,
-  Subdomain, SubdomainStats,
+  Subdomain, SubdomainStats, User,
 } from '../types'
 
 const http = axios.create({ baseURL: '/api', timeout: 30000 })
@@ -25,8 +25,33 @@ http.interceptors.response.use(
 )
 
 // Auth
-export const login = (username: string, password: string) =>
-  http.post<ApiResponse<{ token: string; username: string }>>('/auth/login', { username, password })
+export const login = (username: string, password: string, captchaId: string, captchaAnswer: string) =>
+  http.post<ApiResponse<{ token: string; username: string; role: string }>>('/auth/login', { username, password, captchaId, captchaAnswer })
+
+export const register = (username: string, password: string, captchaId: string, captchaAnswer: string) =>
+  http.post<ApiResponse<{ token: string; username: string; role: string }>>('/auth/register', { username, password, captchaId, captchaAnswer })
+
+export const fetchCaptcha = () =>
+  http.get<ApiResponse<{ captchaId: string; question: string }>>('/auth/captcha')
+
+// Users
+export const fetchCurrentUser = () =>
+  http.get<ApiResponse<User>>('/v1/users/me')
+
+export const fetchUsers = () =>
+  http.get<ApiResponse<User[]>>('/v1/users')
+
+export const createUser = (data: { username: string; password: string; role?: string; email?: string }) =>
+  http.post<ApiResponse<User>>('/v1/users', data)
+
+export const updateUserApi = (id: number, data: { role?: string; email?: string; enabled?: boolean }) =>
+  http.put<ApiResponse<User>>(`/v1/users/${id}`, data)
+
+export const resetUserPassword = (id: number, newPassword: string) =>
+  http.put<ApiResponse<void>>(`/v1/users/${id}/password`, { newPassword })
+
+export const deleteUser = (id: number) =>
+  http.delete<ApiResponse<void>>(`/v1/users/${id}`)
 
 // Assets
 export const fetchAssets = (params: { page?: number; size?: number; keyword?: string; status?: string }) =>

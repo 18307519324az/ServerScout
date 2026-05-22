@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchAssets, mergeAssets, deleteAsset } from '../services/api'
+import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { Search, GitMerge, CheckSquare, Square, Trash2 } from 'lucide-react'
 import dayjs from 'dayjs'
 
 export default function AssetListPage() {
+  const toast = useToast()
   const [page, setPage] = useState(0)
   const [keyword, setKeyword] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
@@ -25,12 +27,14 @@ export default function AssetListPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] })
       setSelected(new Set())
+      toast.success('资产合并成功')
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteAsset,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['assets'] }); setDeleteId(null) },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['assets'] }); setDeleteId(null); toast.success('资产已删除') },
+    onError: (err: any) => { toast.error(err?.response?.data?.message || '删除失败') },
   })
 
   const assets = data?.data?.data?.content ?? []

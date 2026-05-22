@@ -1,5 +1,6 @@
 import { Component, useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { ToastProvider } from './hooks/useToast'
 import MainLayout from './components/Layout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
@@ -54,6 +55,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <ErrorBoundary>
+      <ToastProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -74,6 +76,7 @@ export default function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      </ToastProvider>
     </ErrorBoundary>
   )
 }

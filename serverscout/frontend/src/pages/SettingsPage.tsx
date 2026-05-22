@@ -1,15 +1,20 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchScanTasks, createScanTask } from '../services/api'
+import { fetchScanTasks, createScanTask, fetchUsers, createUser, updateUserApi, resetUserPassword, deleteUser } from '../services/api'
+import type { User } from '../types'
+import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { Plus, Loader2 } from 'lucide-react'
+import { Plus, Loader2, Trash2, Edit3, Key, UserPlus, Shield } from 'lucide-react'
 
 export default function SettingsPage() {
+  const toast = useToast()
+  const isAdmin = localStorage.getItem('role') === 'ADMIN'
   const [showCreate, setShowCreate] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const queryClient = useQueryClient()
 
+  // Scan task queries
   const { data: tasksData, isLoading } = useQuery({
     queryKey: ['scan-tasks'],
     queryFn: () => fetchScanTasks({ size: 20 }),
@@ -32,6 +37,69 @@ export default function SettingsPage() {
       queryClient.invalidateQueries({ queryKey: ['scan-tasks'] })
       setShowCreate(false)
       setForm({ name: '', targetRange: '', scanType: 'quick', portRange: '1-1000', enableFingerprint: true, enableVulnScan: false })
+    },
+  })
+
+  // User management
+  const { data: usersData, isLoading: usersLoading } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => fetchUsers(),
+  })
+  const users: User[] = usersData?.data?.data || []
+
+  const [showUserForm, setShowUserForm] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [userForm, setUserForm] = useState({ username: '', password: '', role: 'USER', email: '' })
+  const [userDeleteConfirm, setUserDeleteConfirm] = useState<User | null>(null)
+  const [resetPwdUser, setResetPwdUser] = useState<User | null>(null)
+  const [resetPwdValue, setResetPwdValue] = useState('')
+
+  const createUserMutation = useMutation({
+    mutationFn: () => createUser(userForm),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setShowUserForm(false)
+      setUserForm({ username: '', password: '', role: 'USER', email: '' })
+      toast.success(`用户 "${userForm.username}" 创建成功`)
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || '创建用户失败')
+    },
+  })
+
+  const updateUserMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => updateUserApi(id, data),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setEditingUser(null)
+      toast.success('用户信息已更新')
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || '更新用户失败')
+    },
+  })
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ id, pwd }: { id: number; pwd: string }) => resetUserPassword(id, pwd),
+    onSuccess: () => {
+      setResetPwdUser(null)
+      setResetPwdValue('')
+      toast.success('密码重置成功')
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || '密码重置失败')
+    },
+  })
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: number) => deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setUserDeleteConfirm(null)
+      toast.success('用户已删除')
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || '删除用户失败')
     },
   })
 
@@ -154,11 +222,221 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Placeholder for future settings */}
+      {/* User Management Section */}
+      {isAdmin ? (
+      <div className="bg-white rounded-xl border shadow-sm p-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h2 className="font-semibold">用户管理</h2>
+            <p className="text-sm text-gray-500">管理系统用户和角色权限</p>
+          </div>
+          <button
+            onClick={() => {
+              setEditingUser(null)
+              setUserForm({ username: '', password: '', role: 'USER', email: '' })
+              setShowUserForm(true)
+            }}
+            className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+          >
+            <UserPlus className="w-4 h-4" /> 添加用户
+          </button>
+        </div>
+
+        {showUserForm && (
+          <div className="border rounded-lg p-4 mb-4 bg-gray-50">
+            <h3 className="font-medium mb-3">{editingUser ? '编辑用户' : '新建用户'}</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">用户名</label>
+                <input
+                  type="text"
+                  value={userForm.username}
+                  onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!!editingUser}
+                  placeholder="登录用户名"
+                />
+              </div>
+              {!editingUser && (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">密码</label>
+                  <input
+                    type="password"
+                    value={userForm.password}
+                    onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                    className="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="至少6个字符"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">角色</label>
+                <select
+                  value={userForm.role}
+                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="USER">普通用户 (USER)</option>
+                  <option value="ADMIN">管理员 (ADMIN)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">邮箱（可选）</label>
+                <input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="user@example.com"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => { setShowUserForm(false); setEditingUser(null) }} className="px-4 py-1.5 text-sm border rounded-lg hover:bg-gray-100">
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  if (editingUser) {
+                    updateUserMutation.mutate({ id: editingUser.id, data: { role: userForm.role, email: userForm.email } })
+                  } else {
+                    createUserMutation.mutate()
+                  }
+                }}
+                disabled={!userForm.username || (!editingUser && !userForm.password) || createUserMutation.isPending || updateUserMutation.isPending}
+                className="px-4 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                {createUserMutation.isPending || updateUserMutation.isPending ? '保存中...' : editingUser ? '保存修改' : '创建用户'}
+              </button>
+            </div>
+            {(createUserMutation.isError || updateUserMutation.isError) && (
+              <p className="text-red-500 text-xs mt-2">
+                {(createUserMutation.error as any)?.response?.data?.message || (updateUserMutation.error as any)?.response?.data?.message || '操作失败'}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* User Table */}
+        {usersLoading ? (
+          <div className="text-center py-10 text-gray-400">
+            <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-gray-500 text-xs uppercase">
+                <th className="text-left py-2 pl-3">用户名</th>
+                <th className="text-left py-2">角色</th>
+                <th className="text-left py-2">邮箱</th>
+                <th className="text-left py-2">状态</th>
+                <th className="text-left py-2">创建时间</th>
+                <th className="text-right py-2 pr-3">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id} className="border-b last:border-0 hover:bg-gray-50">
+                  <td className="py-2.5 pl-3 font-medium">{user.username}</td>
+                  <td className="py-2.5">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                      user.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      <Shield className="w-3 h-3" />
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="py-2.5 text-gray-500">{user.email || '-'}</td>
+                  <td className="py-2.5">
+                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                      user.enabled ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {user.enabled ? '启用' : '禁用'}
+                    </span>
+                  </td>
+                  <td className="py-2.5 text-gray-400 text-xs">
+                    {new Date(user.createdAt).toLocaleDateString('zh-CN')}
+                  </td>
+                  <td className="py-2.5 text-right pr-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => {
+                          setEditingUser(user)
+                          setUserForm({ username: user.username, password: '', role: user.role, email: user.email || '' })
+                          setShowUserForm(true)
+                        }}
+                        className="p-1 rounded hover:bg-gray-200 text-gray-500 hover:text-blue-600"
+                        title="编辑"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => { setResetPwdUser(user); setResetPwdValue('') }}
+                        className="p-1 rounded hover:bg-gray-200 text-gray-500 hover:text-orange-600"
+                        title="重置密码"
+                      >
+                        <Key className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setUserDeleteConfirm(user)}
+                        className="p-1 rounded hover:bg-gray-200 text-gray-500 hover:text-red-600"
+                        title="删除"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {users.length === 0 && (
+                <tr><td colSpan={6} className="text-center py-10 text-gray-400">暂无用户</td></tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+      ) : (
       <div className="bg-white rounded-xl border shadow-sm p-6">
         <h2 className="font-semibold mb-2">用户管理</h2>
-        <p className="text-sm text-gray-400">用户管理和权限配置功能将在后续版本中实现。</p>
+        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+          <Shield className="w-10 h-10 text-gray-300" />
+          <div>
+            <p className="text-sm font-medium text-gray-600">权限不足</p>
+            <p className="text-xs text-gray-400">用户管理功能仅限管理员使用，请使用 ADMIN 账号登录。</p>
+          </div>
+        </div>
       </div>
+      )}
+
+      {/* Reset Password Dialog */}
+      {resetPwdUser && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm mx-4">
+            <h3 className="font-semibold mb-1">重置密码</h3>
+            <p className="text-sm text-gray-500 mb-4">用户: {resetPwdUser.username}</p>
+            <input
+              type="password"
+              value={resetPwdValue}
+              onChange={(e) => setResetPwdValue(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
+              placeholder="输入新密码（至少6位）"
+            />
+            {resetPasswordMutation.isError && (
+              <p className="text-red-500 text-xs mb-2">{(resetPasswordMutation.error as any)?.response?.data?.message || '操作失败'}</p>
+            )}
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setResetPwdUser(null)} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-100">取消</button>
+              <button
+                onClick={() => resetPasswordMutation.mutate({ id: resetPwdUser.id, pwd: resetPwdValue })}
+                disabled={resetPwdValue.length < 6 || resetPasswordMutation.isPending}
+                className="px-4 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
+              >
+                {resetPasswordMutation.isPending ? '重置中...' : '确认重置'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmDialog
         open={confirmOpen}
@@ -167,6 +445,15 @@ export default function SettingsPage() {
         confirmLabel="确认创建"
         onConfirm={() => { setConfirmOpen(false); createMutation.mutate() }}
         onCancel={() => setConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={!!userDeleteConfirm}
+        title="删除用户"
+        message={`确认删除用户 "${userDeleteConfirm?.username}"？此操作不可撤销。`}
+        confirmLabel="确认删除"
+        onConfirm={() => userDeleteConfirm && deleteUserMutation.mutate(userDeleteConfirm.id)}
+        onCancel={() => setUserDeleteConfirm(null)}
       />
     </div>
   )

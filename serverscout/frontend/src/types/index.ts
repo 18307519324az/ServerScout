@@ -1,3 +1,13 @@
+// ========== User ==========
+export interface User {
+  id: number
+  username: string
+  role: string
+  email?: string
+  enabled: boolean
+  createdAt: string
+}
+
 // ========== Common ==========
 export interface ApiResponse<T> {
   code: number

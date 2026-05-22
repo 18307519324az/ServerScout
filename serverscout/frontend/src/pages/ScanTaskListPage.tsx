@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchScanTasks, createScanTask, deleteScanTask } from '../services/api'
+import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
 import ProgressBar from '../components/ProgressBar'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -9,6 +10,7 @@ import { Plus, X, Trash2, AlertCircle } from 'lucide-react'
 import dayjs from 'dayjs'
 
 export default function ScanTaskListPage() {
+  const toast = useToast()
   const [page, setPage] = useState(0)
   const [showCreate, setShowCreate] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
@@ -29,16 +31,23 @@ export default function ScanTaskListPage() {
       queryClient.invalidateQueries({ queryKey: ['scan-tasks'] })
       setShowCreate(false)
       setCreateError('')
+      toast.success('扫描任务创建成功，正在执行...')
     },
     onError: (err: any) => {
       const msg = err?.response?.data?.message || err?.message || '未知错误'
       setCreateError('创建失败: ' + msg)
+      toast.error('创建失败: ' + msg)
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteScanTask,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['scan-tasks'] }); setDeleteId(null); setDeleteStatus('') },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scan-tasks'] })
+      setDeleteId(null); setDeleteStatus('')
+      toast.success('扫描任务已删除')
+    },
+    onError: (err: any) => { toast.error(err?.response?.data?.message || '删除失败') },
   })
 
   const tasks = data?.data?.data?.content ?? []

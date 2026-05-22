@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchDashboardStats } from '../services/api'
+import { CardSkeleton, ChartSkeleton } from '../components/Skeleton'
 import { Server, ScanLine, Bug, Activity, Shield, AlertTriangle, ChevronRight, Globe, Network, FileText } from 'lucide-react'
 import ReactEChartsCore from 'echarts-for-react'
 
@@ -15,9 +16,20 @@ export default function DashboardPage() {
   const stats = data?.data?.data
 
   if (isLoading) return (
-    <div className="text-center py-20 text-gray-400 dark:text-gray-500">
-      <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-3" />
-      加载中...
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">攻击面仪表盘</h1>
+          <p className="text-sm text-gray-500 mt-0.5">资产安全态势一览</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        {Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)}
+      </div>
+      <div className="grid grid-cols-2 gap-6">
+        <ChartSkeleton />
+        <ChartSkeleton />
+      </div>
     </div>
   )
 
