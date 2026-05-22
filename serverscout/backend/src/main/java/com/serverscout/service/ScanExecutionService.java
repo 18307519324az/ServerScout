@@ -171,7 +171,9 @@ public class ScanExecutionService {
 
             if (existingOpt.isPresent()) {
                 asset = existingOpt.get();
-                if (ae.getHostname() != null) asset.setHostname(ae.getHostname());
+                if (ae.getHostname() != null) {
+                    appendHostname(asset, ae.getHostname());
+                }
                 if (ae.getOsFingerprint() != null) asset.setOsFingerprint(ae.getOsFingerprint());
                 if (ae.getOsVersion() != null) asset.setOsVersion(ae.getOsVersion());
                 if (ae.getMacAddress() != null) asset.setMacAddress(ae.getMacAddress());
@@ -510,6 +512,54 @@ public class ScanExecutionService {
     private boolean isDomainName(String target) {
         if (target == null) return false;
         return !target.matches("^[\\d.]+(/\\d+)?$") && target.contains(".");
+    }
+
+    /**
+     * Append a new hostname to the asset's hostname aliases, keeping existing hostname as primary.
+     */
+    private void appendHostname(Asset asset, String newHostname) {
+        if (newHostname == null || newHostname.isBlank()) return;
+
+        String current = asset.getHostname();
+        // If no current hostname, set it directly
+        if (current == null || current.isBlank()) {
+            asset.setHostname(newHostname);
+            return;
+        }
+
+        // If same as current, nothing to do
+        if (current.equalsIgnoreCase(newHostname)) return;
+
+        // Check existing aliases
+        Set<String> allHostnames = getHostnameAliases(asset);
+        if (allHostnames.contains(newHostname.toLowerCase())) return;
+
+        // Add current as alias if not already there, then set new as primary
+        allHostnames.add(current.toLowerCase());
+        allHostnames.add(newHostname.toLowerCase());
+        // Switch: new becomes primary, old goes to aliases
+        asset.setHostnameAliases(toJsonArray(allHostnames));
+    }
+
+    private Set<String> getHostnameAliases(Asset asset) {
+        Set<String> result = new LinkedHashSet<>();
+        String aliases = asset.getHostnameAliases();
+        if (aliases != null && !aliases.isBlank()) {
+            try {
+                String[] parts = aliases.replace("[", "").replace("]", "").replace("\"", "").split(",");
+                for (String p : parts) {
+                    String trimmed = p.trim();
+                    if (!trimmed.isEmpty()) result.add(trimmed.toLowerCase());
+                }
+            } catch (Exception e) {
+                // ignore parse errors
+            }
+        }
+        return result;
+    }
+
+    private String toJsonArray(Collection<String> items) {
+        return "[" + items.stream().map(s -> "\"" + s + "\"").collect(Collectors.joining(",")) + "]";
     }
 
     private boolean isWebPort(int port, String serviceName) {

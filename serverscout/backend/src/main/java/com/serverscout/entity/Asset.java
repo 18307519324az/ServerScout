@@ -26,6 +26,9 @@ public class Asset {
     @Column(length = 256)
     private String hostname;
 
+    @Column(name = "hostname_aliases", columnDefinition = "json")
+    private String hostnameAliases;
+
     @Column(name = "os_fingerprint", length = 128)
     private String osFingerprint;
 

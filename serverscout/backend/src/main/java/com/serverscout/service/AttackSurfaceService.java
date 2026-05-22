@@ -4,6 +4,7 @@ import com.serverscout.entity.*;
 import com.serverscout.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,8 +23,9 @@ public class AttackSurfaceService {
 
     /**
      * Build a hierarchical attack surface tree for visualization.
-     * Structure: Target → Subdomains/IPs → Ports → Services → Tech → Vulns
+     * Structure: Target → Subnets → IPs → Ports → Services → Tech → Vulns
      */
+    @Transactional(readOnly = true)
     public Map<String, Object> buildAttackSurfaceMap() {
         List<Asset> assets = assetRepository.findAll();
         Map<String, Object> result = new LinkedHashMap<>();
@@ -62,8 +64,20 @@ public class AttackSurfaceService {
 
     private Map<String, Object> buildAssetNode(Asset asset) {
         Map<String, Object> node = new LinkedHashMap<>();
-        node.put("name", asset.getIpAddress()
-                + (asset.getHostname() != null ? " (" + asset.getHostname() + ")" : ""));
+        String label = asset.getIpAddress();
+        if (asset.getHostname() != null) {
+            label += " (" + asset.getHostname() + ")";
+        }
+        // Append hostname aliases if any
+        if (asset.getHostnameAliases() != null && !asset.getHostnameAliases().isBlank()) {
+            try {
+                String[] parts = asset.getHostnameAliases().replace("[","").replace("]","").replace("\"","").split(",");
+                if (parts.length > 0 && !parts[0].trim().isEmpty()) {
+                    label += " [aka: " + String.join(", ", parts).replace("\"", "") + "]";
+                }
+            } catch (Exception ignored) {}
+        }
+        node.put("name", label);
         node.put("type", "asset");
         node.put("id", asset.getId());
 
@@ -72,9 +86,9 @@ public class AttackSurfaceService {
 
         for (Port port : ports) {
             Map<String, Object> portNode = new LinkedHashMap<>();
-            String label = ":" + port.getPortNumber() + " " +
+            String portLabel = ":" + port.getPortNumber() + " " +
                     (port.getServiceName() != null ? port.getServiceName() : "unknown");
-            portNode.put("name", label);
+            portNode.put("name", portLabel);
             portNode.put("type", Boolean.TRUE.equals(port.getIsWebService()) ? "web-port" : "port");
 
             List<Map<String, Object>> techNodes = new ArrayList<>();
@@ -113,7 +127,7 @@ public class AttackSurfaceService {
             });
 
             // Add vulnerabilities for this port
-            List<AssetVulnerability> avs = avRepository.findByAssetId(asset.getId());
+            List<AssetVulnerability> avs = avRepository.findByAssetIdWithCve(asset.getId());
             for (AssetVulnerability av : avs) {
                 if (av.getCveDatabase() != null) {
                     Map<String, Object> vuln = new LinkedHashMap<>();
@@ -141,6 +155,7 @@ public class AttackSurfaceService {
     /**
      * Build aggregated technology stack statistics.
      */
+    @Transactional(readOnly = true)
     public Map<String, Object> buildTechStackStats() {
         Map<String, Long> frameworks = new LinkedHashMap<>();
         Map<String, Long> cms = new LinkedHashMap<>();

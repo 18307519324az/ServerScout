@@ -10,6 +10,7 @@ public class AssetResponse {
     private Long id;
     private String ipAddress;
     private String hostname;
+    private List<String> hostnameAliases;
     private String osFingerprint;
     private String status;
     private int openPortCount;

@@ -135,11 +135,13 @@ function TechSection({ title, items, color }: { title: string; items: any[]; col
 }
 
 function buildTreeOption(data: any, isDark: boolean) {
+  // Recursively assign colors based on node type
+  const coloredData = applyNodeColors(data)
   return {
     tooltip: { trigger: 'item', triggerOn: 'mousemove' },
     series: [{
       type: 'tree',
-      data: [data],
+      data: [coloredData],
       top: '5%',
       left: '8%',
       bottom: '5%',
@@ -157,13 +159,32 @@ function buildTreeOption(data: any, isDark: boolean) {
       expandAndCollapse: true,
       animationDuration: 550,
       animationDurationUpdate: 750,
-      itemStyle: {
-        color: '#3b82f6',
-      },
       lineStyle: {
         color: isDark ? '#4b5563' : '#d1d5db',
       },
     }],
+  }
+}
+
+/** Recursively assign itemStyle colors to tree nodes based on type */
+function applyNodeColors(node: any): any {
+  if (!node) return node
+  const colors: Record<string, string> = {
+    subnet: '#3b82f6',
+    asset: '#22c55e',
+    'web-port': '#eab308',
+    port: '#9ca3af',
+    service: '#a78bfa',
+    framework: '#a855f7',
+    cms: '#a855f7',
+    waf: '#f97316',
+    vulnerability: '#ef4444',
+  }
+  const color = colors[node.type] || '#6b7280'
+  return {
+    ...node,
+    itemStyle: { color },
+    children: node.children ? node.children.map(applyNodeColors) : undefined,
   }
 }
 

@@ -76,6 +76,9 @@ export const fetchVulnerabilityDetail = (id: number) =>
 export const updateVulnStatus = (id: number, status: string) =>
   http.put(`/v1/vulnerabilities/${id}/status`, { status })
 
+export const updateVulnReproduction = (id: number, steps: string) =>
+  http.put(`/v1/vulnerabilities/${id}/reproduction`, { steps })
+
 export const deleteVulnerability = (id: number) =>
   http.delete(`/v1/vulnerabilities/${id}`)
 

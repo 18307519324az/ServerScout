@@ -21,6 +21,7 @@ export interface Asset {
   id: number
   ipAddress: string
   hostname: string
+  hostnameAliases: string[]
   osFingerprint: string
   status: string
   openPortCount: number
@@ -135,6 +136,7 @@ export interface Vulnerability {
   affectedSoftware: string
   affectedVersion: string
   fixSuggestion: string
+  reproductionSteps: string
   status: string
   discoveredAt: string
 }

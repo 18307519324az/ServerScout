@@ -47,11 +47,19 @@ public class AssetService {
         try { tags = objectMapper.readValue(asset.getTags(), new TypeReference<List<String>>() {}); }
         catch (Exception e) { tags = List.of(); }
 
+        List<String> hostnameAliases;
+        try {
+            hostnameAliases = asset.getHostnameAliases() != null && !asset.getHostnameAliases().isBlank()
+                ? objectMapper.readValue(asset.getHostnameAliases(), new TypeReference<List<String>>() {})
+                : List.of();
+        } catch (Exception e) { hostnameAliases = List.of(); }
+
         long scanCount = scanAssetMappingRepository.countByAssetId(id);
 
         return AssetResponse.builder()
                 .id(asset.getId()).ipAddress(asset.getIpAddress())
-                .hostname(asset.getHostname()).osFingerprint(asset.getOsFingerprint())
+                .hostname(asset.getHostname()).hostnameAliases(hostnameAliases)
+                .osFingerprint(asset.getOsFingerprint())
                 .status(asset.getStatus())
                 .openPortCount(asset.getOpenPortCount() != null ? asset.getOpenPortCount() : 0)
                 .criticalVulnCount(asset.getCriticalVulnCount() != null ? asset.getCriticalVulnCount() : 0)

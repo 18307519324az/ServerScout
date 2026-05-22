@@ -3,7 +3,7 @@
 ## 技术栈
 - 前端: React 18 + TypeScript + Vite + Tailwind CSS
 - 后端: Spring Boot 3 + Java 17
-- 数据库: PostgreSQL
+- 数据库: MySQL
 - 构建工具: Maven (后端) / npm (前端)
 
 ## 目录结构

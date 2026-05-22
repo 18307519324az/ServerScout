@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -36,6 +37,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ScanException.class)
     public ResponseEntity<Map<String, Object>> handleScanError(ScanException ex) {
         return response(HttpStatus.INTERNAL_SERVER_ERROR, 5001, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResource(NoResourceFoundException ex) {
+        log.debug("Resource not found: {}", ex.getMessage());
+        return response(HttpStatus.NOT_FOUND, 4001, "资源不存在", null);
     }
 
     @ExceptionHandler(Exception.class)

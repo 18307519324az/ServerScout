@@ -3,11 +3,14 @@ package com.serverscout.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.serverscout.entity.Asset;
+import com.serverscout.entity.CveDatabase;
 import com.serverscout.entity.Port;
 import com.serverscout.repository.AssetRepository;
+import com.serverscout.repository.CveDatabaseRepository;
 import com.serverscout.repository.PortRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -30,6 +33,7 @@ public class ExternalIntelService {
     private final ObjectMapper objectMapper;
     private final AssetRepository assetRepository;
     private final PortRepository portRepository;
+    private final CveDatabaseRepository cveDatabaseRepository;
 
     private static final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
@@ -603,6 +607,46 @@ public class ExternalIntelService {
         }
 
         return report;
+    }
+
+    // ==================== Scheduled CVE Refresh ====================
+
+    /**
+     * Daily refresh of the latest CVEs from NVD API.
+     * Runs at 3:07 AM every day to avoid rate limiting.
+     */
+    @Scheduled(cron = "0 7 3 * * *")
+    public void scheduledCveRefresh() {
+        log.info("Starting scheduled CVE refresh from NVD...");
+        try {
+            List<Map<String, Object>> latest = getLatestCves(50);
+            int added = 0;
+            for (Map<String, Object> cveData : latest) {
+                String cveId = (String) cveData.get("cveId");
+                if (cveId != null && cveDatabaseRepository.findByCveId(cveId).isEmpty()) {
+                    try {
+                        CveDatabase cve = CveDatabase.builder()
+                                .cveId(cveId)
+                                .description((String) cveData.get("description"))
+                                .severity((String) cveData.get("severity"))
+                                .cvssScore(cveData.get("cvssScore") != null
+                                        ? java.math.BigDecimal.valueOf(((Number) cveData.get("cvssScore")).doubleValue())
+                                        : null)
+                                .publicationDate(cveData.get("published") != null
+                                        ? java.time.LocalDate.parse(((String) cveData.get("published")).substring(0, 10))
+                                        : null)
+                                .build();
+                        cveDatabaseRepository.save(cve);
+                        added++;
+                    } catch (Exception e) {
+                        log.debug("Failed to save CVE {}: {}", cveId, e.getMessage());
+                    }
+                }
+            }
+            log.info("CVE refresh complete: {} new CVEs added", added);
+        } catch (Exception e) {
+            log.warn("Scheduled CVE refresh failed: {}", e.getMessage());
+        }
     }
 
     // ==================== Utilities ====================
