@@ -8,6 +8,7 @@ import com.serverscout.service.AttackSurfaceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,14 +22,26 @@ public class AssetController {
     private final AssetService assetService;
     private final AttackSurfaceService attackSurfaceService;
 
+    private String getUsername(Authentication auth) {
+        return auth != null ? auth.getName() : null;
+    }
+
+    private boolean isAdmin(Authentication auth) {
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
     @GetMapping
     public ApiResponse<?> listAssets(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            Authentication auth) {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
-        var result = assetService.listAssets(keyword, status, pageable);
+        String username = getUsername(auth);
+        boolean admin = isAdmin(auth);
+        var result = assetService.listAssets(keyword, status, pageable, username, admin);
         return ApiResponse.success(result);
     }
 
@@ -60,12 +73,16 @@ public class AssetController {
     }
 
     @GetMapping("/topology")
-    public ApiResponse<TopologyResponse> getTopology() {
-        return ApiResponse.success(assetService.getTopology());
+    public ApiResponse<TopologyResponse> getTopology(Authentication auth) {
+        String username = getUsername(auth);
+        boolean admin = isAdmin(auth);
+        return ApiResponse.success(assetService.getTopology(username, admin));
     }
 
     @GetMapping("/attack-surface")
-    public ApiResponse<Map<String, Object>> getAttackSurface() {
-        return ApiResponse.success(attackSurfaceService.buildAttackSurfaceMap());
+    public ApiResponse<Map<String, Object>> getAttackSurface(Authentication auth) {
+        String username = getUsername(auth);
+        boolean admin = isAdmin(auth);
+        return ApiResponse.success(attackSurfaceService.buildAttackSurfaceMap(username, admin));
     }
 }

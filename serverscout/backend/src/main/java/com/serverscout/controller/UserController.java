@@ -41,6 +41,8 @@ public class UserController {
                 body.get("username"),
                 body.get("password"),
                 body.get("role"),
+                body.get("name"),
+                body.get("gender"),
                 body.get("email")
         );
         return ApiResponse.success(user);
@@ -52,6 +54,8 @@ public class UserController {
         User user = userService.updateUser(
                 id,
                 (String) body.get("role"),
+                (String) body.get("name"),
+                (String) body.get("gender"),
                 (String) body.get("email"),
                 body.get("enabled") != null ? (Boolean) body.get("enabled") : null
         );

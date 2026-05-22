@@ -49,7 +49,7 @@ export default function SettingsPage() {
 
   const [showUserForm, setShowUserForm] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [userForm, setUserForm] = useState({ username: '', password: '', role: 'USER', email: '' })
+  const [userForm, setUserForm] = useState({ username: '', password: '', name: '', gender: '', role: 'USER', email: '' })
   const [userDeleteConfirm, setUserDeleteConfirm] = useState<User | null>(null)
   const [resetPwdUser, setResetPwdUser] = useState<User | null>(null)
   const [resetPwdValue, setResetPwdValue] = useState('')
@@ -59,7 +59,7 @@ export default function SettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       setShowUserForm(false)
-      setUserForm({ username: '', password: '', role: 'USER', email: '' })
+      setUserForm({ username: '', password: '', name: '', gender: '', role: 'USER', email: '' })
       toast.success(`用户 "${userForm.username}" 创建成功`)
     },
     onError: (err: any) => {
@@ -233,7 +233,7 @@ export default function SettingsPage() {
           <button
             onClick={() => {
               setEditingUser(null)
-              setUserForm({ username: '', password: '', role: 'USER', email: '' })
+              setUserForm({ username: '', password: '', name: '', gender: '', role: 'USER', email: '' })
               setShowUserForm(true)
             }}
             className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
@@ -270,6 +270,29 @@ export default function SettingsPage() {
                 </div>
               )}
               <div>
+                <label className="block text-xs text-gray-500 mb-1">姓名</label>
+                <input
+                  type="text"
+                  value={userForm.name}
+                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="用户姓名"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">性别</label>
+                <select
+                  value={userForm.gender}
+                  onChange={(e) => setUserForm({ ...userForm, gender: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">请选择</option>
+                  <option value="MALE">男</option>
+                  <option value="FEMALE">女</option>
+                  <option value="OTHER">其他</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-xs text-gray-500 mb-1">角色</label>
                 <select
                   value={userForm.role}
@@ -298,7 +321,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => {
                   if (editingUser) {
-                    updateUserMutation.mutate({ id: editingUser.id, data: { role: userForm.role, email: userForm.email } })
+                    updateUserMutation.mutate({ id: editingUser.id, data: { role: userForm.role, name: userForm.name, gender: userForm.gender, email: userForm.email } })
                   } else {
                     createUserMutation.mutate()
                   }
@@ -327,6 +350,7 @@ export default function SettingsPage() {
             <thead>
               <tr className="border-b text-gray-500 text-xs uppercase">
                 <th className="text-left py-2 pl-3">用户名</th>
+                <th className="text-left py-2">姓名</th>
                 <th className="text-left py-2">角色</th>
                 <th className="text-left py-2">邮箱</th>
                 <th className="text-left py-2">状态</th>
@@ -338,6 +362,7 @@ export default function SettingsPage() {
               {users.map((user) => (
                 <tr key={user.id} className="border-b last:border-0 hover:bg-gray-50">
                   <td className="py-2.5 pl-3 font-medium">{user.username}</td>
+                  <td className="py-2.5 text-gray-600">{user.name || '-'}</td>
                   <td className="py-2.5">
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
                       user.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'
@@ -362,7 +387,7 @@ export default function SettingsPage() {
                       <button
                         onClick={() => {
                           setEditingUser(user)
-                          setUserForm({ username: user.username, password: '', role: user.role, email: user.email || '' })
+                          setUserForm({ username: user.username, password: '', name: user.name || '', gender: user.gender || '', role: user.role, email: user.email || '' })
                           setShowUserForm(true)
                         }}
                         className="p-1 rounded hover:bg-gray-200 text-gray-500 hover:text-blue-600"
@@ -389,7 +414,7 @@ export default function SettingsPage() {
                 </tr>
               ))}
               {users.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-10 text-gray-400">暂无用户</td></tr>
+                <tr><td colSpan={7} className="text-center py-10 text-gray-400">暂无用户</td></tr>
               )}
             </tbody>
           </table>

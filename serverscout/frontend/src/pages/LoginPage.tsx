@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, Eye, EyeOff, RefreshCw } from 'lucide-react'
+import { Shield, Eye, EyeOff, RefreshCw, ChevronDown } from 'lucide-react'
 import { login, register, fetchCaptcha } from '../services/api'
+
+const GENDER_OPTIONS = [
+  { value: 'MALE', label: '男' },
+  { value: 'FEMALE', label: '女' },
+  { value: 'OTHER', label: '其他' },
+]
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -10,6 +16,11 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [isRegister, setIsRegister] = useState(false)
+
+  // Register-only fields
+  const [name, setName] = useState('')
+  const [gender, setGender] = useState('')
+  const [email, setEmail] = useState('')
 
   // Captcha
   const [captchaId, setCaptchaId] = useState('')
@@ -37,18 +48,73 @@ export default function LoginPage() {
     loadCaptcha()
   }, [isRegister])
 
+  const resetForm = () => {
+    setName('')
+    setGender('')
+    setEmail('')
+    setUsername('')
+    setPassword('')
+    setCaptchaAnswer('')
+    setError('')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+
+    // Common validations
+    if (!username.trim() || username.trim().length < 3) {
+      setError('用户名至少3个字符')
+      return
+    }
+    if (!password || password.length < 6) {
+      setError('密码至少6个字符')
+      return
+    }
     if (!captchaAnswer.trim()) {
       setError('请输入验证码')
       return
     }
+
+    // Register-only validations
+    if (isRegister) {
+      if (!name.trim()) {
+        setError('请输入姓名')
+        return
+      }
+      if (!gender) {
+        setError('请选择性别')
+        return
+      }
+      if (!email.trim()) {
+        setError('请输入邮箱地址')
+        return
+      }
+      if (!/^[\w.%+-]+@[\w.-]+\.[A-Za-z]{2,}$/.test(email.trim())) {
+        setError('请输入有效的邮箱地址')
+        return
+      }
+    }
+
     setLoading(true)
     try {
-      const fn = isRegister ? register : login
-      const res = await fn(username, password, captchaId, captchaAnswer)
-      localStorage.setItem('token', res.data.data.token)
-      localStorage.setItem('role', res.data.data.role || 'USER')
+      if (isRegister) {
+        const res = await register({
+          username: username.trim(),
+          password,
+          name: name.trim(),
+          gender,
+          email: email.trim(),
+          captchaId,
+          captchaAnswer: captchaAnswer.trim(),
+        })
+        localStorage.setItem('token', res.data.data.token)
+        localStorage.setItem('role', res.data.data.role || 'USER')
+      } else {
+        const res = await login(username.trim(), password, captchaId, captchaAnswer.trim())
+        localStorage.setItem('token', res.data.data.token)
+        localStorage.setItem('role', res.data.data.role || 'USER')
+      }
       navigate('/dashboard')
     } catch (err: any) {
       const msg = err?.response?.data?.message || '操作失败'
@@ -61,12 +127,65 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="bg-white p-8 rounded-2xl shadow-lg w-96">
-        <div className="flex items-center justify-center gap-2 mb-8">
+      <div className={`bg-white p-8 rounded-2xl shadow-lg ${isRegister ? 'w-[440px]' : 'w-96'} transition-all`}>
+        <div className="flex items-center justify-center gap-2 mb-6">
           <Shield className="w-8 h-8 text-blue-600" />
           <span className="text-2xl font-bold">ServerScout</span>
         </div>
+
+        <h2 className="text-lg font-semibold text-center mb-6">
+          {isRegister ? '创建账号' : '欢迎回来'}
+        </h2>
+
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Register-only: Name */}
+          {isRegister && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+              <input
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="请输入您的姓名"
+                value={name}
+                onChange={e => setName(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Register-only: Gender */}
+          {isRegister && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">性别</label>
+              <div className="relative">
+                <select
+                  value={gender}
+                  onChange={e => setGender(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-white text-gray-700"
+                >
+                  <option value="" disabled>请选择性别</option>
+                  {GENDER_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              </div>
+            </div>
+          )}
+
+          {/* Register-only: Email */}
+          {isRegister && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">邮箱</label>
+              <input
+                type="email"
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="your@email.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Username */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">用户名</label>
             <input
@@ -76,6 +195,8 @@ export default function LoginPage() {
               onChange={e => setUsername(e.target.value)}
             />
           </div>
+
+          {/* Password */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">密码</label>
             <div className="relative">
@@ -126,9 +247,15 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button type="submit" disabled={loading || !captchaId}
-            className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
+          {error && (
+            <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || !captchaId}
+            className="w-full py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition"
+          >
             {loading ? '处理中...' : isRegister ? '注册' : '登录'}
           </button>
         </form>
@@ -138,7 +265,7 @@ export default function LoginPage() {
             <>
               已有账号？
               <button
-                onClick={() => { setIsRegister(false); setError('') }}
+                onClick={() => { setIsRegister(false); resetForm() }}
                 className="text-blue-600 hover:underline ml-1"
               >
                 去登录
@@ -148,7 +275,7 @@ export default function LoginPage() {
             <>
               还没有账号？
               <button
-                onClick={() => { setIsRegister(true); setError('') }}
+                onClick={() => { setIsRegister(true); resetForm() }}
                 className="text-blue-600 hover:underline ml-1"
               >
                 立即注册

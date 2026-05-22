@@ -26,8 +26,11 @@ public class AttackSurfaceService {
      * Structure: Target → Subnets → IPs → Ports → Services → Tech → Vulns
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> buildAttackSurfaceMap() {
-        List<Asset> assets = assetRepository.findAll();
+    public Map<String, Object> buildAttackSurfaceMap(String username, boolean isAdmin) {
+        List<Asset> assets = isAdmin
+                ? assetRepository.findAll()
+                : assetRepository.searchByCreatedBy(null, null, username,
+                        org.springframework.data.domain.Pageable.unpaged()).getContent();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("name", "Attack Surface");
         result.put("type", "root");
@@ -156,13 +159,15 @@ public class AttackSurfaceService {
      * Build aggregated technology stack statistics.
      */
     @Transactional(readOnly = true)
-    public Map<String, Object> buildTechStackStats() {
+    public Map<String, Object> buildTechStackStats(String username, boolean isAdmin) {
         Map<String, Long> frameworks = new LinkedHashMap<>();
         Map<String, Long> cms = new LinkedHashMap<>();
         Map<String, Long> servers = new LinkedHashMap<>();
         Map<String, Long> wafs = new LinkedHashMap<>();
 
-        List<WebFingerprint> all = webFingerprintRepository.findAll();
+        List<WebFingerprint> all = isAdmin
+                ? webFingerprintRepository.findAll()
+                : webFingerprintRepository.findAllByCreatedBy(username);
         for (WebFingerprint wf : all) {
             if (wf.getFrameworkName() != null && !wf.getFrameworkName().isEmpty()) {
                 frameworks.merge(wf.getFrameworkName(), 1L, Long::sum);

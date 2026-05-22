@@ -2,8 +2,10 @@
 export interface User {
   id: number
   username: string
+  name?: string
+  gender?: string
   role: string
-  email?: string
+  email: string
   enabled: boolean
   createdAt: string
 }

@@ -33,13 +33,21 @@ public class UserService {
     }
 
     @Transactional
-    public User createUser(String username, String password, String role, String email) {
+    public User createUser(String username, String password, String role, String name, String gender, String email) {
         if (userRepository.existsByUsername(username)) {
             throw new IllegalArgumentException("Username already exists: " + username);
+        }
+        if (email == null || email.isBlank() || !email.matches("^[\\w.%+-]+@[\\w.-]+\\.[A-Za-z]{2,}$")) {
+            throw new IllegalArgumentException("Invalid email: " + email);
+        }
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("Email already exists: " + email);
         }
         User user = User.builder()
                 .username(username)
                 .password(passwordEncoder.encode(password))
+                .name(name)
+                .gender(gender)
                 .role(role != null ? role : "USER")
                 .email(email)
                 .enabled(true)
@@ -48,9 +56,11 @@ public class UserService {
     }
 
     @Transactional
-    public User updateUser(Long id, String role, String email, Boolean enabled) {
+    public User updateUser(Long id, String role, String name, String gender, String email, Boolean enabled) {
         User user = getUserById(id);
         if (role != null) user.setRole(role);
+        if (name != null) user.setName(name);
+        if (gender != null) user.setGender(gender);
         if (email != null) user.setEmail(email);
         if (enabled != null) user.setEnabled(enabled);
         return userRepository.save(user);

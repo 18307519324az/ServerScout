@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -20,18 +21,31 @@ public class ScanTaskController {
     private final ScanService scanService;
     private final ProgressEmitter progressEmitter;
 
+    private String getUsername(Authentication auth) {
+        return auth != null ? auth.getName() : "anonymous";
+    }
+
+    private boolean isAdmin(Authentication auth) {
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
     @PostMapping
-    public ApiResponse<ScanTaskResponse> createTask(@Valid @RequestBody CreateScanTaskRequest req) {
-        return ApiResponse.success(scanService.createTask(req));
+    public ApiResponse<ScanTaskResponse> createTask(@Valid @RequestBody CreateScanTaskRequest req,
+                                                     Authentication auth) {
+        return ApiResponse.success(scanService.createTask(req, getUsername(auth)));
     }
 
     @GetMapping
     public ApiResponse<?> listTasks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            Authentication auth) {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return ApiResponse.success(scanService.listTasks(status, pageable));
+        String username = getUsername(auth);
+        boolean admin = isAdmin(auth);
+        return ApiResponse.success(scanService.listTasks(status, pageable, username, admin));
     }
 
     @GetMapping("/{id}")

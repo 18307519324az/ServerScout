@@ -18,11 +18,13 @@ public class DashboardService {
     private final AssetVulnerabilityRepository avRepository;
     private final ScanTaskRepository scanTaskRepository;
 
-    public DashboardResponse getStats() {
-        long totalAssets = assetRepository.count();
-        long totalPorts = portRepository.count();
+    public DashboardResponse getStats(String username, boolean isAdmin) {
+        long totalAssets = isAdmin ? assetRepository.count() : assetRepository.countByCreatedBy(username);
+        long totalPorts = isAdmin ? portRepository.count() : portRepository.countByCreatedBy(username);
 
-        List<Object[]> severityData = avRepository.countBySeverity();
+        List<Object[]> severityData = isAdmin
+                ? avRepository.countBySeverity()
+                : avRepository.countBySeverityAndCreatedBy(username);
         Map<String, Long> sevMap = severityData.stream()
                 .collect(Collectors.toMap(s -> (String) s[0], s -> (Long) s[1]));
 
@@ -32,11 +34,16 @@ public class DashboardService {
         long low = sevMap.getOrDefault("low", 0L);
 
         long totalVulns = crit + high + medium + low;
-        long activeTasks = scanTaskRepository.countByStatus("running");
-        long recentScans = scanTaskRepository.count(); // simplified
+        long activeTasks = isAdmin
+                ? scanTaskRepository.countByStatus("running")
+                : scanTaskRepository.countByCreatedByAndStatus(username, "running");
+        long recentScans = isAdmin
+                ? scanTaskRepository.count()
+                : scanTaskRepository.findIdsByCreatedBy(username).size();
 
-        // Port distribution
-        List<Object[]> rawPorts = portRepository.findPortDistribution();
+        List<Object[]> rawPorts = isAdmin
+                ? portRepository.findPortDistribution()
+                : portRepository.findPortDistributionByCreatedBy(username);
         List<DashboardResponse.PortStatItem> portDist = rawPorts.stream()
                 .limit(10)
                 .map(p -> DashboardResponse.PortStatItem.builder()
@@ -60,22 +67,31 @@ public class DashboardService {
                         .build())
                 .portDistribution(portDist)
                 .severityDistribution(sevDist)
-                .trend(buildTrendData())
+                .trend(buildTrendData(isAdmin, username))
                 .build();
     }
 
-    private List<DashboardResponse.TrendItem> buildTrendData() {
-        // Generate recent 7-day trend from scan history
+    private List<DashboardResponse.TrendItem> buildTrendData(boolean isAdmin, String username) {
         List<DashboardResponse.TrendItem> trend = new java.util.ArrayList<>();
         java.time.Instant now = java.time.Instant.now();
         for (int i = 6; i >= 0; i--) {
             java.time.Instant dayStart = now.minusSeconds(86400L * (i + 1));
             java.time.Instant dayEnd = now.minusSeconds(86400L * i);
+            long assetsDiscovered = isAdmin
+                    ? assetRepository.countScannedSince(dayStart) - assetRepository.countScannedSince(dayEnd)
+                    : assetRepository.countScannedSinceByCreatedBy(dayStart, username)
+                      - assetRepository.countScannedSinceByCreatedBy(dayEnd, username);
+            long vulnsFound = isAdmin
+                    ? avRepository.countByDiscoveredAtBetween(dayStart, dayEnd)
+                    : avRepository.countByDiscoveredAtBetweenAndCreatedBy(dayStart, dayEnd, username);
+            long vulnsFixed = isAdmin
+                    ? avRepository.countByStatusAndFixedAtBetween("fixed", dayStart, dayEnd)
+                    : avRepository.countByStatusAndFixedAtBetweenAndCreatedBy("fixed", dayStart, dayEnd, username);
             trend.add(DashboardResponse.TrendItem.builder()
                     .date(java.time.LocalDate.now().minusDays(i).toString())
-                    .assetsDiscovered(assetRepository.countScannedSince(dayStart) - assetRepository.countScannedSince(dayEnd))
-                    .vulnsFound(avRepository.countByDiscoveredAtBetween(dayStart, dayEnd))
-                    .vulnsFixed(avRepository.countByStatusAndFixedAtBetween("fixed", dayStart, dayEnd))
+                    .assetsDiscovered(assetsDiscovered)
+                    .vulnsFound(vulnsFound)
+                    .vulnsFixed(vulnsFixed)
                     .build());
         }
         return trend;

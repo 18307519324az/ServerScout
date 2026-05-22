@@ -21,10 +21,16 @@ public class User {
     @Column(nullable = false, length = 256)
     private String password;
 
+    @Column(length = 64)
+    private String name;
+
+    @Column(length = 16)
+    private String gender;
+
     @Column(nullable = false, length = 32)
     private String role;
 
-    @Column(length = 128)
+    @Column(nullable = false, length = 128)
     private String email;
 
     @Column(nullable = false)

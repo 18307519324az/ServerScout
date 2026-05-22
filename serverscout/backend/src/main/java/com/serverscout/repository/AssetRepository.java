@@ -27,7 +27,14 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
            "ORDER BY a.criticalVulnCount DESC")
     List<Asset> findTopRisk(Pageable pageable);
 
+    @Query("SELECT a FROM Asset a JOIN a.task t WHERE t.createdBy = :createdBy " +
+           "AND a.status = 'alive' ORDER BY a.criticalVulnCount DESC")
+    List<Asset> findTopRiskByCreatedBy(@Param("createdBy") String createdBy, Pageable pageable);
+
     long countByStatus(String status);
+
+    @Query("SELECT COUNT(a) FROM Asset a JOIN a.task t WHERE t.createdBy = :createdBy")
+    long countByCreatedBy(@Param("createdBy") String createdBy);
 
     Optional<Asset> findByIpAddress(String ipAddress);
 
@@ -38,4 +45,18 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
 
     @Query("SELECT COUNT(a) FROM Asset a WHERE a.lastScanTime >= :since")
     long countScannedSince(@Param("since") java.time.Instant since);
+
+    @Query("SELECT COUNT(a) FROM Asset a JOIN a.task t WHERE t.createdBy = :createdBy " +
+           "AND a.lastScanTime >= :since")
+    long countScannedSinceByCreatedBy(@Param("since") java.time.Instant since,
+                                       @Param("createdBy") String createdBy);
+
+    @Query("SELECT a FROM Asset a JOIN a.task t WHERE t.createdBy = :createdBy " +
+           "AND (:keyword IS NULL OR LOWER(a.ipAddress) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(a.hostname) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+           "(:status IS NULL OR a.status = :status)")
+    Page<Asset> searchByCreatedBy(@Param("keyword") String keyword,
+                                   @Param("status") String status,
+                                   @Param("createdBy") String createdBy,
+                                   Pageable pageable);
 }

@@ -28,8 +28,11 @@ http.interceptors.response.use(
 export const login = (username: string, password: string, captchaId: string, captchaAnswer: string) =>
   http.post<ApiResponse<{ token: string; username: string; role: string }>>('/auth/login', { username, password, captchaId, captchaAnswer })
 
-export const register = (username: string, password: string, captchaId: string, captchaAnswer: string) =>
-  http.post<ApiResponse<{ token: string; username: string; role: string }>>('/auth/register', { username, password, captchaId, captchaAnswer })
+export const register = (data: {
+  username: string; password: string; name: string; gender: string; email: string;
+  captchaId: string; captchaAnswer: string;
+}) =>
+  http.post<ApiResponse<{ token: string; username: string; name: string; role: string }>>('/auth/register', data)
 
 export const fetchCaptcha = () =>
   http.get<ApiResponse<{ captchaId: string; question: string }>>('/auth/captcha')
@@ -41,10 +44,10 @@ export const fetchCurrentUser = () =>
 export const fetchUsers = () =>
   http.get<ApiResponse<User[]>>('/v1/users')
 
-export const createUser = (data: { username: string; password: string; role?: string; email?: string }) =>
+export const createUser = (data: { username: string; password: string; name?: string; gender?: string; role?: string; email?: string }) =>
   http.post<ApiResponse<User>>('/v1/users', data)
 
-export const updateUserApi = (id: number, data: { role?: string; email?: string; enabled?: boolean }) =>
+export const updateUserApi = (id: number, data: { role?: string; name?: string; gender?: string; email?: string; enabled?: boolean }) =>
   http.put<ApiResponse<User>>(`/v1/users/${id}`, data)
 
 export const resetUserPassword = (id: number, newPassword: string) =>

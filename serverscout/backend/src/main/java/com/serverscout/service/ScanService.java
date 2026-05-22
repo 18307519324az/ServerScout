@@ -30,7 +30,7 @@ public class ScanService {
     private final WebFingerprintRepository webFingerprintRepository;
     private final ScanExecutionService scanExecutionService;
 
-    public ScanTaskResponse createTask(CreateScanTaskRequest req) {
+    public ScanTaskResponse createTask(CreateScanTaskRequest req, String createdBy) {
         ScanTask task = ScanTask.builder()
                 .name(req.getName())
                 .targetRange(req.getTargetRange())
@@ -42,6 +42,7 @@ public class ScanService {
                 .progress(0)
                 .totalAssets(0)
                 .totalPorts(0)
+                .createdBy(createdBy)
                 .build();
         task = scanTaskRepository.save(task);
 
@@ -51,10 +52,15 @@ public class ScanService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ScanTaskResponse> listTasks(String status, Pageable pageable) {
+    public Page<ScanTaskResponse> listTasks(String status, Pageable pageable, String username, boolean isAdmin) {
         Page<ScanTask> tasks;
-        if (status != null) tasks = scanTaskRepository.findByStatus(status, pageable);
-        else tasks = scanTaskRepository.findAll(pageable);
+        if (isAdmin) {
+            if (status != null) tasks = scanTaskRepository.findByStatus(status, pageable);
+            else tasks = scanTaskRepository.findAll(pageable);
+        } else {
+            if (status != null) tasks = scanTaskRepository.findByCreatedByAndStatus(username, status, pageable);
+            else tasks = scanTaskRepository.findByCreatedBy(username, pageable);
+        }
         return tasks.map(t -> {
             List<ScanAssetMapping> mappings = scanAssetMappingRepository.findByScanTaskIdWithAsset(t.getId());
             long totalAssets = mappings.stream().map(ScanAssetMapping::getAsset).distinct().count();

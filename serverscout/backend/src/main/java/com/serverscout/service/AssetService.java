@@ -28,11 +28,14 @@ public class AssetService {
     private final ScanAssetMappingRepository scanAssetMappingRepository;
     private final ObjectMapper objectMapper;
 
-    public Page<Asset> listAssets(String keyword, String status, Pageable pageable) {
-        if (keyword != null || status != null) {
-            return assetRepository.search(keyword, status, pageable);
+    public Page<Asset> listAssets(String keyword, String status, Pageable pageable, String username, boolean isAdmin) {
+        if (isAdmin) {
+            if (keyword != null || status != null) {
+                return assetRepository.search(keyword, status, pageable);
+            }
+            return assetRepository.findAll(pageable);
         }
-        return assetRepository.findAll(pageable);
+        return assetRepository.searchByCreatedBy(keyword, status, username, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -190,8 +193,10 @@ public class AssetService {
         return target;
     }
 
-    public TopologyResponse getTopology() {
-        List<Asset> assets = assetRepository.findTopRisk(Pageable.unpaged());
+    public TopologyResponse getTopology(String username, boolean isAdmin) {
+        List<Asset> assets = isAdmin
+                ? assetRepository.findTopRisk(Pageable.unpaged())
+                : assetRepository.findTopRiskByCreatedBy(username, Pageable.unpaged());
         if (assets.size() > 100) assets = assets.subList(0, 100);
 
         // Build nodes with richer data

@@ -30,6 +30,8 @@ public class UserDataInitializer implements CommandLineRunner {
         User admin = User.builder()
                 .username("admin")
                 .password(passwordEncoder.encode("admin123"))
+                .name("系统管理员")
+                .gender("MALE")
                 .role("ADMIN")
                 .email("admin@serverscout.local")
                 .enabled(true)
