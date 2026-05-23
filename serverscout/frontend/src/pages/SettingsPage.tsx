@@ -6,7 +6,8 @@ import type { User } from '../types'
 import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { Plus, Loader2, Trash2, Edit3, Key, UserPlus, Shield, Wrench, Settings, User as UserIcon, Clock, BellRing, Puzzle, ExternalLink, CheckCircle2, XCircle, HelpCircle, ScanLine, Globe } from 'lucide-react'
+import OperationLogViewer from '../components/OperationLogViewer'
+import { Plus, Loader2, Trash2, Edit3, Key, UserPlus, Shield, Wrench, Settings, User as UserIcon, Clock, BellRing, Puzzle, ExternalLink, CheckCircle2, XCircle, HelpCircle, ScanLine, Globe, ScrollText } from 'lucide-react'
 
 const DAYS_OF_WEEK = [
   { value: 'MON', label: '周一' },
@@ -1223,6 +1224,20 @@ export default function SettingsPage() {
         onConfirm={() => userDeleteConfirm && deleteUserMutation.mutate(userDeleteConfirm.id)}
         onCancel={() => setUserDeleteConfirm(null)}
       />
+
+      {/* ========== Operation Logs Section (Admin Only) ========== */}
+      {isAdmin && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6 mt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <ScrollText className="w-5 h-5 text-teal-600" />
+            <div>
+              <h2 className="font-semibold dark:text-white">操作日志</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">查看所有用户的操作记录、登录时间和IP地址</p>
+            </div>
+          </div>
+          <OperationLogViewer />
+        </div>
+      )}
     </div>
   )
 }

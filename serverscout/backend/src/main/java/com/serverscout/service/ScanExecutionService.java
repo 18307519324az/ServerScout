@@ -34,6 +34,8 @@ public class ScanExecutionService {
     private final WebFingerprintRepository webFingerprintRepository;
     private final WebVulnDetectorService webVulnDetectorService;
     private final WebhookNotificationService webhookService;
+    private final CrawlerService crawlerService;
+    private final ScreenshotService screenshotService;
 
     @Async("scanExecutor")
     public void executeScan(Long taskId) {
@@ -90,6 +92,26 @@ public class ScanExecutionService {
                 progressEmitter.sendProgress(taskId, 55, "Web 指纹识别完成", assetCount);
             } else {
                 task.setProgress(55);
+            }
+
+            // Phase 2.3: Web Crawler + Auto Screenshot (Goby-like)
+            if (task.getEnableFingerprint() != null && task.getEnableFingerprint()) {
+                progressEmitter.sendProgress(taskId, 50, "正在启动爬虫发现...", assetCount);
+                List<ScanAssetMapping> crawlMappings = scanAssetMappingRepository
+                        .findByScanTaskIdWithAsset(task.getId());
+                List<Asset> webAssets = crawlMappings.stream()
+                        .map(ScanAssetMapping::getAsset).distinct().collect(Collectors.toList());
+                try {
+                    int crawled = crawlerService.crawl(task, webAssets);
+                    if (isCancelled(taskId)) return;
+                    task.setProgress(57);
+                    scanTaskRepository.save(task);
+                    progressEmitter.sendProgress(taskId, 57,
+                            "爬虫完成，发现 " + crawled + " 个页面", assetCount);
+                    log.info("Task {}: crawler found {} pages", taskId, crawled);
+                } catch (Exception e) {
+                    log.warn("Crawler failed: {}", e.getMessage());
+                }
             }
 
             // Phase 2.5: Vulnerability scanning (Nuclei + CVE matching)
@@ -300,7 +322,6 @@ public class ScanExecutionService {
                         if (pr != null) {
                             httpProbeService.saveProbeResult(port, pr);
                             probed++;
-                            // Emit fingerprint discovery in real time
                             progressEmitter.sendDiscoveredFingerprint(task.getId(), ip,
                                     port.getPortNumber(), pr.serverHeader(), pr.frameworkName(),
                                     pr.cmsName(), pr.title());
@@ -308,6 +329,16 @@ public class ScanExecutionService {
                                     "发现 Web 服务: " + ip + ":" + port.getPortNumber()
                                             + (pr.cmsName() != null ? " [" + pr.cmsName() + "]" : ""),
                                     task.getTotalAssets());
+
+                            // Auto-capture Goby-like screenshot of discovered web service
+                            try {
+                                String scheme = port.getPortNumber() == 443 || port.getPortNumber() == 8443
+                                        ? "https" : "http";
+                                String url = scheme + "://" + ip + ":" + port.getPortNumber();
+                                screenshotService.captureAndSave(url, 1280, 800);
+                            } catch (Exception e) {
+                                log.debug("Auto-screenshot failed for {}:{}: {}", ip, port.getPortNumber(), e.getMessage());
+                            }
                         }
                     } catch (Exception e) { log.debug("HTTP probe error: {}", e.getMessage()); }
                 }

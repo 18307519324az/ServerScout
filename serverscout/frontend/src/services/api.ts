@@ -221,3 +221,26 @@ export const captureScreenshot = (url: string, width?: number, height?: number) 
 // Vulnerability Status Audit Log
 export const fetchVulnStatusLogs = (vulnId: number) =>
   http.get<ApiResponse<any[]>>(`/v1/vulnerabilities/${vulnId}/logs`)
+
+// Crawler
+export const fetchCrawledUrlsByAsset = (assetId: number) =>
+  http.get<ApiResponse<any[]>>(`/v1/crawler/asset/${assetId}`)
+
+export const fetchCrawledUrlsByTask = (taskId: number) =>
+  http.get<ApiResponse<any[]>>(`/v1/crawler/task/${taskId}`)
+
+export const fetchCrawlerScreenshots = (taskId: number) =>
+  http.get<ApiResponse<any[]>>(`/v1/crawler/task/${taskId}/screenshots`)
+
+// Operation Logs (Admin only)
+export const fetchOperationLogs = (params: {
+  page?: number; size?: number; username?: string; type?: string;
+  startTime?: string; endTime?: string;
+}) =>
+  http.get<ApiResponse<{ content: any[]; page: { size: number; number: number; totalElements: number; totalPages: number } }>>('/v1/operation-logs', { params })
+
+export const fetchOperationLogsByUser = (username: string, params: { page?: number; size?: number }) =>
+  http.get<ApiResponse<{ content: any[]; page: any }>>(`/v1/operation-logs/user/${username}`, { params })
+
+export const fetchOperationLogStats = () =>
+  http.get<ApiResponse<any>>('/v1/operation-logs/stats')

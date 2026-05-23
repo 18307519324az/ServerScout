@@ -27,6 +27,7 @@ import java.io.IOException;
 public class SecurityConfig {
 
     private final JwtTokenUtil jwtTokenUtil;
+    private final ApiLoggingFilter apiLoggingFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -37,13 +38,15 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/v1/screenshot/file/**").permitAll()
                 .requestMatchers("/api/v1/scan-tasks/*/progress").permitAll()
                 .requestMatchers("/api/v1/users/me/**").authenticated()
                 .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/**").authenticated()
                 .anyRequest().permitAll()
             )
-            .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(apiLoggingFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

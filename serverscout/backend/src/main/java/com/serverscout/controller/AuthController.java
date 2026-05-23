@@ -2,8 +2,10 @@ package com.serverscout.controller;
 
 import com.serverscout.dto.ApiResponse;
 import com.serverscout.service.CaptchaService;
+import com.serverscout.service.OperationLogService;
 import com.serverscout.service.UserService;
 import com.serverscout.util.JwtTokenUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,6 +19,8 @@ public class AuthController {
     private final JwtTokenUtil jwtTokenUtil;
     private final UserService userService;
     private final CaptchaService captchaService;
+    private final OperationLogService logService;
+    private final HttpServletRequest request;
 
     @PostMapping("/login")
     public ApiResponse<Map<String, String>> login(@RequestBody Map<String, String> body) {
@@ -31,15 +35,21 @@ public class AuthController {
             return ApiResponse.error(4002, "验证码错误");
         }
 
+        String ip = OperationLogService.getClientIp(request);
+        String ua = request.getHeader("User-Agent");
+
         if (userService.authenticate(username, password)) {
-            String role = userService.getUserByUsername(username).getRole();
+            var user = userService.getUserByUsername(username);
+            String role = user.getRole();
             String token = jwtTokenUtil.generateToken(username, role);
+            logService.logLogin(user.getId(), username, ip, ua, true);
             return ApiResponse.success(Map.of(
                 "token", token,
                 "username", username,
                 "role", role
             ));
         }
+        logService.logLogin(null, username, ip, ua, false);
         return ApiResponse.error(4001, "用户名或密码错误");
     }
 
@@ -78,6 +88,12 @@ public class AuthController {
         try {
             userService.createUser(username.trim(), password, "USER", name.trim(), gender.toUpperCase(), email.trim());
             String token = jwtTokenUtil.generateToken(username.trim(), "USER");
+
+            String ip = OperationLogService.getClientIp(request);
+            String ua = request.getHeader("User-Agent");
+            var newUser = userService.getUserByUsername(username.trim());
+            logService.logLogin(newUser.getId(), username.trim(), ip, ua, true);
+
             return ApiResponse.success(Map.of(
                 "token", token,
                 "username", username.trim(),

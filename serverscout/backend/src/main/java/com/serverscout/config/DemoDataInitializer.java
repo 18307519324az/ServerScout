@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Seeds demo data with 12+ assets across 3 subnets for platform demonstration.
@@ -31,12 +32,26 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final ScanTaskRepository scanTaskRepository;
+    private final CrawledUrlRepository crawledUrlRepository;
 
     @Override
     @Transactional
     public void run(String... args) {
+        // Seed crawled URLs regardless of existing asset data
+        try {
+            long crawledCount = crawledUrlRepository.count();
+            log.info("Crawled URL count: {}", crawledCount);
+            if (crawledCount == 0) {
+                log.info("Seeding demo crawled URLs...");
+                seedAllCrawledUrls();
+                log.info("Crawled URLs seeded: {}", crawledUrlRepository.count());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to check/seed crawled URLs: {}", e.getMessage());
+        }
+
         if (assetRepository.count() >= 5) {
-            log.info("Demo data: {} assets exist, skipping seed", assetRepository.count());
+            log.info("Demo data: {} assets exist, skipping asset seed", assetRepository.count());
             return;
         }
 
@@ -172,7 +187,55 @@ public class DemoDataInitializer implements CommandLineRunner {
         updateCriticalCount(jenkins, 1);
         updateCriticalCount(f5Bigip, 2);
 
-        log.info("Demo data seeded: 12 assets, {} ports", portRepository.count());
+        // Seed demo crawled URLs for web assets (Goby-style crawler + screenshot)
+        seedCrawledUrls(demoTask, web01, getPort(web01, 80),
+                new String[][]{
+                        {"http://192.168.1.10:80/", "/", "200", "企业门户 - 首页", "text/html; charset=utf-8",
+                         "企业门户网站首页 公司简介 产品中心 新闻动态 联系我们 版权所有 © 2024",
+                         "12", "0", "120"},
+                        {"http://192.168.1.10:80/about", "/about", "200", "关于我们 - 企业门户", "text/html; charset=utf-8",
+                         "关于我们 公司成立于2010年 专注于网络安全领域 拥有多项核心技术专利",
+                         "8", "1", "95"},
+                        {"http://192.168.1.10:80/products", "/products", "200", "产品中心 - 企业门户", "text/html; charset=utf-8",
+                         "产品列表 防火墙 入侵检测系统 Web应用防火墙 安全审计系统",
+                         "15", "1", "180"},
+                        {"http://192.168.1.10:80/contact", "/contact", "200", "联系我们 - 企业门户", "text/html; charset=utf-8",
+                         "联系方式 地址 电话 邮箱 在线留言表单",
+                         "6", "1", "89"},
+                });
+        seedCrawledUrls(demoTask, web01, getPort(web01, 8080),
+                new String[][]{
+                        {"http://192.168.1.10:8080/", "/", "200", "内部管理系统 API", "text/html; charset=utf-8",
+                         "API管理后台 用户管理 系统配置 日志审计 版本信息 Spring Boot 2.7",
+                         "10", "0", "145"},
+                        {"http://192.168.1.10:8080/swagger-ui.html", "/swagger-ui.html", "200", "Swagger UI - API文档", "text/html; charset=utf-8",
+                         "API接口文档 GET POST PUT DELETE 用户接口 资产管理 扫描任务 漏洞管理",
+                         "25", "1", "230"},
+                });
+        seedCrawledUrls(demoTask, web02, getPort(web02, 80),
+                new String[][]{
+                        {"http://192.168.1.20:80/", "/", "200", "开发测试环境", "text/html; charset=utf-8",
+                         "开发环境 测试服务 版本信息 Vue.js 3.2 构建工具 Vite",
+                         "5", "0", "65"},
+                });
+        seedCrawledUrls(demoTask, jenkins, getPort(jenkins, 8080),
+                new String[][]{
+                        {"http://10.0.0.20:8080/", "/", "200", "Jenkins CI/CD", "text/html; charset=utf-8",
+                         "Jenkins 持续集成 构建队列 任务列表 Pipeline Multibranch",
+                         "20", "0", "310"},
+                        {"http://10.0.0.20:8080/job/build-backend", "/job/build-backend", "200", "build-backend [Jenkins]", "text/html; charset=utf-8",
+                         "构建任务 后端编译 状态成功 最近构建 #145",
+                         "8", "1", "200"},
+                });
+        seedCrawledUrls(demoTask, extWeb, getPort(extWeb, 80),
+                new String[][]{
+                        {"http://172.16.0.10:80/", "/", "200", "Example Company 官网", "text/html; charset=utf-8",
+                         "Example Company 全球领先的解决方案 数字化转型 云服务 安全咨询",
+                         "18", "0", "250"},
+                });
+
+        log.info("Demo data seeded: 12 assets, {} ports, {} crawled URLs",
+                portRepository.count(), crawledUrlRepository.count());
     }
 
     private void createDemoUser(String username, String password, String name,
@@ -259,5 +322,104 @@ public class DemoDataInitializer implements CommandLineRunner {
     private void updateCriticalCount(Asset asset, int count) {
         asset.setCriticalVulnCount(count);
         assetRepository.save(asset);
+    }
+
+    private Port getPort(Asset asset, int portNum) {
+        return portRepository.findByAssetId(asset.getId()).stream()
+                .filter(p -> p.getPortNumber() == portNum).findFirst().orElse(null);
+    }
+
+    /**
+     * Seed crawled URLs for existing assets (runs when assets exist but no crawler data).
+     */
+    private void seedAllCrawledUrls() {
+        ScanTask demoTask = scanTaskRepository.findAll().stream()
+                .filter(t -> "completed".equals(t.getStatus())).findFirst().orElse(null);
+        if (demoTask == null) {
+            ScanTask task = ScanTask.builder()
+                    .name("演示数据导入").targetRange("demo").scanType("full")
+                    .status("completed").progress(100).totalAssets(12).totalPorts(45)
+                    .startedAt(Instant.now().minusSeconds(3600))
+                    .completedAt(Instant.now().minusSeconds(1800))
+                    .createdBy("admin").createdAt(Instant.now().minusSeconds(7200))
+                    .build();
+            demoTask = scanTaskRepository.save(task);
+        }
+
+        ScanTask finalTask = demoTask;
+        assetRepository.findAll().forEach(asset -> {
+            List<Port> webPorts = portRepository.findByAssetId(asset.getId()).stream()
+                    .filter(p -> Boolean.TRUE.equals(p.getIsWebService())).toList();
+            for (Port port : webPorts) {
+                String ip = asset.getIpAddress();
+                int pn = port.getPortNumber();
+                String scheme = (pn == 443 || pn == 8443) ? "https" : "http";
+                String base = scheme + "://" + ip + ":" + pn;
+
+                String cms = null;
+                var wf = webFingerprintRepository.findByPortId(port.getId());
+                if (wf.isPresent()) {
+                    cms = wf.get().getCmsName();
+                }
+
+                String title = (cms != null ? cms : (port.getServiceName() != null ? port.getServiceName() : "Web Service"))
+                        + " - " + ip;
+
+                // Seed root page
+                if (!crawledUrlRepository.existsByUrl(base + "/")) {
+                    CrawledUrl root = CrawledUrl.builder()
+                            .asset(asset).port(port).task(finalTask)
+                            .url(base + "/").path("/")
+                            .httpStatus(200).contentType("text/html; charset=utf-8")
+                            .title(title).bodyText(title + " 页面内容摘要。此页面由爬虫自动发现并记录。")
+                            .linksFound(5 + (int)(Math.random() * 15)).crawlDepth(0)
+                            .responseTimeMs(80L + (long)(Math.random() * 200))
+                            .isDynamic(false).crawledAt(Instant.now().minusSeconds(1800))
+                            .build();
+                    crawledUrlRepository.save(root);
+                }
+
+                // Seed 1-2 sub-pages for primary web services
+                if ((pn == 80 || pn == 443 || pn == 8080 || pn == 8443) && !crawledUrlRepository.existsByUrl(base + "/admin")) {
+                    CrawledUrl sub = CrawledUrl.builder()
+                            .asset(asset).port(port).task(finalTask)
+                            .url(base + "/admin").path("/admin")
+                            .httpStatus(pn == 8443 ? 401 : 200).contentType("text/html; charset=utf-8")
+                            .title("管理后台 - " + ip)
+                            .bodyText("管理后台登录页面。用户名 密码 验证码 登录按钮。")
+                            .linksFound(3).crawlDepth(1)
+                            .responseTimeMs(120L + (long)(Math.random() * 150))
+                            .isDynamic(false).crawledAt(Instant.now().minusSeconds(1800))
+                            .build();
+                    crawledUrlRepository.save(sub);
+                }
+            }
+        });
+        log.info("Seeded {} demo crawled URLs", crawledUrlRepository.count());
+    }
+
+    private void seedCrawledUrls(ScanTask task, Asset asset, Port port, String[][] urls) {
+        if (asset == null || port == null) return;
+        for (String[] u : urls) {
+            String fullUrl = u[0], path = u[1], httpStatus = u[2], title = u[3],
+                   contentType = u[4], bodyText = u[5], linksFound = u[6],
+                   depth = u[7], responseTime = u[8];
+
+            if (crawledUrlRepository.existsByUrl(fullUrl)) continue;
+
+            CrawledUrl crawled = CrawledUrl.builder()
+                    .asset(asset).port(port).task(task)
+                    .url(fullUrl).path(path)
+                    .httpStatus(Integer.parseInt(httpStatus))
+                    .contentType(contentType).title(title)
+                    .bodyText(bodyText)
+                    .linksFound(Integer.parseInt(linksFound))
+                    .crawlDepth(Integer.parseInt(depth))
+                    .responseTimeMs(Long.parseLong(responseTime))
+                    .isDynamic(false)
+                    .crawledAt(Instant.now().minusSeconds(1800))
+                    .build();
+            crawledUrlRepository.save(crawled);
+        }
     }
 }

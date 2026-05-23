@@ -4,8 +4,16 @@ import com.serverscout.dto.ApiResponse;
 import com.serverscout.service.ScreenshotService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 @Slf4j
@@ -23,7 +31,6 @@ public class ScreenshotController {
             return ApiResponse.error(400, "URL is required");
         }
 
-        // Ensure URL has scheme
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
             url = "http://" + url;
         }
@@ -35,7 +42,7 @@ public class ScreenshotController {
 
         String base64 = screenshotService.captureScreenshot(url, width, height);
         if (base64 == null) {
-            return ApiResponse.error(503, "Screenshot capture failed. Install wkhtmltoimage or cutycapt.");
+            return ApiResponse.error(503, "Screenshot capture failed. Install Playwright, wkhtmltoimage or cutycapt.");
         }
 
         return ApiResponse.success(Map.of(
@@ -44,6 +51,25 @@ public class ScreenshotController {
                 "height", String.valueOf(height),
                 "data", "data:image/png;base64," + base64
         ));
+    }
+
+    /** Serve a saved screenshot file by filename */
+    @GetMapping("/file/{filename}")
+    public ResponseEntity<Resource> serveFile(@PathVariable String filename) {
+        try {
+            Path filePath = screenshotService.findScreenshot(filename);
+            if (filePath == null || !Files.exists(filePath)) {
+                return ResponseEntity.notFound().build();
+            }
+            Resource resource = new FileSystemResource(filePath);
+            String contentType = Files.probeContentType(filePath);
+            return ResponseEntity.ok()
+                    .contentType(contentType != null ? MediaType.parseMediaType(contentType) : MediaType.IMAGE_PNG)
+                    .header(HttpHeaders.CACHE_CONTROL, "max-age=3600")
+                    .body(resource);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     private int parseInt(String val, int defaultVal) {

@@ -215,3 +215,39 @@ export interface SubdomainStats {
   sources: string[]
   subdomains: Subdomain[]
 }
+
+// ========== Crawled URL ==========
+export interface CrawledUrl {
+  id: number
+  url: string
+  path: string
+  httpStatus: number
+  contentType: string
+  title: string
+  bodyText: string
+  linksFound: number
+  crawlDepth: number
+  responseTimeMs: number
+  isDynamic: boolean
+  screenshotPath: string | null
+  crawledAt: string
+  asset?: { id: number; ipAddress: string }
+  port?: { id: number; portNumber: number; serviceName: string }
+}
+
+// ========== Operation Log ==========
+export interface OperationLog {
+  id: number
+  userId: number | null
+  username: string
+  operationType: string
+  target: string
+  detail: string
+  ipAddress: string
+  userAgent: string
+  requestMethod: string
+  requestUri: string
+  statusCode: number
+  durationMs: number
+  createdAt: string
+}
