@@ -212,19 +212,56 @@ export default function SettingsPage() {
         'webhook-feishu': webhookConfig.feishu,
         'webhook-wecom': webhookConfig.wecom,
       }
-      // Collect external API keys from DOM
-      const censysId = (document.getElementById('censys-api-id') as HTMLInputElement)?.value || ''
-      const censysSecret = (document.getElementById('censys-api-secret') as HTMLInputElement)?.value || ''
-      const vtKey = (document.getElementById('virustotal-api-key') as HTMLInputElement)?.value || ''
-      if (censysId) configs['censys-api-id'] = censysId
-      if (censysSecret) configs['censys-api-secret'] = censysSecret
-      if (vtKey) configs['virustotal-api-key'] = vtKey
       return updateSystemConfigs(configs)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['systemConfigs'] })
       setEditingWebhook(false)
-      toast.success('告警通知与 API 配置已更新')
+      toast.success('告警通知配置已更新')
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || '保存失败'),
+  })
+
+  // ========== Email Config State ==========
+  const [emailConfig, setEmailConfig] = useState({
+    enabled: false,
+    recipient: '',
+    smtpHost: '',
+    smtpPort: '587',
+    smtpUsername: '',
+    smtpPassword: '',
+    smtpSsl: false,
+  })
+  const emailInitialized = useRef(false)
+
+  useEffect(() => {
+    if (!configsLoading && !emailInitialized.current) {
+      setEmailConfig({
+        enabled: configs['email-enabled'] === 'true',
+        recipient: configs['email-recipient'] || '',
+        smtpHost: configs['email-smtp-host'] || '',
+        smtpPort: configs['email-smtp-port'] || '587',
+        smtpUsername: configs['email-smtp-username'] || '',
+        smtpPassword: configs['email-smtp-password'] || '',
+        smtpSsl: configs['email-smtp-ssl'] === 'true',
+      })
+      emailInitialized.current = true
+    }
+  }, [configsLoading])
+
+  const updateEmailMutation = useMutation({
+    mutationFn: () => updateSystemConfigs({
+      'email-enabled': String(emailConfig.enabled),
+      'email-recipient': emailConfig.recipient,
+      'email-smtp-host': emailConfig.smtpHost,
+      'email-smtp-port': emailConfig.smtpPort,
+      'email-smtp-username': emailConfig.smtpUsername,
+      'email-smtp-password': emailConfig.smtpPassword,
+      'email-smtp-ssl': String(emailConfig.smtpSsl),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['systemConfigs'] })
+      toast.success('邮件通知配置已保存')
     },
     onError: (err: any) => toast.error(err?.response?.data?.message || '保存失败'),
   })
@@ -741,30 +778,48 @@ export default function SettingsPage() {
           <Globe className="w-5 h-5 text-purple-600" />
           <div>
             <h2 className="font-semibold dark:text-white">外部情报 API 配置</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">配置 Censys 和 VirusTotal 的 API 密钥以启用扩展情报查询</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">配置 Censys 和 VirusTotal 的 API 密钥以启用扩展威胁情报查询</p>
           </div>
         </div>
-        <div className="space-y-3">
-          <div className="flex justify-between items-center px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+        <div className="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <span className={`inline-block w-2 h-2 rounded-full mr-2 ${(configs['censys-api-id'] && configs['censys-api-secret']) ? 'bg-green-500' : 'bg-gray-300'}`} />
-              <span className="text-sm font-medium dark:text-white">Censys API</span>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Censys API ID</label>
+              <input type="text" defaultValue={configs['censys-api-id'] || ''}
+                id="censys-api-id"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                placeholder="Censys API ID" />
             </div>
-            <code className="text-xs bg-gray-100 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded max-w-xs truncate">
-              {(configs['censys-api-id'] && configs['censys-api-secret']) ? '已配置' : '未配置'}
-            </code>
-          </div>
-          <div className="flex justify-between items-center px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
             <div>
-              <span className={`inline-block w-2 h-2 rounded-full mr-2 ${configs['virustotal-api-key'] ? 'bg-green-500' : 'bg-gray-300'}`} />
-              <span className="text-sm font-medium dark:text-white">VirusTotal API</span>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Censys API Secret</label>
+              <input type="password" defaultValue={configs['censys-api-secret'] || ''}
+                id="censys-api-secret"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                placeholder="Censys API Secret" />
             </div>
-            <code className="text-xs bg-gray-100 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded max-w-xs truncate">
-              {configs['virustotal-api-key'] ? '已配置' : '未配置'}
-            </code>
+            <div className="col-span-2">
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">VirusTotal API Key</label>
+              <input type="password" defaultValue={configs['virustotal-api-key'] || ''}
+                id="virustotal-api-key"
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                placeholder="从 https://www.virustotal.com/gui/my-apikey 获取" />
+            </div>
           </div>
-          <p className="text-xs text-gray-400 dark:text-gray-500 px-3">
-            前往「告警通知配置」编辑 Webhook 和 API 密钥。API Key 可通过
+          <button onClick={() => {
+            const censysId = (document.getElementById('censys-api-id') as HTMLInputElement)?.value || ''
+            const censysSecret = (document.getElementById('censys-api-secret') as HTMLInputElement)?.value || ''
+            const vtKey = (document.getElementById('virustotal-api-key') as HTMLInputElement)?.value || ''
+            const configs: Record<string, string> = {}
+            if (censysId) configs['censys-api-id'] = censysId
+            if (censysSecret) configs['censys-api-secret'] = censysSecret
+            if (vtKey) configs['virustotal-api-key'] = vtKey
+            updateWebhookMutation.mutate()
+          }}
+            className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+            保存 API 密钥
+          </button>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            API Key 可通过
             <a href="https://search.censys.io/account/api" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline mx-1">Censys</a>
             和
             <a href="https://www.virustotal.com/gui/my-apikey" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">VirusTotal</a>
@@ -820,33 +875,6 @@ export default function SettingsPage() {
                 className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
                 placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx" />
             </div>
-            <div className="border-t dark:border-gray-600 pt-3 mt-3">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">外部情报 API 密钥（可选，用于 Censys / VirusTotal 查询）</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Censys API ID</label>
-                  <input type="text" value={configs['censys-api-id'] || ''}
-                    onChange={(e) => { /* handled on save */ }}
-                    id="censys-api-id"
-                    className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                    placeholder="Censys API ID" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Censys API Secret</label>
-                  <input type="password" defaultValue={configs['censys-api-secret'] || ''}
-                    id="censys-api-secret"
-                    className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                    placeholder="Censys API Secret" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">VirusTotal API Key</label>
-                  <input type="password" defaultValue={configs['virustotal-api-key'] || ''}
-                    id="virustotal-api-key"
-                    className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                    placeholder="从 https://www.virustotal.com/gui/my-apikey 获取" />
-                </div>
-              </div>
-            </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setEditingWebhook(false)}
                 className="px-4 py-1.5 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200">取消</button>
@@ -880,6 +908,81 @@ export default function SettingsPage() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* ========== Email Notification Config ========== */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6 mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <BellRing className="w-5 h-5 text-rose-600" />
+          <div>
+            <h2 className="font-semibold dark:text-white">邮件通知配置</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">扫描完成后发送邮件报告到指定邮箱（需配置 SMTP 服务器）</p>
+          </div>
+        </div>
+
+        <div className="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox"
+              checked={emailConfig.enabled}
+              onChange={(e) => setEmailConfig({ ...emailConfig, enabled: e.target.checked })}
+              className="rounded" />
+            <span className="text-sm font-medium dark:text-white">启用邮件通知</span>
+          </label>
+          <div>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">收件邮箱</label>
+            <input type="email" value={emailConfig.recipient}
+              onChange={(e) => setEmailConfig({ ...emailConfig, recipient: e.target.value })}
+              className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+              placeholder="admin@example.com" />
+          </div>
+          <div className="border-t dark:border-gray-600 pt-3 mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">SMTP 服务器配置（使用 QQ邮箱/163/Gmail 等邮箱的 SMTP 授权码）</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">SMTP 服务器地址</label>
+                <input type="text" value={emailConfig.smtpHost}
+                  onChange={(e) => setEmailConfig({ ...emailConfig, smtpHost: e.target.value })}
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                  placeholder="smtp.qq.com" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">SMTP 端口</label>
+                <input type="text" value={emailConfig.smtpPort}
+                  onChange={(e) => setEmailConfig({ ...emailConfig, smtpPort: e.target.value })}
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                  placeholder="587" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">发件邮箱账号</label>
+                <input type="text" value={emailConfig.smtpUsername}
+                  onChange={(e) => setEmailConfig({ ...emailConfig, smtpUsername: e.target.value })}
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                  placeholder="your-email@qq.com" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">SMTP 授权码/密码</label>
+                <input type="password" value={emailConfig.smtpPassword}
+                  onChange={(e) => setEmailConfig({ ...emailConfig, smtpPassword: e.target.value })}
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                  placeholder="邮箱 SMTP 授权码（非登录密码）" />
+              </div>
+              <div className="col-span-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox"
+                    checked={emailConfig.smtpSsl}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtpSsl: e.target.checked })}
+                    className="rounded" />
+                  <span className="text-xs text-gray-500 dark:text-gray-400">启用 SSL 加密 (端口 465 通常需要勾选)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <button onClick={() => updateEmailMutation.mutate()}
+            disabled={updateEmailMutation.isPending}
+            className="px-3 py-1.5 text-sm bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50">
+            {updateEmailMutation.isPending ? '保存中...' : '保存邮件配置'}
+          </button>
+        </div>
       </div>
 
       {/* ========== L2 Scan Strategy Plugin Manager ========== */}

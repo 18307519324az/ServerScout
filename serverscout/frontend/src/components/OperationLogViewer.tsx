@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchOperationLogs } from '../services/api'
 import type { OperationLog } from '../types'
-import { Clock, User, Globe, Activity, Search, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
+import { Clock, User, Globe, Activity, Search, ChevronLeft, ChevronRight, FileText, MapPin } from 'lucide-react'
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
   LOGIN_SUCCESS: { label: '登录成功', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
@@ -90,7 +90,7 @@ export default function OperationLogViewer() {
                 <th className="text-left py-2 pl-3 w-16">类型</th>
                 <th className="text-left py-2 w-20">用户</th>
                 <th className="text-left py-2 w-36">操作目标</th>
-                <th className="text-left py-2 w-28">IP地址</th>
+                <th className="text-left py-2 w-40">IP 地址 / 归属地</th>
                 <th className="text-left py-2 w-32">时间</th>
               </tr>
             </thead>
@@ -109,9 +109,17 @@ export default function OperationLogViewer() {
                     {log.detail && <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{log.detail}</p>}
                   </td>
                   <td className="py-2">
-                    <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                      <Globe className="w-3 h-3" />
-                      <code className="text-[11px]">{log.ipAddress || '-'}</code>
+                    <div className="text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-1">
+                        <Globe className="w-3 h-3" />
+                        <code className="text-[11px]">{log.ipAddress || '-'}</code>
+                      </div>
+                      {log.geoLocation && (
+                        <div className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                          <MapPin className="w-3 h-3" />
+                          <span>{log.geoLocation}</span>
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="py-2 text-gray-400 dark:text-gray-500">

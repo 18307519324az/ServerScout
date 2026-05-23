@@ -15,6 +15,7 @@ public class CreateScanTaskRequest {
     private String portRange = "1-1000";
     private Boolean enableFingerprint = true;
     private Boolean enableVulnScan = false;
+    private Boolean enableCrawler = true;
     private ScanConfig config;
 
     @Data

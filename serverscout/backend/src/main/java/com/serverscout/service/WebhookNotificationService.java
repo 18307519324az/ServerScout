@@ -24,6 +24,7 @@ public class WebhookNotificationService {
 
     private final ScanTaskRepository scanTaskRepository;
     private final SystemConfigService configService;
+    private final EmailNotificationService emailService;
 
     @Async
     public void sendScanCompletedNotification(Long taskId) {
@@ -53,6 +54,9 @@ public class WebhookNotificationService {
         sendDingTalk(title, markdown);
         sendFeishu(title, markdown);
         sendWeCom(title, markdown);
+
+        // Send email notification
+        emailService.sendScanCompletedEmail(taskId, task);
     }
 
     private void sendDingTalk(String title, String markdown) {

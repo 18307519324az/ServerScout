@@ -31,6 +31,9 @@ public class ScanTask {
     @Column(name = "enable_vuln_scan")
     private Boolean enableVulnScan;
 
+    @Column(name = "enable_crawler")
+    private Boolean enableCrawler;
+
     @Column(length = 16, nullable = false)
     private String status;
 

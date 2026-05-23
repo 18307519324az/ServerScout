@@ -80,32 +80,64 @@ public class ReportService {
 
             pdf.addEventHandler(PdfDocumentEvent.END_PAGE, new PageNumberHandler());
 
-            // Cover
-            doc.add(new Paragraph(" ").setHeight(60));
+            // ═══ Cover Page ═══
+            doc.add(new Paragraph(" ").setHeight(50));
             doc.add(new Paragraph("ServerScout")
                     .setFontSize(36).setBold()
                     .setFontColor(COLOR_PRIMARY)
                     .setTextAlignment(TextAlignment.CENTER));
-            doc.add(new Paragraph("安全扫描报告")
-                    .setFontSize(24).setFontColor(COLOR_DARK)
+            doc.add(new Paragraph("安全扫描分析报告")
+                    .setFontSize(22).setFontColor(COLOR_DARK)
                     .setTextAlignment(TextAlignment.CENTER));
-            doc.add(new Paragraph(" ").setHeight(20));
+            doc.add(new Paragraph(" ").setHeight(12));
+            doc.add(new Paragraph("网络资产攻击面可视化分析平台")
+                    .setFontSize(10).setFontColor(COLOR_GRAY)
+                    .setTextAlignment(TextAlignment.CENTER));
+            doc.add(new Paragraph(" ").setHeight(18));
             doc.add(dividerLine());
 
+            // Scan metadata table with labels
+            doc.add(new Paragraph(" ").setHeight(8));
+            doc.add(new Paragraph("扫描任务概要").setFontSize(13).setBold()
+                    .setFontColor(COLOR_DARK).setTextAlignment(TextAlignment.CENTER));
+            doc.add(new Paragraph(" ").setHeight(6));
             addMetaTable(doc, task);
-            doc.add(new Paragraph(" ").setHeight(30));
+            doc.add(new Paragraph(" ").setHeight(14));
+
+            // Summary stats cards
             addSummaryCards(doc, task, assets);
+            doc.add(new Paragraph(" ").setHeight(8));
+            doc.add(new Paragraph("报告生成时间：" + java.time.LocalDateTime.now().format(DTF))
+                    .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.CENTER));
             doc.add(new AreaBreak());
 
-            // Asset Table
-            doc.add(new Paragraph("资产清单")
-                    .setFontSize(16).setBold().setFontColor(COLOR_DARK));
+            // ═══ Section 1: Summary & Legend ═══
+            doc.add(new Paragraph("一、报告概述").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+            doc.add(new Paragraph(" ").setHeight(4));
+            doc.add(new Paragraph("本报告由 ServerScout 自动生成，包含扫描任务的资产发现、端口信息、漏洞详情等关键安全数据。"
+                    + "以下各节分别展示不同维度的扫描结果。")
+                    .setFontSize(9).setFontColor(COLOR_GRAY));
+            doc.add(new Paragraph(" ").setHeight(6));
+
+            // Severity legend
+            doc.add(new Paragraph("漏洞严重等级说明：").setFontSize(9).setBold().setFontColor(COLOR_DARK));
+            addSeverityLegend(doc);
+            doc.add(new Paragraph(" ").setHeight(8));
+
+            // Stats summary
+            addDetailedStats(doc, task, assets);
+            doc.add(new AreaBreak());
+
+            // ═══ Section 2: Asset List ═══
+            doc.add(new Paragraph("二、资产清单").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+            doc.add(new Paragraph("以下列出扫描发现的所有网络资产，包括 IP 地址、主机名、操作系统指纹、开放端口数量及高危漏洞统计。")
+                    .setFontSize(8).setFontColor(COLOR_GRAY));
             doc.add(new Paragraph(" ").setHeight(6));
 
             if (!assets.isEmpty()) {
                 Table table = new Table(UnitValue.createPercentArray(
-                        new float[]{2.5f, 3, 2.5f, 1.5f, 1.2f, 1.2f})).useAllAvailableWidth();
-                pdfHeaderRow(table, "IP地址", "主机名", "操作系统", "端口", "高危", "状态");
+                        new float[]{2.2f, 2.8f, 2.5f, 1.5f, 1.3f, 1.3f})).useAllAvailableWidth();
+                pdfHeaderRow(table, "IP 地址", "主机名", "操作系统", "端口数", "高危漏洞", "状态");
 
                 boolean alt = false;
                 for (Asset a : assets) {
@@ -120,24 +152,28 @@ public class ReportService {
                     alt = !alt;
                 }
                 doc.add(table);
+                doc.add(new Paragraph(String.format("（共 %d 个资产）", assets.size()))
+                        .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.RIGHT));
             } else {
-                doc.add(new Paragraph("暂无资产数据").setFontSize(9).setFontColor(COLOR_GRAY));
+                doc.add(new Paragraph("（本次扫描未发现资产）").setFontSize(9).setFontColor(COLOR_GRAY));
             }
-            doc.add(new Paragraph(" ").setHeight(10));
+            doc.add(new Paragraph(" ").setHeight(8));
 
-            // Port Table
+            // ═══ Section 3: Port Details ═══
             int totalPortRows = 0;
             for (Asset a : assets) {
                 totalPortRows += portRepository.findByAssetId(a.getId()).size();
             }
             if (totalPortRows > 0) {
-                doc.add(new Paragraph("端口详情")
-                        .setFontSize(14).setBold().setFontColor(COLOR_DARK));
+                doc.add(new Paragraph("三、端口详情").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(new Paragraph("列出每个资产上开放的端口及其服务信息。\"服务\"列显示运行的服务类型（如 HTTP、SSH），"
+                        + "\"产品/版本\"列显示具体软件及版本号，可用于漏洞关联分析。")
+                        .setFontSize(8).setFontColor(COLOR_GRAY));
                 doc.add(new Paragraph(" ").setHeight(4));
 
                 Table pTable = new Table(UnitValue.createPercentArray(
-                        new float[]{2.5f, 1.2f, 1, 2, 2.5f, 1.5f})).useAllAvailableWidth();
-                pdfHeaderRow(pTable, "IP地址", "端口", "协议", "服务", "版本", "状态");
+                        new float[]{2.2f, 1, 0.8f, 2.2f, 3, 1.2f})).useAllAvailableWidth();
+                pdfHeaderRow(pTable, "IP 地址", "端口", "协议", "服务", "产品 / 版本", "状态");
 
                 boolean alt = false;
                 for (Asset a : assets) {
@@ -147,28 +183,36 @@ public class ReportService {
                         pdfCell(pTable, String.valueOf(p.getPortNumber()), bg);
                         pdfCell(pTable, p.getProtocol() != null ? p.getProtocol() : "tcp", bg);
                         pdfCell(pTable, p.getServiceName() != null ? p.getServiceName() : "-", bg);
-                        pdfCell(pTable, p.getServiceVersion() != null ? p.getServiceVersion() : "-", bg);
+                        String prodVer = "";
+                        if (p.getServiceProduct() != null) prodVer = p.getServiceProduct();
+                        if (p.getServiceVersion() != null) prodVer += " " + p.getServiceVersion();
+                        pdfCell(pTable, !prodVer.isBlank() ? prodVer.trim() : "-", bg);
                         pdfCell(pTable, p.getState() != null ? p.getState() : "open", bg);
                         alt = !alt;
                     }
                 }
                 doc.add(pTable);
-                doc.add(new Paragraph(" ").setHeight(10));
+                doc.add(new Paragraph(String.format("（共 %d 条端口记录）", totalPortRows))
+                        .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.RIGHT));
+                doc.add(new Paragraph(" ").setHeight(8));
             }
 
-            // Vulnerability Table
+            // ═══ Section 4: Vulnerability Details ═══
             int totalVulns = 0;
             for (Asset a : assets) {
                 totalVulns += vulnRepository.findByAssetIdWithCve(a.getId()).size();
             }
             if (totalVulns > 0) {
-                doc.add(new Paragraph("漏洞详情")
-                        .setFontSize(14).setBold().setFontColor(COLOR_DARK));
+                doc.add(new Paragraph("四、漏洞详情").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(new Paragraph("列出通过 CVE 匹配和 Nuclei 扫描发现的漏洞。"
+                        + "\"CVSS 评分\"为通用漏洞评分系统得分（0-10，越高越严重），"
+                        + "\"受影响软件\"列可用于定位需修复的系统组件。")
+                        .setFontSize(8).setFontColor(COLOR_GRAY));
                 doc.add(new Paragraph(" ").setHeight(4));
 
                 Table vTable = new Table(UnitValue.createPercentArray(
-                        new float[]{2, 1.5f, 1, 3, 1.5f})).useAllAvailableWidth();
-                pdfHeaderRow(vTable, "CVE编号", "严重等级", "CVSS", "受影响软件", "状态");
+                        new float[]{2, 1.3f, 0.8f, 3, 1.5f})).useAllAvailableWidth();
+                pdfHeaderRow(vTable, "CVE 编号", "严重等级", "CVSS", "受影响软件", "状态");
 
                 boolean alt = false;
                 for (Asset a : assets) {
@@ -186,13 +230,52 @@ public class ReportService {
                     }
                 }
                 doc.add(vTable);
+                doc.add(new Paragraph(String.format("（共 %d 个漏洞）", totalVulns))
+                        .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.RIGHT));
+                doc.add(new Paragraph(" ").setHeight(8));
+
+                // Per-vulnerability details section
+                doc.add(new Paragraph("漏洞详细信息：").setFontSize(11).setBold().setFontColor(COLOR_DARK));
+                doc.add(new Paragraph(" ").setHeight(4));
+                int vulnIdx = 0;
+                for (Asset a : assets) {
+                    for (AssetVulnerability v : vulnRepository.findByAssetIdWithCve(a.getId())) {
+                        CveDatabase cve = v.getCveDatabase();
+                        if (cve == null) continue;
+                        vulnIdx++;
+                        String header = String.format("%d. %s [%s] — CVSS %.1f",
+                                vulnIdx, cve.getCveId(),
+                                cve.getSeverity() != null ? cve.getSeverity().toUpperCase() : "N/A",
+                                cve.getCvssScore() != null ? cve.getCvssScore() : 0.0);
+                        doc.add(new Paragraph(header).setFontSize(9).setBold()
+                                .setFontColor(getSeverityColor(cve.getSeverity())));
+                        doc.add(new Paragraph("受影响资产: " + a.getIpAddress()
+                                + (a.getHostname() != null ? " (" + a.getHostname() + ")" : ""))
+                                .setFontSize(8).setFontColor(COLOR_GRAY));
+                        if (cve.getDescription() != null) {
+                            doc.add(new Paragraph("描述: " + cve.getDescription())
+                                    .setFontSize(8).setFontColor(COLOR_DARK));
+                        }
+                        if (cve.getFixSuggestion() != null) {
+                            doc.add(new Paragraph("修复建议: " + cve.getFixSuggestion())
+                                    .setFontSize(8).setFontColor(new DeviceRgb(22, 163, 74)));
+                        }
+                        doc.add(new Paragraph(" ").setHeight(2));
+                    }
+                }
+            } else {
+                doc.add(new Paragraph("四、漏洞详情").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(new Paragraph("（本次扫描未发现漏洞）").setFontSize(9).setFontColor(COLOR_GRAY));
             }
 
-            doc.add(new Paragraph(" ").setHeight(20));
+            doc.add(new Paragraph(" ").setHeight(16));
             doc.add(dividerLine());
             doc.add(new Paragraph("本报告由 ServerScout 自动生成 | "
                     + java.time.LocalDateTime.now().format(DTF))
                     .setFontSize(7).setFontColor(COLOR_GRAY)
+                    .setTextAlignment(TextAlignment.CENTER));
+            doc.add(new Paragraph("报告数据来源于扫描任务执行结果，仅供参考。请结合实际情况进行安全评估。")
+                    .setFontSize(6).setFontColor(COLOR_GRAY)
                     .setTextAlignment(TextAlignment.CENTER));
 
             doc.close();
@@ -394,6 +477,60 @@ public class ReportService {
     }
 
     // ──────────── PDF Helpers ────────────
+
+    private void addSeverityLegend(Document doc) {
+        String[][] legend = {
+                {"Critical (严重)", "需立即修复，可能导致系统完全被控制"},
+                {"High (高危)", "存在较大安全风险，建议尽快修复"},
+                {"Medium (中危)", "存在一定安全风险，建议安排修复"},
+                {"Low (低危)", "风险较低，建议择机修复"},
+        };
+        DeviceRgb[] colors = {COLOR_CRITICAL, COLOR_HIGH, COLOR_MEDIUM, COLOR_LOW};
+        for (int i = 0; i < legend.length; i++) {
+            doc.add(new Paragraph("  ■ " + legend[i][0] + " — " + legend[i][1])
+                    .setFontSize(7).setFontColor(colors[i]));
+        }
+    }
+
+    private void addDetailedStats(Document doc, ScanTask task, List<Asset> assets) {
+        long critCount = 0, highCount = 0, mediumCount = 0, lowCount = 0;
+        int webCount = 0;
+        for (Asset a : assets) {
+            for (AssetVulnerability v : vulnRepository.findByAssetIdWithCve(a.getId())) {
+                CveDatabase cve = v.getCveDatabase();
+                if (cve == null) continue;
+                String sev = cve.getSeverity();
+                if ("critical".equalsIgnoreCase(sev)) critCount++;
+                else if ("high".equalsIgnoreCase(sev)) highCount++;
+                else if ("medium".equalsIgnoreCase(sev)) mediumCount++;
+                else if ("low".equalsIgnoreCase(sev)) lowCount++;
+            }
+            for (Port p : portRepository.findByAssetId(a.getId())) {
+                if (Boolean.TRUE.equals(p.getIsWebService())) webCount++;
+            }
+        }
+
+        doc.add(new Paragraph("关键数据摘要：").setFontSize(9).setBold().setFontColor(COLOR_DARK));
+        doc.add(new Paragraph(String.format(
+                "  资产总数: %d 个  |  开放端口: %d 个  |  Web 服务: %d 个  |  漏洞总数: %d 个",
+                assets.size(), task.getTotalPorts(), webCount, critCount + highCount + mediumCount + lowCount))
+                .setFontSize(8).setFontColor(COLOR_DARK));
+        doc.add(new Paragraph(String.format(
+                "  严重(Critical): %d  |  高危(High): %d  |  中危(Medium): %d  |  低危(Low): %d",
+                critCount, highCount, mediumCount, lowCount))
+                .setFontSize(8).setFontColor(COLOR_DARK));
+    }
+
+    private DeviceRgb getSeverityColor(String severity) {
+        if (severity == null) return COLOR_GRAY;
+        switch (severity.toLowerCase()) {
+            case "critical": return COLOR_CRITICAL;
+            case "high": return COLOR_HIGH;
+            case "medium": return COLOR_MEDIUM;
+            case "low": return COLOR_LOW;
+            default: return COLOR_GRAY;
+        }
+    }
 
     private void addMetaTable(Document doc, ScanTask task) {
         Table metaTable = new Table(UnitValue.createPercentArray(new float[]{2, 5}))

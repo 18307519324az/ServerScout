@@ -41,6 +41,9 @@ public class OperationLog {
     @Column(name = "ip_address", length = 64)
     private String ipAddress;
 
+    @Column(name = "geo_location", length = 128)
+    private String geoLocation;
+
     @Column(name = "user_agent", length = 512)
     private String userAgent;
 

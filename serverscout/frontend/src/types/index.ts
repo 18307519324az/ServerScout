@@ -134,6 +134,7 @@ export interface CreateScanTaskRequest {
   portRange: string
   enableFingerprint: boolean
   enableVulnScan: boolean
+  enableCrawler: boolean
 }
 
 // ========== Vulnerability ==========
@@ -244,6 +245,7 @@ export interface OperationLog {
   target: string
   detail: string
   ipAddress: string
+  geoLocation: string
   userAgent: string
   requestMethod: string
   requestUri: string

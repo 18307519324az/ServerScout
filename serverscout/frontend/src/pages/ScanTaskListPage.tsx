@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { fetchScanTasks, createScanTask, deleteScanTask } from '../services/api'
+import { fetchScanTasks, createScanTask, deleteScanTask, fetchScanTypes } from '../services/api'
 import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
 import ProgressBar from '../components/ProgressBar'
@@ -26,6 +26,13 @@ export default function ScanTaskListPage() {
     queryFn: () => fetchScanTasks({ page, size: pageSize }),
     refetchInterval: 10000,
   })
+
+  // Fetch custom scan types from L2 plugins
+  const { data: scanTypesData } = useQuery({
+    queryKey: ['scanTypes'],
+    queryFn: () => fetchScanTypes(),
+  })
+  const customScanTypes: string[] = scanTypesData?.data?.data || []
 
   const createMutation = useMutation({
     mutationFn: createScanTask,
@@ -174,6 +181,7 @@ export default function ScanTaskListPage() {
                 portRange: (fd.get('portRange') as string) || '1-1000',
                 enableFingerprint: fd.get('enableFingerprint') === 'on',
                 enableVulnScan: fd.get('enableVulnScan') === 'on',
+                enableCrawler: fd.get('enableCrawler') === 'on',
               })
             }} className="space-y-3">
               <div>
@@ -236,6 +244,9 @@ export default function ScanTaskListPage() {
                   <select name="scanType" className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm outline-none bg-white dark:bg-gray-700 dark:text-gray-200">
                     <option value="quick">Quick (主机发现)</option>
                     <option value="full">Full (端口+版本+OS)</option>
+                    {customScanTypes.filter(t => t !== 'quick' && t !== 'full' && t !== 'vuln' && t !== 'nuclei').map(t => (
+                      <option key={t} value={t}>{t} (自定义策略)</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -244,12 +255,15 @@ export default function ScanTaskListPage() {
                     className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm font-mono outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200" />
                 </div>
               </div>
-              <div className="flex gap-4 text-sm dark:text-gray-300">
+              <div className="flex gap-4 text-sm dark:text-gray-300 flex-wrap">
                 <label className="flex items-center gap-1">
                   <input type="checkbox" name="enableFingerprint" defaultChecked /> 指纹识别
                 </label>
                 <label className="flex items-center gap-1">
                   <input type="checkbox" name="enableVulnScan" /> 漏洞扫描
+                </label>
+                <label className="flex items-center gap-1">
+                  <input type="checkbox" name="enableCrawler" defaultChecked /> 爬虫发现
                 </label>
               </div>
               {createError && (

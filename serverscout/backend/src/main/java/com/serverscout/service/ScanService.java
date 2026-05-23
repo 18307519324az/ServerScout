@@ -38,6 +38,7 @@ public class ScanService {
                 .portRange(req.getPortRange())
                 .enableFingerprint(req.getEnableFingerprint())
                 .enableVulnScan(req.getEnableVulnScan())
+                .enableCrawler(req.getEnableCrawler() != null ? req.getEnableCrawler() : true)
                 .status("pending")
                 .progress(0)
                 .totalAssets(0)

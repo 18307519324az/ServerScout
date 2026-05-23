@@ -55,6 +55,27 @@ public class ScanExecutionService {
 
             ScanResult result = strategy.execute(task);
 
+            // For custom plugin scanners that only produce vulnerabilities (no assets),
+            // run a quick Nmap scan first to discover hosts/ports
+            if (result.getAssets().isEmpty() && strategy instanceof CustomCommandScanner) {
+                log.info("Custom plugin scanner detected, running quick Nmap for asset discovery");
+                ScannerStrategy quickScanner = scannerStrategies.stream()
+                        .filter(s -> s.supports("quick"))
+                        .findFirst().orElse(null);
+                if (quickScanner != null) {
+                    ScanTask quickTask = ScanTask.builder()
+                            .targetRange(task.getTargetRange())
+                            .scanType("quick")
+                            .portRange(task.getPortRange() != null ? task.getPortRange() : "1-1000")
+                            .build();
+                    ScanResult quickResult = quickScanner.execute(quickTask);
+                    result = ScanResult.builder()
+                            .assets(quickResult.getAssets())
+                            .vulnerabilities(result.getVulnerabilities())
+                            .build();
+                }
+            }
+
             if (isCancelled(taskId)) return;
             progressEmitter.sendProgress(taskId, 30,
                     "端口扫描完成，发现 " + result.getAssets().size() + " 个主机", result.getAssets().size());
@@ -95,7 +116,7 @@ public class ScanExecutionService {
             }
 
             // Phase 2.3: Web Crawler + Auto Screenshot (Goby-like)
-            if (task.getEnableFingerprint() != null && task.getEnableFingerprint()) {
+            if (task.getEnableCrawler() != null && task.getEnableCrawler()) {
                 progressEmitter.sendProgress(taskId, 50, "正在启动爬虫发现...", assetCount);
                 List<ScanAssetMapping> crawlMappings = scanAssetMappingRepository
                         .findByScanTaskIdWithAsset(task.getId());

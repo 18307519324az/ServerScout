@@ -20,12 +20,23 @@ import java.time.temporal.ChronoUnit;
 public class OperationLogService {
 
     private final OperationLogRepository repository;
+    private final IpGeoService ipGeoService;
 
     @Async
     public void log(OperationLog entry) {
         try {
             if (entry.getCreatedAt() == null) {
                 entry.setCreatedAt(Instant.now());
+            }
+            // Resolve geo-location asynchronously
+            if (entry.getIpAddress() != null && !entry.getIpAddress().isBlank()
+                    && entry.getGeoLocation() == null) {
+                try {
+                    IpGeoService.IpGeoInfo geo = ipGeoService.lookup(entry.getIpAddress());
+                    entry.setGeoLocation(geo.getLocation());
+                } catch (Exception e) {
+                    log.debug("Geo lookup skipped: {}", e.getMessage());
+                }
             }
             repository.save(entry);
         } catch (Exception e) {
