@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { fetchAssets, mergeAssets, deleteAsset } from '../services/api'
 import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
+import Pagination from '../components/Pagination'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { Search, GitMerge, CheckSquare, Square, Trash2 } from 'lucide-react'
 import dayjs from 'dayjs'
@@ -11,14 +12,15 @@ import dayjs from 'dayjs'
 export default function AssetListPage() {
   const toast = useToast()
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['assets', page, keyword],
-    queryFn: () => fetchAssets({ page, size: 20, keyword: keyword || undefined }),
+    queryKey: ['assets', page, pageSize, keyword],
+    queryFn: () => fetchAssets({ page, size: pageSize, keyword: keyword || undefined }),
   })
 
   const mergeMutation = useMutation({
@@ -154,15 +156,14 @@ export default function AssetListPage() {
             </table>
           </div>
 
-          {totalPages > 0 && (
-            <div className="flex justify-center gap-2 mt-4">
-              <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1 border dark:border-gray-600 rounded text-sm disabled:opacity-30 dark:text-gray-300">上一页</button>
-              <span className="px-3 py-1 text-sm text-gray-500 dark:text-gray-400">第 {page + 1}/{totalPages} 页</span>
-              <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 border dark:border-gray-600 rounded text-sm disabled:opacity-30 dark:text-gray-300">下一页</button>
-            </div>
-          )}
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalElements={totalElements}
+            onPageChange={(p) => setPage(p)}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(0) }}
+          />
         </>
       )}
 

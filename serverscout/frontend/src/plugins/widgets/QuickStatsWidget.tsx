@@ -22,7 +22,7 @@ export default function QuickStatsWidget() {
     { icon: Globe, label: '资产总数', value: assetCount, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
     { icon: AlertTriangle, label: '严重漏洞', value: criticalCount, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' },
     { icon: Target, label: '活跃扫描', value: activeTasks, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/30' },
-    { icon: Shield, label: '风险资产', value: '即将上线', color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/30' },
+    { icon: Shield, label: '风险资产', value: stats?.overview?.riskAssetCount ?? 0, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/30' },
   ]
 
   return (

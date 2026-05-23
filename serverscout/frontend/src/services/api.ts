@@ -203,6 +203,17 @@ export const deletePlugin = (id: number) =>
 export const fetchScanTypes = () =>
   http.get<ApiResponse<string[]>>('/v1/plugins/scan-types')
 
+// Censys
+export const lookupCensysHost = (ip: string) =>
+  http.get<ApiResponse<any>>(`/v1/intel/censys/${ip}`)
+
+// VirusTotal
+export const lookupVirusTotalIp = (ip: string) =>
+  http.get<ApiResponse<any>>(`/v1/intel/virustotal/ip/${ip}`)
+
+export const lookupVirusTotalDomain = (domain: string) =>
+  http.get<ApiResponse<any>>(`/v1/intel/virustotal/domain/${domain}`)
+
 // Screenshot
 export const captureScreenshot = (url: string, width?: number, height?: number) =>
   http.post<ApiResponse<{ url: string; data: string }>>('/v1/screenshot', { url, width, height })

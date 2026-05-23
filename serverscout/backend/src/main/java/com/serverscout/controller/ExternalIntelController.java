@@ -68,4 +68,22 @@ public class ExternalIntelController {
     public ApiResponse<Map<String, Object>> getCombinedReport(@RequestParam String target) {
         return ApiResponse.success(externalIntelService.getCombinedReport(target));
     }
+
+    /** Lookup host on Censys Search (requires API ID + Secret in system config) */
+    @GetMapping("/censys/{ip}")
+    public ApiResponse<Map<String, Object>> lookupCensys(@PathVariable String ip) {
+        return ApiResponse.success(externalIntelService.lookupCensysHost(ip));
+    }
+
+    /** Lookup IP on VirusTotal (requires API key in system config) */
+    @GetMapping("/virustotal/ip/{ip}")
+    public ApiResponse<Map<String, Object>> lookupVirusTotalIp(@PathVariable String ip) {
+        return ApiResponse.success(externalIntelService.lookupVirusTotalIp(ip));
+    }
+
+    /** Lookup domain on VirusTotal (requires API key in system config) */
+    @GetMapping("/virustotal/domain/{domain}")
+    public ApiResponse<Map<String, Object>> lookupVirusTotalDomain(@PathVariable String domain) {
+        return ApiResponse.success(externalIntelService.lookupVirusTotalDomain(domain));
+    }
 }

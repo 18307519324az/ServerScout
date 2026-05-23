@@ -165,6 +165,7 @@ export interface DashboardStats {
     lowVulns: number
     activeTasks: number
     recentScanCount: number
+    riskAssetCount: number
   }
   portDistribution: { port: number; count: number }[]
   severityDistribution: { name: string; value: number }[]

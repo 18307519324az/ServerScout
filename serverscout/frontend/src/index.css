@@ -34,6 +34,50 @@ body {
 
 .dark body { background-color: #111827; color: #f9fafb; }
 
+/* Dark mode global overrides for form elements */
+.dark input[type="text"],
+.dark input[type="email"],
+.dark input[type="password"],
+.dark input[type="number"],
+.dark input[type="search"],
+.dark textarea,
+.dark select {
+  background-color: #374151;
+  color: #f9fafb;
+  border-color: #4b5563;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #9ca3af;
+}
+
+.dark input:disabled,
+.dark textarea:disabled,
+.dark select:disabled {
+  background-color: #1f2937;
+  color: #6b7280;
+}
+
+/* Dark mode button hover defaults */
+.dark button:hover:not(:disabled) {
+  /* handled by Tailwind dark:hover: classes */
+}
+
+/* Dark mode table row hover */
+.dark tr:hover td {
+  /* handled by Tailwind dark:hover:bg-gray-700 */
+}
+
+/* Dark mode links in cards */
+.dark .dark\:text-blue-400 { color: #60a5fa; }
+
+/* Dark mode code blocks */
+.dark code {
+  background-color: #374151;
+  color: #e5e7eb;
+}
+
 /* Toast notification */
 @keyframes slideIn {
   from { transform: translateX(100%); opacity: 0; }

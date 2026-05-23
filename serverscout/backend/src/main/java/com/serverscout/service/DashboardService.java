@@ -40,6 +40,9 @@ public class DashboardService {
         long recentScans = isAdmin
                 ? scanTaskRepository.count()
                 : scanTaskRepository.findIdsByCreatedBy(username).size();
+        long riskAssetCount = isAdmin
+                ? assetRepository.countByCriticalVulnCountGreaterThan(0)
+                : assetRepository.countRiskByCreatedBy(username);
 
         List<Object[]> rawPorts = isAdmin
                 ? portRepository.findPortDistribution()
@@ -64,6 +67,7 @@ public class DashboardService {
                         .criticalVulns(crit).highVulns(high)
                         .mediumVulns(medium).lowVulns(low)
                         .activeTasks(activeTasks).recentScanCount(recentScans)
+                        .riskAssetCount(riskAssetCount)
                         .build())
                 .portDistribution(portDist)
                 .severityDistribution(sevDist)

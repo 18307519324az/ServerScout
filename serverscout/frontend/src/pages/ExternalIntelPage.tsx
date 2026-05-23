@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom'
 import {
   lookupIpIntel, lookupCveDetails, searchCvesExternal, getLatestCves,
   lookupDomainIntel, getEpssScore, getCombinedReport,
+  lookupCensysHost, lookupVirusTotalIp, lookupVirusTotalDomain,
 } from '../services/api'
-import { Search, Globe, ExternalLink, AlertTriangle, Info, ChevronDown, ChevronRight, Loader2, Server, Shield, Bug, ArrowRight, FileSearch, Zap } from 'lucide-react'
+import { Search, Globe, ExternalLink, AlertTriangle, Info, ChevronDown, ChevronRight, Loader2, Server, Shield, Bug, ArrowRight, FileSearch, Zap, Eye, Database } from 'lucide-react'
 
 type TabKey = 'ip' | 'cve' | 'domain' | 'combined'
 
@@ -30,6 +31,27 @@ export default function ExternalIntelPage() {
   const [cveSearchKey, setCveSearchKey] = useState('')
   const [domainLookupKey, setDomainLookupKey] = useState('')
   const [expandedVulns, setExpandedVulns] = useState<Set<string>>(new Set())
+  const [censysTarget, setCensysTarget] = useState('')
+  const [vtTarget, setVtTarget] = useState('')
+  const [vtDomainTarget, setVtDomainTarget] = useState('')
+
+  const { data: censysData, isLoading: censysLoading } = useQuery({
+    queryKey: ['intel-censys', censysTarget],
+    queryFn: () => lookupCensysHost(censysTarget),
+    enabled: !!censysTarget,
+  })
+
+  const { data: vtIpData, isLoading: vtIpLoading } = useQuery({
+    queryKey: ['intel-vt-ip', vtTarget],
+    queryFn: () => lookupVirusTotalIp(vtTarget),
+    enabled: !!vtTarget,
+  })
+
+  const { data: vtDomainData, isLoading: vtDomainLoading } = useQuery({
+    queryKey: ['intel-vt-domain', vtDomainTarget],
+    queryFn: () => lookupVirusTotalDomain(vtDomainTarget),
+    enabled: !!vtDomainTarget,
+  })
 
   const { data: ipData, isLoading: ipLoading, isError: ipError } = useQuery({
     queryKey: ['intel-ip', lookupKey],
@@ -161,6 +183,55 @@ export default function ExternalIntelPage() {
           )}
 
           {ipData?.data?.data && <IpResultCard data={ipData.data.data} expandedVulns={expandedVulns} toggleVuln={toggleVuln} severityColor={severityColor} />}
+
+          {/* Extended Intelligence Sources */}
+          {lookupKey && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden mt-4">
+              <div className="px-6 py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+                <h3 className="font-semibold text-sm dark:text-white flex items-center gap-2">
+                  <Database className="w-4 h-4 text-purple-600" />
+                  扩展情报源
+                </h3>
+              </div>
+              <div className="p-4 space-y-3">
+                {/* Censys */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      onClick={() => setCensysTarget(censysTarget === lookupKey ? '' : lookupKey)}
+                      disabled={censysLoading}
+                      className="px-3 py-1.5 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {censysLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
+                      {censysTarget === lookupKey ? '隐藏 Censys 结果' : 'Censys 查询'}
+                    </button>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">需要 API ID + Secret 配置</span>
+                  </div>
+                  {censysTarget === lookupKey && censysData?.data?.data && (
+                    <CensysResultCard data={censysData.data.data} />
+                  )}
+                </div>
+
+                {/* VirusTotal */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      onClick={() => setVtTarget(vtTarget === lookupKey ? '' : lookupKey)}
+                      disabled={vtIpLoading}
+                      className="px-3 py-1.5 bg-orange-600 text-white rounded text-xs hover:bg-orange-700 disabled:opacity-50 flex items-center gap-1"
+                    >
+                      {vtIpLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Shield className="w-3 h-3" />}
+                      {vtTarget === lookupKey ? '隐藏 VirusTotal 结果' : 'VirusTotal 查询'}
+                    </button>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">需要 API Key 配置</span>
+                  </div>
+                  {vtTarget === lookupKey && vtIpData?.data?.data && (
+                    <VtResultCard data={vtIpData.data.data} type="ip" />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -246,13 +317,13 @@ export default function ExternalIntelPage() {
       {/* ==================== Domain Intelligence ==================== */}
       {tab === 'domain' && (
         <div>
-          <div className="bg-white rounded-xl border p-6 shadow-sm mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6 shadow-sm mb-6">
             <div className="flex gap-3 mb-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
                   placeholder="输入域名，如 example.com"
-                  className="pl-9 pr-3 py-2.5 border rounded-lg w-full text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="pl-9 pr-3 py-2.5 border dark:border-gray-600 rounded-lg w-full text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-200"
                   value={domainInput}
                   onChange={e => setDomainInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleLookup.domain()}
@@ -296,10 +367,10 @@ function IpResultCard({ data, expandedVulns, toggleVuln, severityColor }: any) {
   const hasLocalData = !!data.localAssetId
 
   return (
-    <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
       {/* Source badge */}
-      <div className="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
-        <h3 className="font-semibold flex items-center gap-2">
+      <div className="px-6 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+        <h3 className="font-semibold flex items-center gap-2 dark:text-white">
           IP 情报: <span className="font-mono">{data.ip}</span>
           <a href={EXT_LINKS.shodan(data.ip)} target="_blank" rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800" title="在 Shodan 中查看">
@@ -629,9 +700,9 @@ function CveSearchResults({ data, severityColor }: any) {
 // ==================== Domain Result Card ====================
 function DomainResultCard({ data }: any) {
   return (
-    <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
-        <h3 className="font-semibold flex items-center gap-2">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="px-6 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+        <h3 className="font-semibold flex items-center gap-2 dark:text-white">
           域名情报: <span className="font-mono">{data.domain}</span>
           <a href={EXT_LINKS.crtsh(data.domain)} target="_blank" rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800" title="在 crt.sh 中查看 SSL 证书透明度日志">
@@ -751,6 +822,129 @@ function InfoRow({ label, value }: { label: string; value: any }) {
     <div>
       <span className="text-gray-500 dark:text-gray-400 text-xs">{label}</span>
       <div className="text-gray-700 dark:text-gray-300 text-sm font-medium">{typeof value === 'number' ? value : String(value)}</div>
+    </div>
+  )
+}
+
+// ==================== Censys Result Card ====================
+function CensysResultCard({ data }: any) {
+  if (data.error) {
+    return (
+      <div className="border border-purple-200 dark:border-purple-800 rounded-lg p-4 bg-purple-50 dark:bg-purple-900/20 text-sm text-purple-700 dark:text-purple-400">
+        <p className="font-medium mb-1">Censys</p>
+        <p className="text-xs">{data.error}</p>
+        <p className="text-xs mt-2">
+          <a href="https://search.censys.io/account/api" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5">
+            获取 API ID 和 Secret <ExternalLink className="w-3 h-3" />
+          </a>
+        </p>
+      </div>
+    )
+  }
+
+  if (!data.available) {
+    return (
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+        <p className="font-medium">Censys</p>
+        <p className="text-xs">未找到数据或 API 未配置</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="border border-purple-200 dark:border-purple-800 rounded-lg p-4 bg-purple-50/50 dark:bg-purple-900/10 text-sm">
+      <p className="font-medium mb-2 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-purple-500" />
+        Censys 查询结果
+        {data.country && <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">{data.country}{data.city ? `, ${data.city}` : ''}</span>}
+      </p>
+      {data.os && <p className="text-xs mb-2">OS: <span className="font-medium">{data.os}</span></p>}
+      {data.serviceCount > 0 && (
+        <div>
+          <p className="text-xs font-medium mb-1">服务 ({data.serviceCount}):</p>
+          <div className="flex flex-wrap gap-1">
+            {data.services?.map((s: any, i: number) => (
+              <span key={i} className="px-2 py-0.5 bg-white dark:bg-gray-800 rounded text-xs font-mono border dark:border-gray-700" title={s.banner || ''}>
+                {s.port}/{s.serviceName}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {data.labels?.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {data.labels.map((l: string) => (
+            <span key={l} className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-xs">{l}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ==================== VirusTotal Result Card ====================
+function VtResultCard({ data, type }: any) {
+  if (data.error) {
+    return (
+      <div className="border border-orange-200 dark:border-orange-800 rounded-lg p-4 bg-orange-50 dark:bg-orange-900/20 text-sm text-orange-700 dark:text-orange-400">
+        <p className="font-medium mb-1">VirusTotal</p>
+        <p className="text-xs">{data.error}</p>
+        <p className="text-xs mt-2">
+          <a href="https://www.virustotal.com/gui/my-apikey" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5">
+            获取 API Key <ExternalLink className="w-3 h-3" />
+          </a>
+        </p>
+      </div>
+    )
+  }
+
+  if (!data.available) {
+    return (
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
+        <p className="font-medium">VirusTotal</p>
+        <p className="text-xs">未找到数据或 API 未配置</p>
+      </div>
+    )
+  }
+
+  const getRepColor = (malicious: number) => {
+    if (malicious === 0) return 'text-green-600 dark:text-green-400'
+    if (malicious <= 3) return 'text-yellow-600 dark:text-yellow-400'
+    return 'text-red-600 dark:text-red-400'
+  }
+
+  return (
+    <div className="border border-orange-200 dark:border-orange-800 rounded-lg p-4 bg-orange-50/50 dark:bg-orange-900/10 text-sm">
+      <p className="font-medium mb-2 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-orange-500" />
+        VirusTotal {type === 'ip' ? 'IP' : '域名'} 查询结果
+      </p>
+      <div className="grid grid-cols-3 gap-2 mb-2">
+        <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
+          <div className={`text-lg font-bold ${getRepColor(data.malicious || 0)}`}>{data.malicious || 0}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">恶意</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
+          <div className="text-lg font-bold text-green-600 dark:text-green-400">{data.harmless || 0}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">安全</div>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
+          <div className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{data.suspicious || 0}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">可疑</div>
+        </div>
+      </div>
+      {data.reputation !== undefined && (
+        <p className="text-xs">信誉分: <span className="font-mono">{data.reputation}</span> · 投票: {data.totalVotes}</p>
+      )}
+      {data.country && <p className="text-xs">位置: {data.country}{data.asOwner ? ` · ${data.asOwner}` : ''}</p>}
+      {data.network && <p className="text-xs">网络: <span className="font-mono">{data.network}</span></p>}
+      {data.tags?.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {data.tags.map((t: string) => (
+            <span key={t} className="px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-xs">{t}</span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

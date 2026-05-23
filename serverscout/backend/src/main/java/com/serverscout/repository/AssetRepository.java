@@ -59,4 +59,10 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
                                    @Param("status") String status,
                                    @Param("createdBy") String createdBy,
                                    Pageable pageable);
+
+    long countByCriticalVulnCountGreaterThan(int threshold);
+
+    @Query("SELECT COUNT(a) FROM Asset a JOIN a.task t WHERE t.createdBy = :createdBy " +
+           "AND a.criticalVulnCount > 0")
+    long countRiskByCreatedBy(@Param("createdBy") String createdBy);
 }

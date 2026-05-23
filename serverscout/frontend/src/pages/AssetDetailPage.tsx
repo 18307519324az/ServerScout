@@ -35,11 +35,11 @@ export default function AssetDetailPage() {
       </button>
 
       {/* Asset Info Card */}
-      <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6 mb-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold font-mono">{asset.ipAddress}</h1>
-            <p className="text-gray-500 mt-1">{asset.hostname || '无主机名'}</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">{asset.hostname || '无主机名'}</p>
           </div>
           <div className="text-right text-sm text-gray-500 space-y-1">
             <p className="flex items-center gap-1.5 justify-end">
@@ -80,7 +80,7 @@ export default function AssetDetailPage() {
 
       {/* Subdomain Section */}
       {subdomains.length > 0 && (
-        <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6 mb-6">
           <h2 className="font-bold text-lg mb-3 flex items-center gap-2">
             <Search className="w-5 h-5 text-blue-600" />
             关联子域名 ({subdomains.length})
@@ -88,7 +88,7 @@ export default function AssetDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
             {subdomains.map((sub: any) => (
               <div key={sub.id} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
-                <p className="font-mono text-sm font-medium text-gray-800 truncate" title={sub.subdomain}>
+                <p className="font-mono text-sm font-medium text-gray-800 dark:text-gray-200 truncate" title={sub.subdomain}>
                   {sub.subdomain}
                 </p>
                 <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
@@ -111,7 +111,7 @@ export default function AssetDetailPage() {
       </h2>
       <div className="space-y-2">
         {asset.ports?.map((port: any) => (
-          <div key={port.id} className="bg-white rounded-lg border shadow-sm p-4">
+          <div key={port.id} className="bg-white dark:bg-gray-800 rounded-lg border dark:border-gray-700 shadow-sm p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="font-mono font-bold text-lg">{port.portNumber}</span>

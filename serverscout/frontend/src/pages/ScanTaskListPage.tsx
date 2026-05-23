@@ -5,6 +5,7 @@ import { fetchScanTasks, createScanTask, deleteScanTask } from '../services/api'
 import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
 import ProgressBar from '../components/ProgressBar'
+import Pagination from '../components/Pagination'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { Plus, X, Trash2, AlertCircle } from 'lucide-react'
 import dayjs from 'dayjs'
@@ -12,6 +13,7 @@ import dayjs from 'dayjs'
 export default function ScanTaskListPage() {
   const toast = useToast()
   const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(20)
   const [showCreate, setShowCreate] = useState(false)
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const [deleteStatus, setDeleteStatus] = useState('')
@@ -20,8 +22,8 @@ export default function ScanTaskListPage() {
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['scan-tasks', page],
-    queryFn: () => fetchScanTasks({ page, size: 20 }),
+    queryKey: ['scan-tasks', page, pageSize],
+    queryFn: () => fetchScanTasks({ page, size: pageSize }),
     refetchInterval: 10000,
   })
 
@@ -52,6 +54,7 @@ export default function ScanTaskListPage() {
 
   const tasks = data?.data?.data?.content ?? []
   const totalPages = data?.data?.data?.page?.totalPages ?? 0
+  const totalElements = data?.data?.data?.page?.totalElements ?? 0
 
   const validateTarget = (value: string): boolean => {
     if (!value) return false
@@ -59,17 +62,14 @@ export default function ScanTaskListPage() {
       setTargetError('请输入 IP 或域名，不需要 http:// 前缀')
       return false
     }
-    // Allow IP with optional :port suffix (e.g., 192.168.1.1:8080)
     if (/^(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?$/.test(value)) {
       setTargetError('')
       return true
     }
-    // CIDR notation: only allow /0-/32 for IPv4
     if (/^(?:\d{1,3}\.){3}\d{1,3}\/([0-9]|[12][0-9]|3[0-2])$/.test(value)) {
       setTargetError('')
       return true
     }
-    // Warn if using /XX where XX > 32 (likely meant port)
     if (/^(?:\d{1,3}\.){3}\d{1,3}\/\d{2,}$/.test(value)) {
       setTargetError('CIDR 掩码应为 0-32，如需指定端口请在下方"端口范围"字段中输入')
       return false
@@ -126,20 +126,26 @@ export default function ScanTaskListPage() {
                   </td>
                 </tr>
               ))}
+              {tasks.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="text-center py-16 text-gray-400 dark:text-gray-500">
+                    暂无扫描任务，点击"新建扫描"开始
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       )}
 
-      {totalPages > 0 && (
-        <div className="flex justify-center gap-2 mt-4">
-          <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
-            className="px-3 py-1 border dark:border-gray-600 rounded text-sm disabled:opacity-30 dark:text-gray-300">上一页</button>
-          <span className="px-3 py-1 text-sm text-gray-500 dark:text-gray-400">第 {page + 1}/{totalPages} 页</span>
-          <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-            className="px-3 py-1 border dark:border-gray-600 rounded text-sm disabled:opacity-30 dark:text-gray-300">下一页</button>
-        </div>
-      )}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        totalElements={totalElements}
+        onPageChange={(p) => setPage(p)}
+        onPageSizeChange={(s) => { setPageSize(s); setPage(0) }}
+      />
 
       {/* Create Dialog */}
       {showCreate && (
@@ -147,7 +153,7 @@ export default function ScanTaskListPage() {
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-[500px]" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold text-lg dark:text-white">新建扫描任务</h2>
-              <button onClick={() => setShowCreate(false)}><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowCreate(false)}><X className="w-5 h-5 dark:text-gray-300" /></button>
             </div>
             <form onSubmit={e => {
               e.preventDefault()
@@ -155,7 +161,6 @@ export default function ScanTaskListPage() {
               let target = (fd.get('targetRange') as string).trim()
               if (!validateTarget(target)) return
 
-              // Auto-extract port from ip:port syntax
               const portMatch = target.match(/^(.*):(\d{1,5})$/)
               if (portMatch) {
                 target = portMatch[1]
@@ -179,19 +184,18 @@ export default function ScanTaskListPage() {
                 <label className="block text-sm font-medium mb-1 dark:text-gray-300">扫描目标 (IP/CIDR/域名)</label>
                 <input name="targetRange" required placeholder="例：192.168.1.1 或 192.168.1.0/24 或 example.com"
                   onChange={e => validateTarget(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg text-sm font-mono outline-none focus:ring-2 ${targetError ? 'border-red-400 focus:ring-red-500' : 'focus:ring-blue-500'}`} />
+                  className={`w-full px-3 py-2 border rounded-lg text-sm font-mono outline-none focus:ring-2 dark:bg-gray-700 dark:text-gray-200 ${targetError ? 'border-red-400 focus:ring-red-500' : 'dark:border-gray-600 focus:ring-blue-500'}`} />
                 {targetError && <p className="text-red-500 text-xs mt-1">{targetError}</p>}
                 <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">多个目标用逗号分隔；端口在下方单独设置（1-1000 为推荐范围）</p>
               </div>
-              {/* Scan Preset */}
               <div>
                 <label className="block text-sm font-medium mb-1 dark:text-gray-300">扫描模板预设</label>
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    { id: 'quick', label: 'Quick', desc: '主机发现', color: 'border-blue-300 bg-blue-50 text-blue-700' },
-                    { id: 'stealth', label: 'Stealth', desc: '隐匿扫描', color: 'border-purple-300 bg-purple-50 text-purple-700' },
-                    { id: 'web', label: 'Web', desc: 'Web 专用', color: 'border-green-300 bg-green-50 text-green-700' },
-                    { id: 'full', label: 'Full', desc: '全端口+漏洞', color: 'border-red-300 bg-red-50 text-red-700' },
+                    { id: 'quick', label: 'Quick', desc: '主机发现', color: 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' },
+                    { id: 'stealth', label: 'Stealth', desc: '隐匿扫描', color: 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300' },
+                    { id: 'web', label: 'Web', desc: 'Web 专用', color: 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' },
+                    { id: 'full', label: 'Full', desc: '全端口+漏洞', color: 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300' },
                   ].map(p => (
                     <label key={p.id} className={`cursor-pointer border rounded-lg p-2 text-center hover:shadow transition ${p.color}`}>
                       <input type="radio" name="preset" value={p.id} defaultChecked={p.id === 'quick'}
@@ -221,7 +225,7 @@ export default function ScanTaskListPage() {
                         className="sr-only"
                       />
                       <p className="text-sm font-bold">{p.label}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{p.desc}</p>
+                      <p className="text-xs opacity-70">{p.desc}</p>
                     </label>
                   ))}
                 </div>
@@ -237,10 +241,10 @@ export default function ScanTaskListPage() {
                 <div>
                   <label className="block text-sm font-medium mb-1 dark:text-gray-300">端口范围</label>
                   <input name="portRange" defaultValue="1-1000" placeholder="1-1000"
-                    className="w-full px-3 py-2 border rounded-lg text-sm font-mono outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm font-mono outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200" />
                 </div>
               </div>
-              <div className="flex gap-4 text-sm">
+              <div className="flex gap-4 text-sm dark:text-gray-300">
                 <label className="flex items-center gap-1">
                   <input type="checkbox" name="enableFingerprint" defaultChecked /> 指纹识别
                 </label>
@@ -249,7 +253,7 @@ export default function ScanTaskListPage() {
                 </label>
               </div>
               {createError && (
-                <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                <div className="flex items-center gap-2 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-600 dark:text-red-400 text-sm">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   {createError}
                 </div>

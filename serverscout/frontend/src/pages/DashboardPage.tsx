@@ -186,9 +186,9 @@ export default function DashboardPage() {
                 splitLine: { lineStyle: { color: isDark ? '#374151' : '#e5e7eb' } },
               },
               series: [
-                { name: '新增资产', type: 'line', data: stats.trend.map((t: any) => t.assetsDiscovered || 0), smooth: true, itemStyle: { color: '#3b82f6' } },
-                { name: '发现漏洞', type: 'line', data: stats.trend.map((t: any) => t.vulnsFound || 0), smooth: true, itemStyle: { color: '#ef4444' } },
-                { name: '修复漏洞', type: 'line', data: stats.trend.map((t: any) => t.vulnsFixed || 0), smooth: true, itemStyle: { color: '#22c55e' } },
+                { name: '新增资产', type: 'line', data: stats.trend.map((t: any) => t.assetsDiscovered || 0), smooth: true, lineStyle: { color: '#3b82f6', width: 3, type: 'solid' }, itemStyle: { color: '#3b82f6' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{offset: 0, color: 'rgba(59,130,246,0.25)'}, {offset: 1, color: 'rgba(59,130,246,0.02)'}] } }, symbol: 'circle', symbolSize: 6 },
+                { name: '发现漏洞', type: 'line', data: stats.trend.map((t: any) => t.vulnsFound || 0), smooth: true, lineStyle: { color: '#ef4444', width: 2.5, type: 'dashed' }, itemStyle: { color: '#ef4444' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{offset: 0, color: 'rgba(239,68,68,0.2)'}, {offset: 1, color: 'rgba(239,68,68,0.02)'}] } }, symbol: 'diamond', symbolSize: 7 },
+                { name: '修复漏洞', type: 'line', data: stats.trend.map((t: any) => t.vulnsFixed || 0), smooth: true, lineStyle: { color: '#22c55e', width: 2.5, type: 'dotted' }, itemStyle: { color: '#22c55e' }, areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{offset: 0, color: 'rgba(34,197,94,0.2)'}, {offset: 1, color: 'rgba(34,197,94,0.02)'}] } }, symbol: 'triangle', symbolSize: 7 },
               ],
             }} style={{ height: 280 }} />
           ) : (

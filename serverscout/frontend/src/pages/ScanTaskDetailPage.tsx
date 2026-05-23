@@ -88,8 +88,8 @@ export default function ScanTaskDetailPage() {
     }
   }, [discoveries])
 
-  if (isLoading) return <div className="text-center py-20 text-gray-400">加载中...</div>
-  if (!task) return <div className="text-center py-20 text-red-500">任务不存在（可能已被删除，请返回任务列表）</div>
+  if (isLoading) return <div className="text-center py-20 text-gray-400 dark:text-gray-500">加载中...</div>
+  if (!task) return <div className="text-center py-20 text-red-500 dark:text-red-400">任务不存在（可能已被删除，请返回任务列表）</div>
 
   const isRunning = task.status === 'running' || task.status === 'pending'
 
@@ -123,24 +123,24 @@ export default function ScanTaskDetailPage() {
 
   const getDiscoveryColor = (type: string) => {
     switch (type) {
-      case 'asset': return 'border-blue-200 bg-blue-50'
-      case 'vuln': return 'border-red-200 bg-red-50'
-      case 'fingerprint': return 'border-green-200 bg-green-50'
-      default: return 'border-gray-200 bg-gray-50'
+      case 'asset': return 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-gray-800 dark:text-gray-200'
+      case 'vuln': return 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-gray-800 dark:text-gray-200'
+      case 'fingerprint': return 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-gray-800 dark:text-gray-200'
+      default: return 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200'
     }
   }
 
   return (
     <div>
-      <button onClick={() => navigate('/scan-tasks')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4">
+      <button onClick={() => navigate('/scan-tasks')} className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 mb-4">
         <ArrowLeft className="w-4 h-4" /> 返回任务列表
       </button>
 
-      <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6 mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">{task.name}</h1>
-            <p className="text-gray-500 mt-1 font-mono text-sm">{task.targetRange}</p>
+            <h1 className="text-2xl font-bold dark:text-white">{task.name}</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1 font-mono text-sm">{task.targetRange}</p>
           </div>
           <StatusBadge status={task.status} />
         </div>
@@ -149,7 +149,7 @@ export default function ScanTaskDetailPage() {
             <ProgressBar value={task.progress} />
             {isRunning && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
           </div>
-          <p className="text-xs text-gray-400 mt-1">{task.progress}%</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{task.progress}%</p>
 
           {/* 实时进度信息 */}
           {isRunning && progressMsg && (
@@ -179,10 +179,10 @@ export default function ScanTaskDetailPage() {
 
       {/* Live discovery feed */}
       {discoveries.length > 0 && (
-        <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6 mb-6">
+          <h3 className="font-semibold mb-3 flex items-center gap-2 dark:text-white">
             <span>实时发现日志</span>
-            <span className="text-xs text-gray-400 font-normal">({discoveries.length} 条)</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">({discoveries.length} 条)</span>
           </h3>
           <div ref={feedRef} className="max-h-80 overflow-y-auto space-y-1.5">
             {discoveries.map((d, i) => (
@@ -196,21 +196,21 @@ export default function ScanTaskDetailPage() {
       )}
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-xl border shadow-sm text-center">
-          <p className="text-sm text-gray-500">发现资产</p>
-          <p className="text-2xl font-bold">{task.totalAssets}</p>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border dark:border-gray-700 shadow-sm text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">发现资产</p>
+          <p className="text-2xl font-bold dark:text-white">{task.totalAssets}</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border shadow-sm text-center">
-          <p className="text-sm text-gray-500">发现端口</p>
-          <p className="text-2xl font-bold">{task.totalPorts}</p>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border dark:border-gray-700 shadow-sm text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">发现端口</p>
+          <p className="text-2xl font-bold dark:text-white">{task.totalPorts}</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border shadow-sm text-center">
-          <p className="text-sm text-gray-500">扫描类型</p>
-          <p className="text-2xl font-bold text-blue-600">{task.scanType}</p>
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border dark:border-gray-700 shadow-sm text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">扫描类型</p>
+          <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{task.scanType}</p>
         </div>
-        <div className="bg-white p-4 rounded-xl border shadow-sm text-center">
-          <p className="text-sm text-gray-500">状态</p>
-          <p className="text-xl font-bold">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border dark:border-gray-700 shadow-sm text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">状态</p>
+          <p className="text-xl font-bold dark:text-white">
             {task.status === 'completed' ? '已完成' :
              task.status === 'running' ? '扫描中' :
              task.status === 'failed' ? '失败' : task.status}
@@ -219,26 +219,26 @@ export default function ScanTaskDetailPage() {
       </div>
 
       {task.summary && (
-        <div className="bg-white rounded-xl border shadow-sm p-6">
-          <h3 className="font-semibold mb-4">扫描摘要</h3>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6">
+          <h3 className="font-semibold mb-4 dark:text-white">扫描摘要</h3>
           <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>Web 服务: {task.summary.webServiceCount}</div>
-            <div className="text-green-600">
+            <div className="dark:text-gray-200">Web 服务: <span className="font-semibold dark:text-white">{task.summary.webServiceCount}</span></div>
+            <div className="text-green-600 dark:text-green-400">
               新增资产: {task.summary.newAssetCount || task.totalAssets}
             </div>
-            <div className="text-blue-600">
+            <div className="text-blue-600 dark:text-blue-400">
               更新资产: {task.summary.updatedAssetCount || 0}
             </div>
-            <div className="text-red-600">严重漏洞: {task.summary.criticalVulnCount}</div>
-            <div className="text-orange-600">高危漏洞: {task.summary.highVulnCount}</div>
-            <div className="text-yellow-600">中危漏洞: {task.summary.mediumVulnCount || 0}</div>
+            <div className="text-red-600 dark:text-red-400">严重漏洞: {task.summary.criticalVulnCount}</div>
+            <div className="text-orange-600 dark:text-orange-400">高危漏洞: {task.summary.highVulnCount}</div>
+            <div className="text-yellow-600 dark:text-yellow-400">中危漏洞: {task.summary.mediumVulnCount || 0}</div>
           </div>
           {task.summary.topPorts && task.summary.topPorts.length > 0 && (
             <div className="mt-4">
-              <p className="text-sm font-medium mb-2">Top 端口:</p>
-              <div className="flex gap-2">
+              <p className="text-sm font-medium mb-2 dark:text-white">Top 端口:</p>
+              <div className="flex gap-2 flex-wrap">
                 {task.summary.topPorts.map((p: any, i: number) => (
-                  <span key={i} className="px-2 py-1 bg-gray-100 rounded text-xs">
+                  <span key={i} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs dark:text-gray-200">
                     Port {p.port}: {p.count}
                   </span>
                 ))}
@@ -251,7 +251,7 @@ export default function ScanTaskDetailPage() {
               导出 PDF 报告
             </a>
             <a href={`/api/v1/reports/excel?taskId=${task.id}`}
-              className="px-4 py-2 border text-sm rounded-lg hover:bg-gray-50" target="_blank">
+              className="px-4 py-2 border dark:border-gray-600 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200" target="_blank">
               导出 Excel 报告
             </a>
           </div>
@@ -283,7 +283,7 @@ function PipelineProgress({ progress }: { progress: number }) {
               {done ? <CheckCircle2 className="w-5 h-5 text-green-500" />
                : active ? <Loader2 className={`w-5 h-5 animate-spin ${phase.color}`} />
                : <Circle className="w-5 h-5 text-gray-300 dark:text-gray-600" />}
-              <span className={`text-xs font-bold ${done ? 'text-green-600' : active ? phase.color : 'text-gray-400'}`}>
+              <span className={`text-xs font-bold ${done ? 'text-green-600 dark:text-green-400' : active ? phase.color : 'text-gray-400 dark:text-gray-500'}`}>
                 {phase.label}
               </span>
               <span className="text-[10px] text-gray-400 dark:text-gray-500">{phase.desc}</span>

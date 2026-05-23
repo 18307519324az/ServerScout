@@ -34,6 +34,7 @@ public class ExternalIntelService {
     private final AssetRepository assetRepository;
     private final PortRepository portRepository;
     private final CveDatabaseRepository cveDatabaseRepository;
+    private final SystemConfigService systemConfigService;
 
     private static final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
@@ -646,6 +647,284 @@ public class ExternalIntelService {
             log.info("CVE refresh complete: {} new CVEs added", added);
         } catch (Exception e) {
             log.warn("Scheduled CVE refresh failed: {}", e.getMessage());
+        }
+    }
+
+    // ==================== Censys Search API v2 ====================
+
+    /**
+     * Lookup host on Censys Search API v2.
+     * Requires API ID and Secret configured in system config.
+     */
+    public Map<String, Object> lookupCensysHost(String ip) {
+        String cacheKey = "censys:" + ip;
+        @SuppressWarnings("unchecked")
+        CacheEntry<Map<String, Object>> cached = (CacheEntry<Map<String, Object>>) cache.get(cacheKey);
+        if (cached != null && !cached.isExpired()) {
+            return cached.data();
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("ip", ip);
+        result.put("source", "censys");
+        result.put("available", false);
+
+        try {
+            String apiId = getConfigQuiet("censys-api-id");
+            String apiSecret = getConfigQuiet("censys-api-secret");
+            if (apiId.isEmpty() || apiSecret.isEmpty()) {
+                result.put("error", "Censys API 未配置，请在系统设置中填入 API ID 和 Secret");
+                cache.put(cacheKey, new CacheEntry<>(result));
+                return result;
+            }
+
+            String auth = java.util.Base64.getEncoder()
+                    .encodeToString((apiId + ":" + apiSecret).getBytes());
+
+            String url = "https://search.censys.io/api/v2/hosts/" + ip;
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("User-Agent", "ServerScout/1.0")
+                    .header("Authorization", "Basic " + auth)
+                    .header("Accept", "application/json")
+                    .GET().build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonNode root = objectMapper.readTree(response.body());
+                JsonNode host = root.get("result");
+
+                if (host != null) {
+                    result.put("available", true);
+                    result.put("os", host.has("operating_system") && host.get("operating_system").has("product")
+                            ? host.get("operating_system").get("product").asText() : null);
+
+                    // Extract services/ports
+                    List<Map<String, Object>> services = new ArrayList<>();
+                    JsonNode servicesNode = host.get("services");
+                    if (servicesNode != null && servicesNode.isArray()) {
+                        for (JsonNode svc : servicesNode) {
+                            Map<String, Object> s = new LinkedHashMap<>();
+                            s.put("port", svc.get("port").asInt());
+                            s.put("serviceName", svc.has("service_name") ? svc.get("service_name").asText() : "unknown");
+                            s.put("transport", svc.has("transport_protocol") ? svc.get("transport_protocol").asText() : "tcp");
+                            s.put("banner", svc.has("banner") ? svc.get("banner").asText() : null);
+                            if (svc.has("software") && svc.get("software").isArray() && svc.get("software").size() > 0) {
+                                s.put("software", svc.get("software").get(0).asText());
+                            }
+                            services.add(s);
+                        }
+                    }
+                    result.put("services", services);
+                    result.put("serviceCount", services.size());
+
+                    // Location
+                    if (host.has("location")) {
+                        JsonNode loc = host.get("location");
+                        result.put("country", loc.has("country") ? loc.get("country").asText() : null);
+                        result.put("city", loc.has("city") ? loc.get("city").asText() : null);
+                        result.put("timezone", loc.has("timezone") ? loc.get("timezone").asText() : null);
+                    }
+
+                    // Labels/tags
+                    if (host.has("labels") && host.get("labels").isArray()) {
+                        result.put("labels", toList(host.get("labels")));
+                    }
+                }
+            } else if (response.statusCode() == 404) {
+                result.put("error", "该 IP 在 Censys 中未找到");
+            } else if (response.statusCode() == 401 || response.statusCode() == 403) {
+                result.put("error", "Censys API 认证失败，请检查 API ID 和 Secret");
+            }
+        } catch (Exception e) {
+            log.warn("Censys lookup failed for {}: {}", ip, e.getMessage());
+            result.put("error", "查询失败: " + e.getMessage());
+        }
+
+        cache.put(cacheKey, new CacheEntry<>(result));
+        return result;
+    }
+
+    // ==================== VirusTotal API v3 ====================
+
+    /**
+     * Lookup IP address on VirusTotal API v3.
+     * Requires API key configured in system config.
+     */
+    public Map<String, Object> lookupVirusTotalIp(String ip) {
+        String cacheKey = "vt-ip:" + ip;
+        @SuppressWarnings("unchecked")
+        CacheEntry<Map<String, Object>> cached = (CacheEntry<Map<String, Object>>) cache.get(cacheKey);
+        if (cached != null && !cached.isExpired()) {
+            return cached.data();
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("ip", ip);
+        result.put("source", "virustotal");
+        result.put("available", false);
+
+        try {
+            String apiKey = getConfigQuiet("virustotal-api-key");
+            if (apiKey.isEmpty()) {
+                result.put("error", "VirusTotal API Key 未配置，请在系统设置中填入");
+                cache.put(cacheKey, new CacheEntry<>(result));
+                return result;
+            }
+
+            String url = "https://www.virustotal.com/api/v3/ip_addresses/" + ip;
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("User-Agent", "ServerScout/1.0")
+                    .header("x-apikey", apiKey)
+                    .header("Accept", "application/json")
+                    .GET().build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonNode root = objectMapper.readTree(response.body());
+                JsonNode data = root.get("data");
+                if (data != null) {
+                    result.put("available", true);
+                    JsonNode attrs = data.get("attributes");
+
+                    if (attrs != null) {
+                        // Reputation score
+                        result.put("reputation", attrs.has("reputation") ? attrs.get("reputation").asInt() : 0);
+                        result.put("totalVotes", attrs.has("total_votes")
+                                ? attrs.get("total_votes").get("malicious").asInt() + "/" + attrs.get("total_votes").get("harmless").asInt()
+                                : "0/0");
+
+                        // Last analysis stats
+                        if (attrs.has("last_analysis_stats")) {
+                            JsonNode stats = attrs.get("last_analysis_stats");
+                            result.put("malicious", stats.has("malicious") ? stats.get("malicious").asInt() : 0);
+                            result.put("harmless", stats.has("harmless") ? stats.get("harmless").asInt() : 0);
+                            result.put("suspicious", stats.has("suspicious") ? stats.get("suspicious").asInt() : 0);
+                            result.put("undetected", stats.has("undetected") ? stats.get("undetected").asInt() : 0);
+                        }
+
+                        // Network info
+                        result.put("network", attrs.has("network") ? attrs.get("network").asText() : null);
+                        result.put("asOwner", attrs.has("as_owner") ? attrs.get("as_owner").asText() : null);
+                        result.put("country", attrs.has("country") ? attrs.get("country").asText() : null);
+                        result.put("continent", attrs.has("continent") ? attrs.get("continent").asText() : null);
+
+                        // WhoIs
+                        result.put("whois", attrs.has("whois") ? attrs.get("whois").asText() : null);
+                        result.put("whoisDate", attrs.has("whois_date") ? attrs.get("whois_date").asText() : null);
+
+                        // Tags
+                        if (attrs.has("tags") && attrs.get("tags").isArray()) {
+                            result.put("tags", toList(attrs.get("tags")));
+                        }
+                    }
+                }
+            } else if (response.statusCode() == 404) {
+                result.put("error", "该 IP 在 VirusTotal 中未找到");
+            } else if (response.statusCode() == 401 || response.statusCode() == 403) {
+                result.put("error", "VirusTotal API Key 无效或已过期");
+            } else if (response.statusCode() == 429) {
+                result.put("error", "VirusTotal API 配额已用尽，请稍后重试");
+            }
+        } catch (Exception e) {
+            log.warn("VirusTotal IP lookup failed for {}: {}", ip, e.getMessage());
+            result.put("error", "查询失败: " + e.getMessage());
+        }
+
+        cache.put(cacheKey, new CacheEntry<>(result));
+        return result;
+    }
+
+    /**
+     * Lookup domain on VirusTotal API v3.
+     */
+    public Map<String, Object> lookupVirusTotalDomain(String domain) {
+        String cacheKey = "vt-domain:" + domain;
+        @SuppressWarnings("unchecked")
+        CacheEntry<Map<String, Object>> cached = (CacheEntry<Map<String, Object>>) cache.get(cacheKey);
+        if (cached != null && !cached.isExpired()) {
+            return cached.data();
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("domain", domain);
+        result.put("source", "virustotal");
+        result.put("available", false);
+
+        try {
+            String apiKey = getConfigQuiet("virustotal-api-key");
+            if (apiKey.isEmpty()) {
+                result.put("error", "VirusTotal API Key 未配置，请在系统设置中填入");
+                cache.put(cacheKey, new CacheEntry<>(result));
+                return result;
+            }
+
+            String url = "https://www.virustotal.com/api/v3/domains/" + domain;
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("User-Agent", "ServerScout/1.0")
+                    .header("x-apikey", apiKey)
+                    .header("Accept", "application/json")
+                    .GET().build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200) {
+                JsonNode root = objectMapper.readTree(response.body());
+                JsonNode data = root.get("data");
+                if (data != null) {
+                    result.put("available", true);
+                    JsonNode attrs = data.get("attributes");
+
+                    if (attrs != null) {
+                        result.put("reputation", attrs.has("reputation") ? attrs.get("reputation").asInt() : 0);
+                        result.put("totalVotes", attrs.has("total_votes")
+                                ? attrs.get("total_votes").get("malicious").asInt() + "/" + attrs.get("total_votes").get("harmless").asInt()
+                                : "0/0");
+
+                        if (attrs.has("last_analysis_stats")) {
+                            JsonNode stats = attrs.get("last_analysis_stats");
+                            result.put("malicious", stats.has("malicious") ? stats.get("malicious").asInt() : 0);
+                            result.put("harmless", stats.has("harmless") ? stats.get("harmless").asInt() : 0);
+                            result.put("suspicious", stats.has("suspicious") ? stats.get("suspicious").asInt() : 0);
+                            result.put("undetected", stats.has("undetected") ? stats.get("undetected").asInt() : 0);
+                        }
+
+                        result.put("categories", attrs.has("categories")
+                                ? toList(attrs.get("categories")).toString() : null);
+                        result.put("creationDate", attrs.has("creation_date")
+                                ? attrs.get("creation_date").asLong() : 0);
+
+                        if (attrs.has("tags") && attrs.get("tags").isArray()) {
+                            result.put("tags", toList(attrs.get("tags")));
+                        }
+                    }
+                }
+            } else if (response.statusCode() == 401 || response.statusCode() == 403) {
+                result.put("error", "VirusTotal API Key 无效或已过期");
+            } else if (response.statusCode() == 429) {
+                result.put("error", "VirusTotal API 配额已用尽，请稍后重试");
+            }
+        } catch (Exception e) {
+            log.warn("VirusTotal domain lookup failed for {}: {}", domain, e.getMessage());
+            result.put("error", "查询失败: " + e.getMessage());
+        }
+
+        cache.put(cacheKey, new CacheEntry<>(result));
+        return result;
+    }
+
+    private String getConfigQuiet(String key) {
+        try {
+            return systemConfigService.getConfig(key, "");
+        } catch (Exception e) {
+            return "";
         }
     }
 

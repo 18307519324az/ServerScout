@@ -22,6 +22,7 @@ public class DashboardResponse {
         private long lowVulns;
         private long recentScanCount;
         private long activeTasks;
+        private long riskAssetCount;
     }
 
     @Data @Builder

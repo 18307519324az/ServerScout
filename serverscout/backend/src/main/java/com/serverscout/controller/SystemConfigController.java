@@ -43,13 +43,31 @@ public class SystemConfigController {
         // First check if already configured in DB
         String configured = configService.getConfig(toolName + "-path", "");
         if (!configured.isEmpty() && !configured.equals(toolName)) {
-            return configured;
+            // Verify the configured path still exists
+            if (java.nio.file.Files.exists(java.nio.file.Path.of(configured))) {
+                return configured;
+            }
         }
 
-        // Try detecting from system PATH
         boolean isWin = System.getProperty("os.name", "").toLowerCase().contains("win");
-        String[] commands = isWin ? new String[]{"where", toolName} : new String[]{"which", toolName};
 
+        // 1. Try detecting from system PATH using which/where
+        String pathResult = detectFromPath(toolName, isWin);
+        if (!pathResult.isEmpty()) {
+            return pathResult;
+        }
+
+        // 2. Search common installation directories
+        String commonPath = detectFromCommonPaths(toolName, isWin);
+        if (!commonPath.isEmpty()) {
+            return commonPath;
+        }
+
+        return ""; // not found
+    }
+
+    private String detectFromPath(String toolName, boolean isWin) {
+        String[] commands = isWin ? new String[]{"where", toolName} : new String[]{"which", toolName};
         try {
             ProcessBuilder pb = new ProcessBuilder(commands);
             pb.redirectErrorStream(true);
@@ -58,39 +76,67 @@ public class SystemConfigController {
                 String line = reader.readLine();
                 if (line != null && !line.isEmpty()) {
                     String path = line.trim();
-                    // Filter out error messages from Windows "where" command (Chinese and English)
                     if (path.contains("无法找到") || path.contains("找不到")
                             || path.contains("could not find") || path.contains("not found")
                             || path.startsWith("信息:") || path.startsWith("INFO:")) {
-                        log.debug("{} not found in PATH", toolName);
                         return "";
                     }
-                    // Windows: check if path is a valid executable path
-                    if (isWin && (path.endsWith(".exe") || path.contains("\\") || path.contains("/"))) {
+                    // On Windows, where returns the full path to the exe
+                    if (isWin && path.toLowerCase().endsWith(".exe")) {
                         log.info("Auto-detected {} at: {}", toolName, path);
                         return path;
                     }
-                    // Unix: valid which output
-                    if (!isWin && (path.startsWith("/") || path.startsWith("~/"))) {
+                    // On Unix, which returns the full path
+                    if (!isWin && path.startsWith("/")) {
                         log.info("Auto-detected {} at: {}", toolName, path);
                         return path;
                     }
-                    // If where returns just the tool name (meaning it's on PATH but no full path)
+                    // If just the tool name is returned, it's on PATH
                     if (path.equalsIgnoreCase(toolName) || path.equalsIgnoreCase(toolName + ".exe")) {
                         log.info("{} found in PATH as: {}", toolName, path);
                         return path;
                     }
-                    return "";
                 }
             }
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                log.debug("{} not found (exit code {})", toolName, exitCode);
-            }
+            process.waitFor();
         } catch (Exception e) {
-            log.debug("Could not detect {}: {}", toolName, e.getMessage());
+            log.debug("PATH detection failed for {}: {}", toolName, e.getMessage());
         }
-        return ""; // not found
+        return "";
+    }
+
+    private String detectFromCommonPaths(String toolName, boolean isWin) {
+        String exeName = isWin ? toolName + ".exe" : toolName;
+        String userHome = System.getProperty("user.home", "");
+
+        String[][] commonPaths = isWin ? new String[][]{
+            // Nmap common paths
+            {"nmap", "C:\\Program Files (x86)\\Nmap\\" + exeName},
+            {"nmap", "C:\\Program Files\\Nmap\\" + exeName},
+            {"nmap", "D:\\web\\Nmap\\" + exeName},
+            {"nmap", "D:\\tools\\Nmap\\" + exeName},
+            // Nuclei common paths
+            {"nuclei", userHome + "\\go\\bin\\" + exeName},
+            {"nuclei", "C:\\Users\\" + System.getProperty("user.name", "") + "\\go\\bin\\" + exeName},
+        } : new String[][]{
+            {"nmap", "/usr/bin/" + exeName},
+            {"nmap", "/usr/local/bin/" + exeName},
+            {"nmap", "/opt/homebrew/bin/" + exeName},
+            {"nuclei", userHome + "/go/bin/" + exeName},
+            {"nuclei", "/usr/local/bin/" + exeName},
+            {"nuclei", "/opt/homebrew/bin/" + exeName},
+        };
+
+        for (String[] entry : commonPaths) {
+            if (entry[0].equals(toolName)) {
+                java.nio.file.Path p = java.nio.file.Path.of(entry[1]);
+                if (java.nio.file.Files.exists(p) && java.nio.file.Files.isExecutable(p)) {
+                    log.info("Found {} at common path: {}", toolName, entry[1]);
+                    return entry[1];
+                }
+            }
+        }
+        return "";
     }
 
     @PreAuthorize("hasRole('ADMIN')")
