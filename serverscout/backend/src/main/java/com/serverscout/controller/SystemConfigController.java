@@ -1,6 +1,7 @@
 package com.serverscout.controller;
 
 import com.serverscout.dto.ApiResponse;
+import com.serverscout.service.ScheduledScanService;
 import com.serverscout.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +20,7 @@ import java.util.Map;
 public class SystemConfigController {
 
     private final SystemConfigService configService;
+    private final ScheduledScanService scheduledScanService;
 
     @GetMapping
     public ApiResponse<Map<String, String>> getAllConfigs() {
@@ -95,6 +97,10 @@ public class SystemConfigController {
     @PutMapping
     public ApiResponse<Void> updateConfigs(@RequestBody Map<String, String> configs) {
         configService.setConfigs(configs);
+        // Reschedule cron jobs if scan schedule configs changed
+        if (configs.keySet().stream().anyMatch(k -> k.startsWith("daily-scan-") || k.startsWith("weekly-scan-"))) {
+            scheduledScanService.reschedule();
+        }
         return ApiResponse.success(null);
     }
 }

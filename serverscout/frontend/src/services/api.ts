@@ -174,3 +174,39 @@ export const lookupIpReputation = (ip: string) =>
 
 export const getCombinedReport = (target: string) =>
   http.get<ApiResponse<any>>('/v1/intel/report', { params: { target } })
+
+// Scan Strategy Plugins (L2)
+export const fetchPlugins = () =>
+  http.get<ApiResponse<any[]>>('/v1/plugins')
+
+export const fetchPlugin = (id: number) =>
+  http.get<ApiResponse<any>>(`/v1/plugins/${id}`)
+
+export const createPlugin = (data: {
+  name: string; scanType: string; description?: string;
+  commandTemplate: string; resultParser?: string; findingRegex?: string;
+}) =>
+  http.post<ApiResponse<any>>('/v1/plugins', data)
+
+export const updatePlugin = (id: number, data: {
+  name: string; scanType: string; description?: string;
+  commandTemplate: string; resultParser?: string; findingRegex?: string;
+}) =>
+  http.put<ApiResponse<any>>(`/v1/plugins/${id}`, data)
+
+export const togglePlugin = (id: number) =>
+  http.patch<ApiResponse<any>>(`/v1/plugins/${id}/toggle`)
+
+export const deletePlugin = (id: number) =>
+  http.delete<ApiResponse<void>>(`/v1/plugins/${id}`)
+
+export const fetchScanTypes = () =>
+  http.get<ApiResponse<string[]>>('/v1/plugins/scan-types')
+
+// Screenshot
+export const captureScreenshot = (url: string, width?: number, height?: number) =>
+  http.post<ApiResponse<{ url: string; data: string }>>('/v1/screenshot', { url, width, height })
+
+// Vulnerability Status Audit Log
+export const fetchVulnStatusLogs = (vulnId: number) =>
+  http.get<ApiResponse<any[]>>(`/v1/vulnerabilities/${vulnId}/logs`)

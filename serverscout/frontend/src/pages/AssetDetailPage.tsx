@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchAssetDetail, fetchSubdomainsByAsset } from '../services/api'
 import StatusBadge from '../components/StatusBadge'
 import { ArrowLeft, Globe, Shield, Clock, Wifi, Cpu, Search, Server, AlertCircle } from 'lucide-react'
+import PluginSlot from '../components/PluginSlot'
 import dayjs from 'dayjs'
 
 export default function AssetDetailPage() {
@@ -73,6 +74,9 @@ export default function AssetDetailPage() {
           )}
         </div>
       </div>
+
+      {/* L1 Plugin Slot: asset-detail-top */}
+      <PluginSlot slot="asset-detail-top" />
 
       {/* Subdomain Section */}
       {subdomains.length > 0 && (

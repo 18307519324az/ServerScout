@@ -1,12 +1,6 @@
-/**
- * PluginSlot — renders all registered plugins for a given slot position.
- * Uses React.lazy + ErrorBoundary for safe dynamic loading.
- */
-
 import { Suspense, lazy, Component, type ReactNode } from 'react'
 import type { PluginSlot as SlotType } from '../types/plugin'
 
-/** Simple ErrorBoundary to prevent plugin crashes from breaking the whole app */
 class PluginErrorBoundary extends Component<
   { children: ReactNode; pluginName: string },
   { hasError: boolean }
@@ -17,7 +11,7 @@ class PluginErrorBoundary extends Component<
     if (this.state.hasError) {
       return (
         <div className="p-3 border border-red-200 bg-red-50 rounded-lg text-xs text-red-600">
-          插件 "{this.props.pluginName}" 加载失败
+          Plugin "{this.props.pluginName}" failed to load
         </div>
       )
     }
@@ -29,22 +23,29 @@ interface PluginSlotProps {
   slot: SlotType
 }
 
-/**
- * Built-in plugin registry. In production this would load from /plugins/ directory.
- * For now, custom plugins can be registered here or via dynamic import().
- */
 const builtinPlugins: { id: string; name: string; slot: SlotType; component: () => Promise<{ default: React.ComponentType<any> }> }[] = [
   {
     id: 'quick-stats-widget',
-    name: '快速统计',
+    name: 'Quick Stats',
     slot: 'dashboard-widget',
     component: () => import('../plugins/widgets/QuickStatsWidget'),
+  },
+  {
+    id: 'vuln-summary-widget',
+    name: 'Vulnerability Summary',
+    slot: 'dashboard-widget',
+    component: () => import('../plugins/widgets/VulnSummaryWidget'),
+  },
+  {
+    id: 'asset-quick-actions',
+    name: 'Asset Quick Actions',
+    slot: 'asset-detail-top',
+    component: () => import('../plugins/widgets/AssetQuickActions'),
   },
 ]
 
 export default function PluginSlot({ slot }: PluginSlotProps) {
   const plugins = builtinPlugins.filter((p) => p.slot === slot)
-
   if (plugins.length === 0) return null
 
   return (

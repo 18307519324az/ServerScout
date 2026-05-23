@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchScanTasks, createScanTask, fetchUsers, createUser, updateUserApi, resetUserPassword, deleteUser, fetchCurrentUser, updateCurrentUser, changeCurrentUserPassword, fetchSystemConfigs, detectTools, updateSystemConfigs } from '../services/api'
+import { fetchScanTasks, createScanTask, fetchUsers, createUser, updateUserApi, resetUserPassword, deleteUser, fetchCurrentUser, updateCurrentUser, changeCurrentUserPassword, fetchSystemConfigs, detectTools, updateSystemConfigs, fetchPlugins, createPlugin, updatePlugin, togglePlugin, deletePlugin } from '../services/api'
 import type { User } from '../types'
 import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { Plus, Loader2, Trash2, Edit3, Key, UserPlus, Shield, Wrench, Settings, User as UserIcon } from 'lucide-react'
+import { Plus, Loader2, Trash2, Edit3, Key, UserPlus, Shield, Wrench, Settings, User as UserIcon, Clock, Bell, BellRing, Puzzle, Zap } from 'lucide-react'
 
 export default function SettingsPage() {
   const toast = useToast()
@@ -91,6 +91,136 @@ export default function SettingsPage() {
       toast.success('工具路径配置已更新')
     },
     onError: (err: any) => toast.error(err?.response?.data?.message || '保存失败'),
+  })
+
+  // ========== Scheduled Scan Config State ==========
+  const [scheduledConfig, setScheduledConfig] = useState({
+    dailyEnabled: 'true',
+    dailyTarget: '192.168.1.0/24',
+    dailyCron: '0 0 2 * * ?',
+    weeklyEnabled: 'false',
+    weeklyTarget: '192.168.1.0/24',
+    weeklyCron: '0 0 3 * * SUN',
+  })
+  const [editingScheduled, setEditingScheduled] = useState(false)
+  const scheduledInitialized = useRef(false)
+
+  useEffect(() => {
+    if (!configsLoading && !scheduledInitialized.current) {
+      setScheduledConfig({
+        dailyEnabled: configs['daily-scan-enabled'] || 'true',
+        dailyTarget: configs['daily-scan-target'] || '192.168.1.0/24',
+        dailyCron: configs['daily-scan-cron'] || '0 0 2 * * ?',
+        weeklyEnabled: configs['weekly-scan-enabled'] || 'false',
+        weeklyTarget: configs['weekly-scan-target'] || '192.168.1.0/24',
+        weeklyCron: configs['weekly-scan-cron'] || '0 0 3 * * SUN',
+      })
+      scheduledInitialized.current = true
+    }
+  }, [configsLoading])
+
+  const updateScheduledMutation = useMutation({
+    mutationFn: () => updateSystemConfigs({
+      'daily-scan-enabled': scheduledConfig.dailyEnabled,
+      'daily-scan-target': scheduledConfig.dailyTarget,
+      'daily-scan-cron': scheduledConfig.dailyCron,
+      'weekly-scan-enabled': scheduledConfig.weeklyEnabled,
+      'weekly-scan-target': scheduledConfig.weeklyTarget,
+      'weekly-scan-cron': scheduledConfig.weeklyCron,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['systemConfigs'] })
+      setEditingScheduled(false)
+      toast.success('定时扫描配置已更新')
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || '保存失败'),
+  })
+
+  // ========== Webhook Config State ==========
+  const [webhookConfig, setWebhookConfig] = useState({
+    dingtalk: '',
+    feishu: '',
+    wecom: '',
+  })
+  const [editingWebhook, setEditingWebhook] = useState(false)
+  const webhookInitialized = useRef(false)
+
+  useEffect(() => {
+    if (!configsLoading && !webhookInitialized.current) {
+      setWebhookConfig({
+        dingtalk: configs['webhook-dingtalk'] || '',
+        feishu: configs['webhook-feishu'] || '',
+        wecom: configs['webhook-wecom'] || '',
+      })
+      webhookInitialized.current = true
+    }
+  }, [configsLoading])
+
+  const updateWebhookMutation = useMutation({
+    mutationFn: () => updateSystemConfigs({
+      'webhook-dingtalk': webhookConfig.dingtalk,
+      'webhook-feishu': webhookConfig.feishu,
+      'webhook-wecom': webhookConfig.wecom,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['systemConfigs'] })
+      setEditingWebhook(false)
+      toast.success('告警通知配置已更新')
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || '保存失败'),
+  })
+
+  // ========== L2 Scan Strategy Plugin State ==========
+  const { data: pluginsData, isLoading: pluginsLoading } = useQuery({
+    queryKey: ['plugins'],
+    queryFn: () => fetchPlugins(),
+  })
+  const plugins = pluginsData?.data?.data || []
+
+  const [showPluginForm, setShowPluginForm] = useState(false)
+  const [editingPlugin, setEditingPlugin] = useState<any>(null)
+  const [pluginForm, setPluginForm] = useState({
+    name: '', scanType: '', description: '', commandTemplate: '', resultParser: 'line', findingRegex: '',
+  })
+
+  const createPluginMutation = useMutation({
+    mutationFn: () => createPlugin(pluginForm),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plugins'] })
+      setShowPluginForm(false)
+      setPluginForm({ name: '', scanType: '', description: '', commandTemplate: '', resultParser: 'line', findingRegex: '' })
+      toast.success(`扫描策略 "${pluginForm.name}" 已创建`)
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || '创建失败'),
+  })
+
+  const updatePluginMutation = useMutation({
+    mutationFn: (id: number) => updatePlugin(id, pluginForm),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plugins'] })
+      setShowPluginForm(false)
+      setEditingPlugin(null)
+      toast.success('策略已更新')
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || '更新失败'),
+  })
+
+  const togglePluginMutation = useMutation({
+    mutationFn: (id: number) => togglePlugin(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plugins'] })
+      toast.success('策略状态已切换')
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || '操作失败'),
+  })
+
+  const deletePluginMutation = useMutation({
+    mutationFn: (id: number) => deletePlugin(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['plugins'] })
+      toast.success('策略已删除')
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || '删除失败'),
   })
 
   // ========== Scan Task ==========
@@ -451,6 +581,317 @@ export default function SettingsPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ========== Scheduled Scan Config Section ========== */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6 mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Clock className="w-5 h-5 text-green-600" />
+          <div>
+            <h2 className="font-semibold dark:text-white">定时扫描配置</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">配置每日巡检和每周全面扫描的 Cron 表达式与目标范围</p>
+          </div>
+        </div>
+
+        {editingScheduled ? (
+          <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-700 space-y-4">
+            <div className="border-b pb-4">
+              <h3 className="text-sm font-medium mb-3 dark:text-white">每日快速巡检</h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">启用</label>
+                  <select value={scheduledConfig.dailyEnabled}
+                    onChange={(e) => setScheduledConfig({ ...scheduledConfig, dailyEnabled: e.target.value })}
+                    className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="true">启用</option>
+                    <option value="false">禁用</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">扫描目标</label>
+                  <input type="text" value={scheduledConfig.dailyTarget}
+                    onChange={(e) => setScheduledConfig({ ...scheduledConfig, dailyTarget: e.target.value })}
+                    className="w-full px-3 py-2 border rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="192.168.1.0/24" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Cron 表达式</label>
+                  <input type="text" value={scheduledConfig.dailyCron}
+                    onChange={(e) => setScheduledConfig({ ...scheduledConfig, dailyCron: e.target.value })}
+                    className="w-full px-3 py-2 border rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <p className="text-xs text-gray-400 mt-1">默认: 0 0 2 * * ? (凌晨2点)</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium mb-3 dark:text-white">每周全面巡检</h3>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">启用</label>
+                  <select value={scheduledConfig.weeklyEnabled}
+                    onChange={(e) => setScheduledConfig({ ...scheduledConfig, weeklyEnabled: e.target.value })}
+                    className="w-full px-3 py-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="true">启用</option>
+                    <option value="false">禁用</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">扫描目标</label>
+                  <input type="text" value={scheduledConfig.weeklyTarget}
+                    onChange={(e) => setScheduledConfig({ ...scheduledConfig, weeklyTarget: e.target.value })}
+                    className="w-full px-3 py-2 border rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="192.168.1.0/24" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Cron 表达式</label>
+                  <input type="text" value={scheduledConfig.weeklyCron}
+                    onChange={(e) => setScheduledConfig({ ...scheduledConfig, weeklyCron: e.target.value })}
+                    className="w-full px-3 py-2 border rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <p className="text-xs text-gray-400 mt-1">默认: 0 0 3 * * SUN (周日凌晨3点)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEditingScheduled(false)}
+                className="px-4 py-1.5 text-sm border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">取消</button>
+              <button onClick={() => updateScheduledMutation.mutate()}
+                disabled={updateScheduledMutation.isPending}
+                className="px-4 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+                {updateScheduledMutation.isPending ? '保存中...' : '保存配置'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex justify-between items-center px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+              <div>
+                <span className={`inline-block w-2 h-2 rounded-full mr-2 ${scheduledConfig.dailyEnabled === 'true' ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className="text-sm font-medium dark:text-white">每日巡检</span>
+                <span className="text-xs text-gray-400 ml-3">{scheduledConfig.dailyTarget}</span>
+              </div>
+              <code className="text-xs bg-gray-100 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded">{scheduledConfig.dailyCron}</code>
+            </div>
+            <div className="flex justify-between items-center px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+              <div>
+                <span className={`inline-block w-2 h-2 rounded-full mr-2 ${scheduledConfig.weeklyEnabled === 'true' ? 'bg-green-500' : 'bg-gray-300'}`} />
+                <span className="text-sm font-medium dark:text-white">每周全面巡检</span>
+                <span className="text-xs text-gray-400 ml-3">{scheduledConfig.weeklyTarget}</span>
+              </div>
+              <code className="text-xs bg-gray-100 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded">{scheduledConfig.weeklyCron}</code>
+            </div>
+            <button onClick={() => setEditingScheduled(true)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-100">
+              <Settings className="w-3.5 h-3.5" /> 编辑定时任务
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ========== Webhook Notification Config Section ========== */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6 mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <BellRing className="w-5 h-5 text-purple-600" />
+          <div>
+            <h2 className="font-semibold dark:text-white">告警通知配置</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">扫描完成后通过 Webhook 推送结果摘要到钉钉/飞书/企业微信</p>
+          </div>
+        </div>
+
+        {editingWebhook ? (
+          <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-700 space-y-4">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">钉钉 (DingTalk) Webhook URL</label>
+              <input type="text" value={webhookConfig.dingtalk}
+                onChange={(e) => setWebhookConfig({ ...webhookConfig, dingtalk: e.target.value })}
+                className="w-full px-3 py-2 border rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://oapi.dingtalk.com/robot/send?access_token=xxx" />
+              <p className="text-xs text-gray-400 mt-1">钉钉群机器人 Webhook 地址，留空则不发送</p>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">飞书 (Feishu/Lark) Webhook URL</label>
+              <input type="text" value={webhookConfig.feishu}
+                onChange={(e) => setWebhookConfig({ ...webhookConfig, feishu: e.target.value })}
+                className="w-full px-3 py-2 border rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx" />
+              <p className="text-xs text-gray-400 mt-1">飞书群机器人 Webhook 地址，留空则不发送</p>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">企业微信 (WeCom) Webhook URL</label>
+              <input type="text" value={webhookConfig.wecom}
+                onChange={(e) => setWebhookConfig({ ...webhookConfig, wecom: e.target.value })}
+                className="w-full px-3 py-2 border rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx" />
+              <p className="text-xs text-gray-400 mt-1">企业微信群机器人 Webhook 地址，留空则不发送</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEditingWebhook(false)}
+                className="px-4 py-1.5 text-sm border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">取消</button>
+              <button onClick={() => updateWebhookMutation.mutate()}
+                disabled={updateWebhookMutation.isPending}
+                className="px-4 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                {updateWebhookMutation.isPending ? '保存中...' : '保存配置'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {(['dingtalk', 'feishu', 'wecom'] as const).map((key) => {
+              const labels = { dingtalk: '钉钉', feishu: '飞书', wecom: '企业微信' }
+              const url = webhookConfig[key]
+              return (
+                <div key={key} className="flex justify-between items-center px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <div>
+                    <span className={`inline-block w-2 h-2 rounded-full mr-2 ${url ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span className="text-sm font-medium dark:text-white">{labels[key]}</span>
+                  </div>
+                  <code className="text-xs bg-gray-100 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded max-w-xs truncate">
+                    {url || '未配置'}
+                  </code>
+                </div>
+              )
+            })}
+            <button onClick={() => setEditingWebhook(true)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-100">
+              <Settings className="w-3.5 h-3.5" /> 编辑通知
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ========== L2 Scan Strategy Plugin Manager ========== */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6 mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-3">
+            <Puzzle className="w-5 h-5 text-indigo-600" />
+            <div>
+              <h2 className="font-semibold dark:text-white">扫描策略插件 (L2)</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">管理自定义扫描策略 — 支持自定义命令执行与结果解析</p>
+            </div>
+          </div>
+          <button
+            onClick={() => { setEditingPlugin(null); setPluginForm({ name: '', scanType: '', description: '', commandTemplate: '', resultParser: 'line', findingRegex: '' }); setShowPluginForm(true) }}
+            className="flex items-center gap-1 px-3 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
+          >
+            <Plus className="w-4 h-4" /> 添加策略
+          </button>
+        </div>
+
+        {/* Plugin Form */}
+        {showPluginForm && (
+          <div className="border rounded-lg p-4 mb-4 bg-gray-50 dark:bg-gray-700">
+            <h3 className="font-medium mb-3 dark:text-white">{editingPlugin ? '编辑策略' : '新建策略'}</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">策略名称</label>
+                <input type="text" value={pluginForm.name}
+                  onChange={(e) => setPluginForm({ ...pluginForm, name: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="例: SSH 弱口令检测" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Scan Type (唯一标识)</label>
+                <input type="text" value={pluginForm.scanType}
+                  onChange={(e) => setPluginForm({ ...pluginForm, scanType: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="例: ssh-brute" disabled={!!editingPlugin} />
+                <p className="text-xs text-gray-400 mt-1">小写字母+连字符，创建后不可修改</p>
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">描述</label>
+                <input type="text" value={pluginForm.description}
+                  onChange={(e) => setPluginForm({ ...pluginForm, description: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="简述此策略的用途" />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs text-gray-500 mb-1">命令模板</label>
+                <textarea value={pluginForm.commandTemplate} rows={3}
+                  onChange={(e) => setPluginForm({ ...pluginForm, commandTemplate: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder={"nmap -sV -p {port_range} --script ssh-brute {target}\n或: python3 custom_scanner.py --target {target}"} />
+                <p className="text-xs text-gray-400 mt-1">变量: {'{target}'}, {'{port_range}'}, {'{task_name}'}</p>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">解析模式</label>
+                <select value={pluginForm.resultParser}
+                  onChange={(e) => setPluginForm({ ...pluginForm, resultParser: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="line">按行正则匹配</option>
+                  <option value="raw">原始输出</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">正则表达式 (命名捕获组)</label>
+                <input type="text" value={pluginForm.findingRegex}
+                  onChange={(e) => setPluginForm({ ...pluginForm, findingRegex: e.target.value })}
+                  className="w-full px-3 py-1.5 border rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder={'(?<severity>critical|high) (?<name>.+)'} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => { setShowPluginForm(false); setEditingPlugin(null) }}
+                className="px-4 py-1.5 text-sm border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600">取消</button>
+              <button
+                onClick={() => {
+                  if (editingPlugin) {
+                    updatePluginMutation.mutate(editingPlugin.id)
+                  } else {
+                    createPluginMutation.mutate()
+                  }
+                }}
+                disabled={!pluginForm.name || !pluginForm.scanType || !pluginForm.commandTemplate || createPluginMutation.isPending || updatePluginMutation.isPending}
+                className="px-4 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+                {createPluginMutation.isPending || updatePluginMutation.isPending ? '保存中...' : editingPlugin ? '保存修改' : '创建策略'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Plugin List */}
+        {pluginsLoading ? (
+          <div className="text-center py-6"><Loader2 className="w-5 h-5 animate-spin mx-auto text-gray-400" /></div>
+        ) : plugins.length === 0 ? (
+          <div className="text-center py-6 text-gray-400 dark:text-gray-500">
+            <Puzzle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">暂无自定义策略</p>
+            <p className="text-xs mt-1">点击"添加策略"创建自定义扫描策略，如 SSH 弱口令检测、Redis 未授权扫描等</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {plugins.map((p: any) => (
+              <div key={p.id} className={`border rounded-lg p-3 flex items-center justify-between ${p.enabled ? 'hover:bg-gray-50 dark:hover:bg-gray-700' : 'opacity-50 bg-gray-50 dark:bg-gray-800'}`}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${p.enabled ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span className="text-sm font-medium dark:text-white">{p.name}</span>
+                    <code className="text-xs bg-gray-100 dark:bg-gray-700 dark:text-gray-200 px-1.5 py-0.5 rounded">{p.scanType}</code>
+                    {p.description && <span className="text-xs text-gray-400 truncate">{p.description}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 ml-2">
+                  <button onClick={() => togglePluginMutation.mutate(p.id)}
+                    className={`px-2 py-1 text-xs rounded ${p.enabled ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
+                    title={p.enabled ? '禁用' : '启用'}>
+                    {p.enabled ? '禁用' : '启用'}
+                  </button>
+                  <button onClick={() => {
+                    setEditingPlugin(p)
+                    setPluginForm({ name: p.name, scanType: p.scanType, description: p.description || '', commandTemplate: p.commandTemplate, resultParser: p.resultParser || 'line', findingRegex: p.findingRegex || '' })
+                    setShowPluginForm(true)
+                  }} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 hover:text-indigo-600" title="编辑">
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => { if (confirm(`确认删除策略 "${p.name}"?`)) deletePluginMutation.mutate(p.id) }}
+                    className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-500 hover:text-red-600" title="删除">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ========== User Management Section (Admin Only) ========== */}

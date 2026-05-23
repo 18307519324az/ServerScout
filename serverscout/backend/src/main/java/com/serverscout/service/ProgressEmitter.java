@@ -1,6 +1,7 @@
 package com.serverscout.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -13,22 +14,47 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 public class ProgressEmitter {
 
-    private final Map<Long, List<SseEmitter>> taskEmitters = new ConcurrentHashMap<>();
+    private static final long EMITTER_TIMEOUT_MS = 30 * 60 * 1000L; // 30 minutes max
+    private static final long STALE_TASK_MS = 60 * 60 * 1000L; // 1 hour cleanup threshold
+
+    private final Map<Long, List<TimedEmitter>> taskEmitters = new ConcurrentHashMap<>();
+
+    private static class TimedEmitter {
+        final SseEmitter emitter;
+        final long createdAt;
+
+        TimedEmitter(SseEmitter emitter) {
+            this.emitter = emitter;
+            this.createdAt = System.currentTimeMillis();
+        }
+
+        boolean isOlderThan(long ms) {
+            return System.currentTimeMillis() - createdAt > ms;
+        }
+    }
 
     public SseEmitter createEmitter(Long taskId) {
-        SseEmitter emitter = new SseEmitter(0L);
-        taskEmitters.computeIfAbsent(taskId, k -> new CopyOnWriteArrayList<>()).add(emitter);
+        SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT_MS);
+        TimedEmitter te = new TimedEmitter(emitter);
+
+        taskEmitters.computeIfAbsent(taskId, k -> new CopyOnWriteArrayList<>()).add(te);
 
         emitter.onCompletion(() -> removeEmitter(taskId, emitter));
-        emitter.onTimeout(() -> removeEmitter(taskId, emitter));
-        emitter.onError(e -> removeEmitter(taskId, emitter));
+        emitter.onTimeout(() -> {
+            log.debug("SSE emitter timed out for task {}", taskId);
+            removeEmitter(taskId, emitter);
+        });
+        emitter.onError(e -> {
+            log.debug("SSE emitter error for task {}: {}", taskId, e.getMessage());
+            removeEmitter(taskId, emitter);
+        });
 
         return emitter;
     }
 
     public void sendProgress(Long taskId, int progress, String currentTarget, int assetsFound) {
-        List<SseEmitter> emitters = taskEmitters.get(taskId);
-        if (emitters == null) return;
+        List<TimedEmitter> emitters = getActiveEmitters(taskId);
+        if (emitters.isEmpty()) return;
 
         Map<String, Object> data = new HashMap<>();
         data.put("progress", progress);
@@ -39,11 +65,10 @@ public class ProgressEmitter {
         sendEvent(taskId, emitters, "progress", data);
     }
 
-    /** Emit a discovered asset with its ports in real time */
     public void sendDiscoveredAsset(Long taskId, String ip, String hostname,
                                      String osInfo, int portCount, List<Map<String, Object>> ports) {
-        List<SseEmitter> emitters = taskEmitters.get(taskId);
-        if (emitters == null) return;
+        List<TimedEmitter> emitters = getActiveEmitters(taskId);
+        if (emitters.isEmpty()) return;
 
         Map<String, Object> data = new HashMap<>();
         data.put("type", "asset");
@@ -57,11 +82,10 @@ public class ProgressEmitter {
         sendEvent(taskId, emitters, "discovery", data);
     }
 
-    /** Emit a discovered vulnerability in real time */
     public void sendDiscoveredVuln(Long taskId, String severity, String cveId,
                                     String name, String url, String affected) {
-        List<SseEmitter> emitters = taskEmitters.get(taskId);
-        if (emitters == null) return;
+        List<TimedEmitter> emitters = getActiveEmitters(taskId);
+        if (emitters.isEmpty()) return;
 
         Map<String, Object> data = new HashMap<>();
         data.put("type", "vuln");
@@ -75,11 +99,10 @@ public class ProgressEmitter {
         sendEvent(taskId, emitters, "discovery", data);
     }
 
-    /** Emit web fingerprint discovery */
     public void sendDiscoveredFingerprint(Long taskId, String ip, int port,
                                            String server, String framework, String cms, String title) {
-        List<SseEmitter> emitters = taskEmitters.get(taskId);
-        if (emitters == null) return;
+        List<TimedEmitter> emitters = getActiveEmitters(taskId);
+        if (emitters.isEmpty()) return;
 
         Map<String, Object> data = new HashMap<>();
         data.put("type", "fingerprint");
@@ -95,30 +118,88 @@ public class ProgressEmitter {
     }
 
     public void sendCompleted(Long taskId) {
-        List<SseEmitter> emitters = taskEmitters.remove(taskId);
-        if (emitters == null) return;
+        List<TimedEmitter> emitters = getActiveEmitters(taskId);
         sendEvent(taskId, emitters, "completed", Map.of("taskId", taskId));
+        // Complete all emitters and remove the entry
+        for (TimedEmitter te : emitters) {
+            try { te.emitter.complete(); } catch (Exception ignored) {}
+        }
+        taskEmitters.remove(taskId);
     }
 
     public void sendError(Long taskId, String message) {
-        List<SseEmitter> emitters = taskEmitters.remove(taskId);
-        if (emitters == null) return;
+        List<TimedEmitter> emitters = getActiveEmitters(taskId);
         sendEvent(taskId, emitters, "error", Map.of("message", message));
+        for (TimedEmitter te : emitters) {
+            try { te.emitter.completeWithError(new RuntimeException(message)); } catch (Exception ignored) {}
+        }
+        taskEmitters.remove(taskId);
     }
 
-    private void sendEvent(Long taskId, List<SseEmitter> emitters, String name, Object data) {
-        for (SseEmitter emitter : emitters) {
+    /** Explicit cleanup — call when a scan is cancelled */
+    public void cleanup(Long taskId) {
+        List<TimedEmitter> emitters = taskEmitters.remove(taskId);
+        if (emitters != null) {
+            for (TimedEmitter te : emitters) {
+                try { te.emitter.complete(); } catch (Exception ignored) {}
+            }
+            log.debug("Cleaned up {} emitters for task {}", emitters.size(), taskId);
+        }
+    }
+
+    /**
+     * Scheduled eviction of stale entries. Runs every 10 minutes.
+     * Completes and removes emitter entries older than the stale threshold.
+     * Normal cleanup happens via onCompletion/onTimeout/onError callbacks;
+     * this is a safety net for edge cases where those don't fire.
+     */
+    @Scheduled(fixedRate = 600_000)
+    public void evictStaleEntries() {
+        int removed = 0;
+        for (Iterator<Map.Entry<Long, List<TimedEmitter>>> iter = taskEmitters.entrySet().iterator(); iter.hasNext();) {
+            Map.Entry<Long, List<TimedEmitter>> entry = iter.next();
+            List<TimedEmitter> list = entry.getValue();
+            if (list == null || list.isEmpty()) {
+                iter.remove();
+                removed++;
+            } else if (list.stream().allMatch(te -> te.isOlderThan(STALE_TASK_MS))) {
+                for (TimedEmitter te : list) {
+                    try { te.emitter.complete(); } catch (Exception ignored) {}
+                }
+                iter.remove();
+                removed++;
+                log.info("SSE eviction: cleaned up stale task {}", entry.getKey());
+            }
+        }
+        if (removed > 0) {
+            log.info("SSE eviction: removed {} stale task entries", removed);
+        }
+    }
+
+    private List<TimedEmitter> getActiveEmitters(Long taskId) {
+        List<TimedEmitter> emitters = taskEmitters.get(taskId);
+        return emitters != null ? emitters : List.of();
+    }
+
+    private void sendEvent(Long taskId, List<TimedEmitter> emitters, String name, Object data) {
+        for (TimedEmitter te : emitters) {
             try {
-                emitter.send(SseEmitter.event().name(name).data(data));
+                te.emitter.send(SseEmitter.event().name(name).data(data));
             } catch (IOException e) {
-                emitter.completeWithError(e);
-                removeEmitter(taskId, emitter);
+                te.emitter.completeWithError(e);
+                removeEmitter(taskId, te.emitter);
             }
         }
     }
 
     private void removeEmitter(Long taskId, SseEmitter emitter) {
-        List<SseEmitter> emitters = taskEmitters.get(taskId);
-        if (emitters != null) emitters.remove(emitter);
+        List<TimedEmitter> emitters = taskEmitters.get(taskId);
+        if (emitters != null) {
+            emitters.removeIf(te -> te.emitter == emitter);
+            // Clean up empty lists to prevent memory leak
+            if (emitters.isEmpty()) {
+                taskEmitters.remove(taskId);
+            }
+        }
     }
 }
