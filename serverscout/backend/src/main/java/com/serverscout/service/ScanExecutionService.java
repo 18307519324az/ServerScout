@@ -32,6 +32,8 @@ public class ScanExecutionService {
     private final AssetVulnerabilityRepository assetVulnerabilityRepository;
     private final CertTransparencyService certTransparencyService;
     private final WebFingerprintRepository webFingerprintRepository;
+    private final WebVulnDetectorService webVulnDetectorService;
+    private final WebhookNotificationService webhookService;
 
     @Async("scanExecutor")
     public void executeScan(Long taskId) {
@@ -110,8 +112,24 @@ public class ScanExecutionService {
                 task.setProgress(70);
             }
 
+            // Phase 2.7: Web vulnerability detection (SQLi/XSS/CSRF)
+            if (Boolean.TRUE.equals(task.getEnableVulnScan())) {
+                progressEmitter.sendProgress(taskId, 72, "正在进行Web漏洞专项检测...", assetCount);
+                List<ScanAssetMapping> allMappings = scanAssetMappingRepository
+                        .findByScanTaskIdWithAsset(task.getId());
+                List<Asset> detectedAssets = allMappings.stream()
+                        .map(ScanAssetMapping::getAsset).distinct().collect(Collectors.toList());
+                int webVulnCount = webVulnDetectorService.detect(task, detectedAssets,
+                        portRepository, webFingerprintRepository);
+                if (isCancelled(taskId)) return;
+                task.setProgress(75);
+                scanTaskRepository.save(task);
+                progressEmitter.sendProgress(taskId, 75,
+                        "Web漏洞检测完成，发现 " + webVulnCount + " 个风险", assetCount);
+            }
+
             // Phase 3: SSL cert collection
-            progressEmitter.sendProgress(taskId, 75, "正在采集 SSL 证书...", assetCount);
+            progressEmitter.sendProgress(taskId, 78, "正在采集 SSL 证书...", assetCount);
             collectSslCerts(task);
             if (isCancelled(taskId)) return;
             task.setProgress(85);
@@ -137,6 +155,7 @@ public class ScanExecutionService {
             scanTaskRepository.save(task);
             progressEmitter.sendCompleted(taskId);
             log.info("Scan task {} completed successfully", taskId);
+            webhookService.sendScanCompletedNotification(taskId);
 
         } catch (Exception e) {
             if (isCancelled(taskId)) return;
@@ -145,6 +164,7 @@ public class ScanExecutionService {
             task.setErrorMessage(e.getMessage() != null ? e.getMessage() : "扫描执行异常");
             try { scanTaskRepository.save(task); } catch (Exception ex) { log.error("Failed to save task", ex); }
             progressEmitter.sendError(taskId, task.getErrorMessage());
+            webhookService.sendScanCompletedNotification(taskId);
         }
     }
 

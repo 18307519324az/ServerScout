@@ -189,37 +189,77 @@ function applyNodeColors(node: any): any {
 }
 
 function buildRadarOption(stats: any, isDark: boolean) {
-  const indicators: any[] = []
-  const values: any[] = []
-
-  const allItems = [
-    ...(stats.frameworks || []),
-    ...(stats.servers || []),
-    ...(stats.cms || []),
-    ...(stats.wafs || []),
+  const categories = [
+    { key: 'servers', label: '服务器', color: '#3b82f6' },
+    { key: 'frameworks', label: '框架', color: '#22c55e' },
+    { key: 'cms', label: 'CMS', color: '#f97316' },
+    { key: 'wafs', label: 'WAF', color: '#ef4444' },
   ]
-  const top10 = allItems.sort((a: any, b: any) => b.count - a.count).slice(0, 8)
 
-  for (const item of top10) {
-    indicators.push({ name: item.name, max: item.count * 1.2 || 10 })
-    values.push(item.count)
+  const allItems: { name: string; count: number; category: string }[] = []
+  for (const cat of categories) {
+    const items = stats[cat.key] || []
+    for (const item of items) {
+      allItems.push({ name: item.name, count: item.count, category: cat.label })
+    }
   }
 
-  if (indicators.length === 0) return {}
+  const topItems = allItems.sort((a, b) => b.count - a.count).slice(0, 10)
+  if (topItems.length === 0) return {}
+
+  // Use consistent max for proper comparison across items
+  const globalMax = Math.max(...topItems.map(i => i.count), 1)
+  const indicators = topItems.map(i => ({ name: `${i.name}`, max: globalMax * 1.15 }))
+  const values = topItems.map(i => i.count)
+
+  const textColor = isDark ? '#d1d5db' : '#374151'
+  const bgColor = isDark ? '#1f2937' : '#fff'
 
   return {
-    tooltip: {},
-    legend: { data: ['检测数量'], textStyle: { color: isDark ? '#d1d5db' : '#374151' } },
+    tooltip: {
+      trigger: 'item',
+      formatter: (params: any) => {
+        const v = params.value
+        const idx = Array.isArray(v) ? 0 : params.dataIndex
+        const item = topItems[idx]
+        return item ? `<b>${item.name}</b><br/>类别: ${item.category}<br/>检测数量: <b>${item.count}</b>` : ''
+      },
+    },
+    legend: {
+      data: categories.map(c => c.label),
+      textStyle: { color: textColor },
+      top: 0,
+    },
     radar: {
       indicator: indicators,
-      center: ['50%', '55%'],
-      radius: '65%',
-      axisName: { color: isDark ? '#d1d5db' : '#374151', fontSize: 10 },
-      splitArea: { areaStyle: { color: [isDark ? '#1f2937' : '#fff', isDark ? '#374151' : '#f9fafb'] } },
+      center: ['50%', '58%'],
+      radius: '60%',
+      axisName: {
+        color: textColor,
+        fontSize: 9,
+        formatter: (name: string) => name.length > 8 ? name.slice(0, 7) + '…' : name,
+      },
+      splitArea: {
+        areaStyle: { color: [bgColor, isDark ? '#374151' : '#f3f4f6'] },
+      },
     },
-    series: [{
-      type: 'radar',
-      data: [{ value: values, name: '检测数量', areaStyle: { color: 'rgba(59, 130, 246, 0.3)' }, lineStyle: { color: '#3b82f6' } }],
-    }],
+    series: categories.map(cat => {
+      const catValues = topItems.map(i => i.category === cat.label ? i.count : 0)
+      const hasData = catValues.some(v => v > 0)
+      if (!hasData) return null
+      return {
+        type: 'radar',
+        name: cat.label,
+        data: [{
+          value: catValues,
+          name: cat.label,
+          areaStyle: { color: cat.color + '20' },
+          lineStyle: { color: cat.color, width: 1.5 },
+          itemStyle: { color: cat.color },
+          symbol: 'circle',
+          symbolSize: 4,
+        }],
+      }
+    }).filter(Boolean),
   }
 }

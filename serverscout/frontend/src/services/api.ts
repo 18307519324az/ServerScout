@@ -41,6 +41,12 @@ export const fetchCaptcha = () =>
 export const fetchCurrentUser = () =>
   http.get<ApiResponse<User>>('/v1/users/me')
 
+export const updateCurrentUser = (data: { name?: string; gender?: string; email?: string }) =>
+  http.put<ApiResponse<User>>('/v1/users/me', data)
+
+export const changeCurrentUserPassword = (oldPassword: string, newPassword: string) =>
+  http.put<ApiResponse<void>>('/v1/users/me/password', { oldPassword, newPassword })
+
 export const fetchUsers = () =>
   http.get<ApiResponse<User[]>>('/v1/users')
 
@@ -55,6 +61,16 @@ export const resetUserPassword = (id: number, newPassword: string) =>
 
 export const deleteUser = (id: number) =>
   http.delete<ApiResponse<void>>(`/v1/users/${id}`)
+
+// System Config
+export const fetchSystemConfigs = () =>
+  http.get<ApiResponse<Record<string, string>>>('/v1/config')
+
+export const detectTools = () =>
+  http.get<ApiResponse<Record<string, string>>>('/v1/config/detect-tools')
+
+export const updateSystemConfigs = (configs: Record<string, string>) =>
+  http.put<ApiResponse<void>>('/v1/config', configs)
 
 // Assets
 export const fetchAssets = (params: { page?: number; size?: number; keyword?: string; status?: string }) =>

@@ -1,6 +1,7 @@
 package com.serverscout.service.scan;
 
 import com.serverscout.entity.ScanTask;
+import com.serverscout.service.SystemConfigService;
 import com.serverscout.util.ScanException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,6 +21,16 @@ public class NucleiScannerImpl implements ScannerStrategy {
 
     @Value("${app.scan.nuclei-path}")
     private String nucleiPath;
+
+    private final SystemConfigService configService;
+
+    public NucleiScannerImpl(SystemConfigService configService) {
+        this.configService = configService;
+    }
+
+    private String getNucleiPath() {
+        return configService.getConfig("nuclei-path", nucleiPath);
+    }
 
     private static final Pattern FINDING_PATTERN = Pattern.compile(
             "\\[([^]]+)\\]\\s+\\[([^]]+)\\]\\s+\\[([^]]+)\\]\\s+(.+?)\\s+\\[(.+?)\\]");
@@ -75,7 +86,7 @@ public class NucleiScannerImpl implements ScannerStrategy {
 
     private List<String> buildCommand(ScanTask task) {
         List<String> cmd = new ArrayList<>();
-        cmd.add(nucleiPath);
+        cmd.add(getNucleiPath());
         // Use proper URL format if the target looks like an IP/domain without scheme
         String target = task.getTargetRange();
         if (target.matches("^\\d+\\.\\d+\\.\\d+\\.\\d+$")) {

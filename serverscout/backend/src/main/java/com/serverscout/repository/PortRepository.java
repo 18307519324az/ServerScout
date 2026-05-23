@@ -28,6 +28,8 @@ public interface PortRepository extends JpaRepository<Port, Long> {
 
     long countByAssetId(Long assetId);
 
+    void deleteByAssetId(Long assetId);
+
     @Query("SELECT COUNT(p) FROM Port p JOIN p.asset a JOIN a.task t " +
            "WHERE t.createdBy = :createdBy")
     long countByCreatedBy(@Param("createdBy") String createdBy);

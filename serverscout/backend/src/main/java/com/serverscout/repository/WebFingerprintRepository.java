@@ -14,4 +14,6 @@ public interface WebFingerprintRepository extends JpaRepository<WebFingerprint, 
     @Query("SELECT wf FROM WebFingerprint wf JOIN wf.port p JOIN p.asset a JOIN a.task t " +
            "WHERE t.createdBy = :createdBy")
     List<WebFingerprint> findAllByCreatedBy(@Param("createdBy") String createdBy);
+
+    void deleteByPortId(Long portId);
 }

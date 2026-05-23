@@ -26,6 +26,7 @@ public class AssetService {
     private final AssetVulnerabilityRepository assetVulnerabilityRepository;
     private final SslCertificateRepository sslCertificateRepository;
     private final ScanAssetMappingRepository scanAssetMappingRepository;
+    private final SubdomainRepository subdomainRepository;
     private final ObjectMapper objectMapper;
 
     public Page<Asset> listAssets(String keyword, String status, Pageable pageable, String username, boolean isAdmin) {
@@ -130,10 +131,20 @@ public class AssetService {
 
     @Transactional
     public void deleteAsset(Long id) {
-        if (!assetRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Asset", id);
+        Asset asset = assetRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Asset", id));
+
+        List<Port> ports = portRepository.findByAssetId(id);
+        for (Port port : ports) {
+            webFingerprintRepository.deleteByPortId(port.getId());
+            sslCertificateRepository.deleteByPortId(port.getId());
+            assetVulnerabilityRepository.deleteByPortId(port.getId());
         }
-        assetRepository.deleteById(id);
+        portRepository.deleteByAssetId(id);
+        assetVulnerabilityRepository.deleteByAssetId(id);
+        subdomainRepository.deleteAllByAssetId(id);
+        scanAssetMappingRepository.deleteByAssetId(id);
+        assetRepository.delete(asset);
     }
 
     @Transactional

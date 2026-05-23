@@ -13,4 +13,6 @@ public interface SslCertificateRepository extends JpaRepository<SslCertificate, 
     List<SslCertificate> findByIsExpiredTrue();
 
     long countByIsExpiredTrue();
+
+    void deleteByPortId(Long portId);
 }

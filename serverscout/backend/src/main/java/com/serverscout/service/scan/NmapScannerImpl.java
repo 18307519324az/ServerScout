@@ -1,6 +1,7 @@
 package com.serverscout.service.scan;
 
 import com.serverscout.entity.ScanTask;
+import com.serverscout.service.SystemConfigService;
 import com.serverscout.util.ScanException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +23,16 @@ public class NmapScannerImpl implements ScannerStrategy {
 
     @Value("${app.scan.nmap-path}")
     private String nmapPath;
+
+    private final SystemConfigService configService;
+
+    public NmapScannerImpl(SystemConfigService configService) {
+        this.configService = configService;
+    }
+
+    private String getNmapPath() {
+        return configService.getConfig("nmap-path", nmapPath);
+    }
 
     @Override
     public boolean supports(String scanType) {
@@ -62,7 +73,7 @@ public class NmapScannerImpl implements ScannerStrategy {
 
     private List<String> buildCommand(ScanTask task) {
         List<String> cmd = new ArrayList<>();
-        cmd.add(nmapPath);
+        cmd.add(getNmapPath());
         cmd.add("-oX"); cmd.add("-");
         cmd.add("--stats-every"); cmd.add("5s");
 

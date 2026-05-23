@@ -25,4 +25,6 @@ public interface ScanAssetMappingRepository extends JpaRepository<ScanAssetMappi
     @Query("SELECT COUNT(m) FROM ScanAssetMapping m WHERE m.isNew = true " +
            "AND m.scanTime > :since")
     long countNewAssetsSince(@Param("since") java.time.Instant since);
+
+    void deleteByAssetId(Long assetId);
 }

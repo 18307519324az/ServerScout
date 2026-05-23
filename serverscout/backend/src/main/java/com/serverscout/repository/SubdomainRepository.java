@@ -17,4 +17,6 @@ public interface SubdomainRepository extends JpaRepository<Subdomain, Long> {
     long countByDomain(String domain);
 
     List<Subdomain> findByIpAddress(String ipAddress);
+
+    void deleteAllByAssetId(Long assetId);
 }

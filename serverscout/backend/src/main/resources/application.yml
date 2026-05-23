@@ -1,14 +1,14 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
   application:
     name: server-scout
 
   datasource:
-    url: jdbc:mysql://localhost:3306/serverscout?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: root
-    password: root
+    url: ${DB_URL:jdbc:mysql://localhost:3306/serverscout?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -32,16 +32,22 @@ spring:
 
 logging:
   level:
-    com.serverscout: DEBUG
+    com.serverscout: ${LOG_LEVEL:DEBUG}
     org.springframework: WARN
 
 app:
   jwt:
-    secret: ServerScout2026SecretKeyForJWTTokenGenerationMustBeLongEnough
-    expiration-ms: 86400000  # 24h
+    secret: ${JWT_SECRET:ServerScout2026SecretKeyForJWTTokenGenerationMustBeLongEnough}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   scan:
-    nmap-path: nmap
-    nuclei-path: nuclei
-    max-concurrent-tasks: 5
-    default-timeout-seconds: 300
-    http-probe-timeout: 3000
+    nmap-path: ${NMAP_PATH:nmap}
+    nuclei-path: ${NUCLEI_PATH:nuclei}
+    max-concurrent-tasks: ${SCAN_MAX_CONCURRENT:5}
+    default-timeout-seconds: ${SCAN_TIMEOUT:300}
+    http-probe-timeout: ${HTTP_PROBE_TIMEOUT:3000}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:5174}
+  webhook:
+    dingtalk: ${WEBHOOK_DINGTALK:}
+    feishu: ${WEBHOOK_FEISHU:}
+    wecom: ${WEBHOOK_WECOM:}

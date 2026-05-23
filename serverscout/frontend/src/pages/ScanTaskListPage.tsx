@@ -85,17 +85,17 @@ export default function ScanTaskListPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">扫描任务</h1>
+        <h1 className="text-2xl font-bold dark:text-white">扫描任务</h1>
         <button onClick={() => setShowCreate(true)}
           className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
           <Plus className="w-4 h-4" /> 新建扫描
         </button>
       </div>
 
-      {isLoading ? <div className="text-center py-20 text-gray-400">加载中...</div> : (
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+      {isLoading ? <div className="text-center py-20 text-gray-400 dark:text-gray-500">加载中...</div> : (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50 text-left text-sm text-gray-500">
+            <thead className="bg-gray-50 dark:bg-gray-700 text-left text-sm text-gray-500 dark:text-gray-400">
               <tr>
                 <th className="px-4 py-3">任务名称</th>
                 <th className="px-4 py-3">目标</th>
@@ -109,16 +109,16 @@ export default function ScanTaskListPage() {
             </thead>
             <tbody className="text-sm">
               {tasks.map((t: any) => (
-                <tr key={t.id} className="border-t hover:bg-gray-50">
+                <tr key={t.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-4 py-3">
-                    <Link to={`/scan-tasks/${t.id}`} className="text-blue-600 hover:underline font-medium">{t.name}</Link>
+                    <Link to={`/scan-tasks/${t.id}`} className="text-blue-600 dark:text-blue-400 hover:underline font-medium">{t.name}</Link>
                   </td>
-                  <td className="px-4 py-3 font-mono text-gray-600">{t.targetRange}</td>
-                  <td className="px-4 py-3">{t.scanType}</td>
+                  <td className="px-4 py-3 font-mono text-gray-600 dark:text-gray-300">{t.targetRange}</td>
+                  <td className="px-4 py-3 dark:text-gray-300">{t.scanType}</td>
                   <td className="px-4 py-3"><StatusBadge status={t.status} /></td>
                   <td className="px-4 py-3"><ProgressBar value={t.progress} /></td>
-                  <td className="px-4 py-3 text-center">{t.totalAssets}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500">{t.createdAt ? dayjs(t.createdAt).format('YYYY-MM-DD HH:mm') : '-'}</td>
+                  <td className="px-4 py-3 text-center dark:text-gray-300">{t.totalAssets}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{t.createdAt ? dayjs(t.createdAt).format('YYYY-MM-DD HH:mm') : '-'}</td>
                   <td className="px-4 py-3">
                     <button onClick={() => { setDeleteId(t.id); setDeleteStatus(t.status) }} className="p-1 text-gray-400 hover:text-red-600 transition">
                       <Trash2 className="w-4 h-4" />
@@ -134,19 +134,19 @@ export default function ScanTaskListPage() {
       {totalPages > 0 && (
         <div className="flex justify-center gap-2 mt-4">
           <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
-            className="px-3 py-1 border rounded text-sm disabled:opacity-30">上一页</button>
-          <span className="px-3 py-1 text-sm text-gray-500">第 {page + 1}/{totalPages} 页</span>
+            className="px-3 py-1 border dark:border-gray-600 rounded text-sm disabled:opacity-30 dark:text-gray-300">上一页</button>
+          <span className="px-3 py-1 text-sm text-gray-500 dark:text-gray-400">第 {page + 1}/{totalPages} 页</span>
           <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-            className="px-3 py-1 border rounded text-sm disabled:opacity-30">下一页</button>
+            className="px-3 py-1 border dark:border-gray-600 rounded text-sm disabled:opacity-30 dark:text-gray-300">下一页</button>
         </div>
       )}
 
       {/* Create Dialog */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowCreate(false)}>
-          <div className="bg-white rounded-xl p-6 w-[500px]" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-[500px]" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-bold text-lg">新建扫描任务</h2>
+              <h2 className="font-bold text-lg dark:text-white">新建扫描任务</h2>
               <button onClick={() => setShowCreate(false)}><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={e => {
@@ -172,26 +172,26 @@ export default function ScanTaskListPage() {
               })
             }} className="space-y-3">
               <div>
-                <label className="block text-sm font-medium mb-1">任务名称</label>
-                <input name="name" required className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">任务名称</label>
+                <input name="name" required className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-200" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">扫描目标 (IP/CIDR/域名)</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">扫描目标 (IP/CIDR/域名)</label>
                 <input name="targetRange" required placeholder="例：192.168.1.1 或 192.168.1.0/24 或 example.com"
                   onChange={e => validateTarget(e.target.value)}
                   className={`w-full px-3 py-2 border rounded-lg text-sm font-mono outline-none focus:ring-2 ${targetError ? 'border-red-400 focus:ring-red-500' : 'focus:ring-blue-500'}`} />
                 {targetError && <p className="text-red-500 text-xs mt-1">{targetError}</p>}
-                <p className="text-gray-400 text-xs mt-1">多个目标用逗号分隔；端口在下方单独设置（1-1000 为推荐范围）</p>
+                <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">多个目标用逗号分隔；端口在下方单独设置（1-1000 为推荐范围）</p>
               </div>
               {/* Scan Preset */}
               <div>
-                <label className="block text-sm font-medium mb-1">扫描模板预设</label>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">扫描模板预设</label>
                 <div className="grid grid-cols-4 gap-2">
                   {[
                     { id: 'quick', label: 'Quick', desc: '主机发现', color: 'border-blue-300 bg-blue-50 text-blue-700' },
                     { id: 'stealth', label: 'Stealth', desc: '隐匿扫描', color: 'border-purple-300 bg-purple-50 text-purple-700' },
                     { id: 'web', label: 'Web', desc: 'Web 专用', color: 'border-green-300 bg-green-50 text-green-700' },
-                    { id: 'full', label: 'Full', desc: '全端口+OS', color: 'border-red-300 bg-red-50 text-red-700' },
+                    { id: 'full', label: 'Full', desc: '全端口+漏洞', color: 'border-red-300 bg-red-50 text-red-700' },
                   ].map(p => (
                     <label key={p.id} className={`cursor-pointer border rounded-lg p-2 text-center hover:shadow transition ${p.color}`}>
                       <input type="radio" name="preset" value={p.id} defaultChecked={p.id === 'quick'}
@@ -199,30 +199,43 @@ export default function ScanTaskListPage() {
                           const form = document.querySelector('form')!
                           const scanType = form.querySelector<HTMLSelectElement>('select[name="scanType"]')!
                           const portRange = form.querySelector<HTMLInputElement>('input[name="portRange"]')!
+                          const fingerCheck = form.querySelector<HTMLInputElement>('input[name="enableFingerprint"]')!
                           const vulnCheck = form.querySelector<HTMLInputElement>('input[name="enableVulnScan"]')!
-                          if (p.id === 'quick') { scanType.value = 'quick'; portRange.value = '1-1000'; }
-                          if (p.id === 'stealth') { scanType.value = 'quick'; portRange.value = '1-1000'; }
-                          if (p.id === 'web') { scanType.value = 'quick'; portRange.value = '80,443,8080,8443,3000,5000,7000'; vulnCheck.checked = true; }
-                          if (p.id === 'full') { scanType.value = 'full'; portRange.value = '1-65535'; vulnCheck.checked = true; }
+                          if (p.id === 'quick') {
+                            scanType.value = 'quick'; portRange.value = '1-1000';
+                            fingerCheck.checked = true; vulnCheck.checked = false;
+                          }
+                          if (p.id === 'stealth') {
+                            scanType.value = 'quick'; portRange.value = '22,80,443,3389';
+                            fingerCheck.checked = false; vulnCheck.checked = false;
+                          }
+                          if (p.id === 'web') {
+                            scanType.value = 'quick'; portRange.value = '80,443,8080,8443,3000,5000,7000,8000,8888';
+                            fingerCheck.checked = true; vulnCheck.checked = true;
+                          }
+                          if (p.id === 'full') {
+                            scanType.value = 'full'; portRange.value = '1-65535';
+                            fingerCheck.checked = true; vulnCheck.checked = true;
+                          }
                         }}
                         className="sr-only"
                       />
                       <p className="text-sm font-bold">{p.label}</p>
-                      <p className="text-xs text-gray-500">{p.desc}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{p.desc}</p>
                     </label>
                   ))}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1">扫描类型</label>
-                  <select name="scanType" className="w-full px-3 py-2 border rounded-lg text-sm outline-none">
+                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">扫描类型</label>
+                  <select name="scanType" className="w-full px-3 py-2 border dark:border-gray-600 rounded-lg text-sm outline-none bg-white dark:bg-gray-700 dark:text-gray-200">
                     <option value="quick">Quick (主机发现)</option>
                     <option value="full">Full (端口+版本+OS)</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">端口范围</label>
+                  <label className="block text-sm font-medium mb-1 dark:text-gray-300">端口范围</label>
                   <input name="portRange" defaultValue="1-1000" placeholder="1-1000"
                     className="w-full px-3 py-2 border rounded-lg text-sm font-mono outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>

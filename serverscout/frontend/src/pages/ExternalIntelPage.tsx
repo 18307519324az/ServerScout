@@ -87,8 +87,8 @@ export default function ExternalIntelPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">外部威胁情报</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold dark:text-white">外部威胁情报</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             集成 Shodan InternetDB &middot; NVD CVE &middot; AlienVault OTX &middot; URLScan &middot; EPSS
           </p>
         </div>
@@ -121,13 +121,13 @@ export default function ExternalIntelPage() {
       {/* ==================== IP Intelligence ==================== */}
       {tab === 'ip' && (
         <div>
-          <div className="bg-white rounded-xl border p-6 shadow-sm mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6 shadow-sm mb-6">
             <div className="flex gap-3 mb-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
                   placeholder="输入 IP 地址，如 1.1.1.1 或 8.8.8.8"
-                  className="pl-9 pr-3 py-2.5 border rounded-lg w-full text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="pl-9 pr-3 py-2.5 border dark:border-gray-600 rounded-lg w-full text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-200"
                   value={ipInput}
                   onChange={e => setIpInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleLookup.ip()}
@@ -167,12 +167,12 @@ export default function ExternalIntelPage() {
       {/* ==================== CVE Query ==================== */}
       {tab === 'cve' && (
         <div>
-          <div className="bg-white rounded-xl border p-6 shadow-sm mb-6">
-            <h3 className="font-semibold text-sm mb-3">CVE 详情查询</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6 shadow-sm mb-6">
+            <h3 className="font-semibold text-sm mb-3 dark:text-white">CVE 详情查询</h3>
             <div className="flex gap-3">
               <input
                 placeholder="输入 CVE 编号，如 CVE-2021-44228"
-                className="px-3 py-2.5 border rounded-lg flex-1 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                className="px-3 py-2.5 border dark:border-gray-600 rounded-lg flex-1 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-200"
                 value={cveInput}
                 onChange={e => setCveInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleLookup.cve()}
@@ -191,12 +191,12 @@ export default function ExternalIntelPage() {
           {cveData?.data?.data && <CveDetailCard data={cveData.data.data} severityColor={severityColor} />}
 
           {/* CVE Search */}
-          <div className="bg-white rounded-xl border p-6 shadow-sm mb-6">
-            <h3 className="font-semibold text-sm mb-3">CVE 关键词搜索</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6 shadow-sm mb-6">
+            <h3 className="font-semibold text-sm mb-3 dark:text-white">CVE 关键词搜索</h3>
             <div className="flex gap-3">
               <input
                 placeholder="搜索关键词，如 Apache、Spring、WordPress..."
-                className="px-3 py-2.5 border rounded-lg flex-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                className="px-3 py-2.5 border dark:border-gray-600 rounded-lg flex-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-200"
                 value={cveSearchKeyword}
                 onChange={e => setCveSearchKeyword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleLookup.cveSearch()}
@@ -215,18 +215,18 @@ export default function ExternalIntelPage() {
           {cveSearchData?.data?.data && <CveSearchResults data={cveSearchData.data.data} severityColor={severityColor} />}
 
           {/* Latest CVEs */}
-          <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b bg-gray-50">
-              <h3 className="font-semibold text-sm">最近 30 天新发布的 CVE</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+              <h3 className="font-semibold text-sm dark:text-white">最近 30 天新发布的 CVE</h3>
             </div>
             <div className="divide-y">
               {latestCves?.data?.data?.slice(0, 10).map((cve: any) => (
-                <div key={cve.cveId} className="px-6 py-3 flex items-center gap-4 hover:bg-gray-50">
+                <div key={cve.cveId} className="px-6 py-3 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-700">
                   <a
                     href={EXT_LINKS.nvd(cve.cveId)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-mono text-sm text-blue-600 hover:underline w-40"
+                    className="font-mono text-sm text-blue-600 dark:text-blue-400 hover:underline w-40"
                   >
                     {cve.cveId}
                     <ExternalLink className="w-3 h-3 inline ml-1" />
@@ -234,8 +234,8 @@ export default function ExternalIntelPage() {
                   <span className={`px-2 py-0.5 rounded text-xs border font-medium ${severityColor(cve.severity)}`}>
                     {cve.severity || 'N/A'}
                   </span>
-                  <span className="text-sm text-gray-600 truncate flex-1">{cve.description}</span>
-                  {cve.cvssScore && <span className="font-mono text-sm text-gray-500">CVSS {cve.cvssScore}</span>}
+                  <span className="text-sm text-gray-600 dark:text-gray-300 truncate flex-1">{cve.description}</span>
+                  {cve.cvssScore && <span className="font-mono text-sm text-gray-500 dark:text-gray-400">CVSS {cve.cvssScore}</span>}
                 </div>
               ))}
             </div>
@@ -517,9 +517,9 @@ function IpResultCard({ data, expandedVulns, toggleVuln, severityColor }: any) {
 // ==================== CVE Detail Card ====================
 function CveDetailCard({ data, severityColor }: any) {
   return (
-    <div className="bg-white rounded-xl border shadow-sm overflow-hidden mb-6">
-      <div className="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
-        <h3 className="font-semibold flex items-center gap-2">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+      <div className="px-6 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
+        <h3 className="font-semibold flex items-center gap-2 dark:text-white">
           {data.cveId}
           <a href={EXT_LINKS.nvd(data.cveId)} target="_blank" rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800" title="在 NVD 中查看">
@@ -532,11 +532,11 @@ function CveDetailCard({ data, severityColor }: any) {
               {data.severity}
             </span>
           )}
-          {data.cvssScore && <span className="font-mono text-sm font-bold text-gray-700">CVSS {data.cvssScore}</span>}
+          {data.cvssScore && <span className="font-mono text-sm font-bold text-gray-700 dark:text-gray-200">CVSS {data.cvssScore}</span>}
         </div>
       </div>
       <div className="p-6">
-        <p className="text-sm text-gray-700 mb-4">{data.description}</p>
+        <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">{data.description}</p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
           {data.published && <InfoRow label="发布日期" value={data.published?.slice(0, 10)} />}
@@ -550,7 +550,7 @@ function CveDetailCard({ data, severityColor }: any) {
             <h4 className="text-sm font-semibold mb-1">弱点枚举 (CWE)</h4>
             <div className="flex flex-wrap gap-1">
               {[...new Set<string>(data.cwes as string[])].map((cwe: string) => (
-                <span key={cwe} className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">{cwe}</span>
+                <span key={cwe} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs text-gray-600 dark:text-gray-300">{cwe}</span>
               ))}
             </div>
           </div>
@@ -599,27 +599,27 @@ function CveDetailCard({ data, severityColor }: any) {
 // ==================== CVE Search Results ====================
 function CveSearchResults({ data, severityColor }: any) {
   return (
-    <div className="bg-white rounded-xl border shadow-sm overflow-hidden mb-6">
-      <div className="px-6 py-4 border-b bg-gray-50">
-        <h3 className="font-semibold text-sm">搜索结果 ({data.totalResults} 条)</h3>
+    <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden mb-6">
+      <div className="px-6 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+        <h3 className="font-semibold text-sm dark:text-white">搜索结果 ({data.totalResults} 条)</h3>
       </div>
-      <div className="divide-y">
+      <div className="divide-y dark:divide-gray-700">
         {data.content?.map((cve: any) => (
-          <div key={cve.cveId} className="px-6 py-3 flex items-center gap-4 hover:bg-gray-50">
+          <div key={cve.cveId} className="px-6 py-3 flex items-center gap-4 hover:bg-gray-50 dark:hover:bg-gray-700">
             <a href={EXT_LINKS.nvd(cve.cveId)} target="_blank" rel="noopener noreferrer"
-              className="font-mono text-sm text-blue-600 hover:underline w-40">
+              className="font-mono text-sm text-blue-600 dark:text-blue-400 hover:underline w-40">
               {cve.cveId}
               <ExternalLink className="w-3 h-3 inline ml-1" />
             </a>
             <span className={`px-2 py-0.5 rounded text-xs border font-medium ${severityColor(cve.severity)}`}>
               {cve.severity || 'N/A'}
             </span>
-            <span className="text-sm text-gray-600 truncate flex-1">{cve.description}</span>
-            {cve.cvssScore && <span className="font-mono text-sm text-gray-500">CVSS {cve.cvssScore}</span>}
+            <span className="text-sm text-gray-600 dark:text-gray-300 truncate flex-1">{cve.description}</span>
+            {cve.cvssScore && <span className="font-mono text-sm text-gray-500 dark:text-gray-400">CVSS {cve.cvssScore}</span>}
           </div>
         ))}
         {(!data.content || data.content.length === 0) && (
-          <div className="px-6 py-12 text-center text-gray-400 text-sm">未找到匹配的 CVE，请尝试其他关键词</div>
+          <div className="px-6 py-12 text-center text-gray-400 dark:text-gray-500 text-sm">未找到匹配的 CVE，请尝试其他关键词</div>
         )}
       </div>
     </div>
@@ -749,8 +749,8 @@ function StatBox({ label, value, color }: { label: string; value: number; color?
 function InfoRow({ label, value }: { label: string; value: any }) {
   return (
     <div>
-      <span className="text-gray-500 text-xs">{label}</span>
-      <div className="text-gray-700 text-sm font-medium">{typeof value === 'number' ? value : String(value)}</div>
+      <span className="text-gray-500 dark:text-gray-400 text-xs">{label}</span>
+      <div className="text-gray-700 dark:text-gray-300 text-sm font-medium">{typeof value === 'number' ? value : String(value)}</div>
     </div>
   )
 }

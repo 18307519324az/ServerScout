@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { fetchDashboardStats } from '../services/api'
 import { CardSkeleton, ChartSkeleton } from '../components/Skeleton'
+import PluginSlot from '../components/PluginSlot'
 import { Server, ScanLine, Bug, Activity, Shield, AlertTriangle, ChevronRight, Globe, Network, FileText } from 'lucide-react'
 import ReactEChartsCore from 'echarts-for-react'
 
@@ -217,6 +218,11 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Plugin: Dashboard Widgets */}
+      <div className="mt-6">
+        <PluginSlot slot="dashboard-widget" />
       </div>
     </div>
   )

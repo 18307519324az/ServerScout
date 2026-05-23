@@ -67,6 +67,28 @@ public class UserService {
     }
 
     @Transactional
+    public User updateCurrentUser(String username, String name, String gender, String email) {
+        User user = getUserByUsername(username);
+        if (name != null) user.setName(name);
+        if (gender != null) user.setGender(gender);
+        if (email != null) user.setEmail(email);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public void changeCurrentUserPassword(String username, String oldPassword, String newPassword) {
+        User user = getUserByUsername(username);
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new IllegalArgumentException("原密码错误");
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new IllegalArgumentException("新密码至少需要6个字符");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Transactional
     public void changePassword(Long id, String oldPassword, String newPassword) {
         User user = getUserById(id);
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {

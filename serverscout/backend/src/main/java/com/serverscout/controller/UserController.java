@@ -22,6 +22,29 @@ public class UserController {
         return ApiResponse.success(userService.getUserByUsername(username));
     }
 
+    @PutMapping("/me")
+    public ApiResponse<User> updateCurrentUser(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal String username,
+            @RequestBody Map<String, Object> body) {
+        User user = userService.updateCurrentUser(
+                username,
+                (String) body.get("name"),
+                (String) body.get("gender"),
+                (String) body.get("email")
+        );
+        return ApiResponse.success(user);
+    }
+
+    @PutMapping("/me/password")
+    public ApiResponse<Void> changeCurrentUserPassword(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal String username,
+            @RequestBody Map<String, String> body) {
+        userService.changeCurrentUserPassword(username,
+                body.get("oldPassword"),
+                body.get("newPassword"));
+        return ApiResponse.success(null);
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ApiResponse<java.util.List<User>> listUsers() {

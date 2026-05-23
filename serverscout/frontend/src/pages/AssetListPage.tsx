@@ -69,8 +69,8 @@ export default function AssetListPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">资产管理</h1>
-          <span className="text-sm text-gray-500">共 {totalElements} 项</span>
+          <h1 className="text-2xl font-bold dark:text-white">资产管理</h1>
+          <span className="text-sm text-gray-500 dark:text-gray-400">共 {totalElements} 项</span>
         </div>
         <div className="flex items-center gap-3">
           {selected.size >= 2 && (
@@ -84,25 +84,25 @@ export default function AssetListPage() {
             </button>
           )}
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input placeholder="搜索 IP/主机名..."
-              className="pl-9 pr-3 py-2 border rounded-lg w-64 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              className="pl-9 pr-3 py-2 border dark:border-gray-600 rounded-lg w-64 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-gray-200"
               value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0) }} />
           </div>
         </div>
       </div>
 
-      {isLoading ? <div className="text-center py-20 text-gray-400">加载中...</div> : (
+      {isLoading ? <div className="text-center py-20 text-gray-400 dark:text-gray-500">加载中...</div> : (
         <>
-          <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50 text-left text-sm text-gray-500">
+              <thead className="bg-gray-50 dark:bg-gray-700 text-left text-sm text-gray-500 dark:text-gray-400">
                 <tr>
                   <th className="px-2 py-3 w-10">
-                    <button onClick={toggleAll} className="p-0.5 hover:bg-gray-200 rounded">
+                    <button onClick={toggleAll} className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded">
                       {selected.size === assets.length && assets.length > 0
                         ? <CheckSquare className="w-4 h-4 text-blue-600" />
-                        : <Square className="w-4 h-4 text-gray-400" />}
+                        : <Square className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
                     </button>
                   </th>
                   <th className="px-4 py-3">IP</th>
@@ -117,34 +117,34 @@ export default function AssetListPage() {
               </thead>
               <tbody className="text-sm">
                 {assets.map((a: any) => (
-                  <tr key={a.id} className="border-t hover:bg-gray-50">
+                  <tr key={a.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-2 py-3">
-                      <button onClick={() => toggleSelect(a.id)} className="p-0.5 hover:bg-gray-200 rounded">
+                      <button onClick={() => toggleSelect(a.id)} className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded">
                         {selected.has(a.id)
                           ? <CheckSquare className="w-4 h-4 text-blue-600" />
-                          : <Square className="w-4 h-4 text-gray-400" />}
+                          : <Square className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      <Link to={`/assets/${a.id}`} className="text-blue-600 hover:underline font-medium font-mono">
+                      <Link to={`/assets/${a.id}`} className="text-blue-600 dark:text-blue-400 hover:underline font-medium font-mono">
                         {a.ipAddress}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{a.hostname || '-'}</td>
-                    <td className="px-4 py-3 text-xs">{a.osFingerprint || '-'}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{a.hostname || '-'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-700 dark:text-gray-200">{a.osFingerprint || '-'}</td>
                     <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
-                    <td className="px-4 py-3 text-center font-mono">{a.openPortCount}</td>
+                    <td className="px-4 py-3 text-center font-mono text-gray-800 dark:text-gray-200">{a.openPortCount}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className={a.criticalVulnCount > 0 ? 'text-red-600 font-bold' : 'text-gray-500'}>
+                      <span className={a.criticalVulnCount > 0 ? 'text-red-600 font-bold' : 'text-gray-500 dark:text-gray-400'}>
                         {a.criticalVulnCount}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
                       {a.lastScanTime ? dayjs(a.lastScanTime).format('MM-DD HH:mm') : '-'}
                     </td>
                     <td className="px-4 py-3">
                       <button onClick={() => setDeleteId(a.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 transition">
+                        className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600 transition">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </td>
@@ -157,10 +157,10 @@ export default function AssetListPage() {
           {totalPages > 0 && (
             <div className="flex justify-center gap-2 mt-4">
               <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-30">上一页</button>
-              <span className="px-3 py-1 text-sm text-gray-500">第 {page + 1}/{totalPages} 页</span>
+                className="px-3 py-1 border dark:border-gray-600 rounded text-sm disabled:opacity-30 dark:text-gray-300">上一页</button>
+              <span className="px-3 py-1 text-sm text-gray-500 dark:text-gray-400">第 {page + 1}/{totalPages} 页</span>
               <button disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-30">下一页</button>
+                className="px-3 py-1 border dark:border-gray-600 rounded text-sm disabled:opacity-30 dark:text-gray-300">下一页</button>
             </div>
           )}
         </>
