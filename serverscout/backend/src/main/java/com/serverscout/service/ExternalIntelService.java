@@ -622,32 +622,65 @@ public class ExternalIntelService {
         try {
             List<Map<String, Object>> latest = getLatestCves(50);
             int added = 0;
+            int updated = 0;
             for (Map<String, Object> cveData : latest) {
                 String cveId = (String) cveData.get("cveId");
-                if (cveId != null && cveDatabaseRepository.findByCveId(cveId).isEmpty()) {
-                    try {
-                        CveDatabase cve = CveDatabase.builder()
-                                .cveId(cveId)
-                                .description((String) cveData.get("description"))
-                                .severity((String) cveData.get("severity"))
-                                .cvssScore(cveData.get("cvssScore") != null
-                                        ? java.math.BigDecimal.valueOf(((Number) cveData.get("cvssScore")).doubleValue())
-                                        : null)
-                                .publicationDate(cveData.get("published") != null
-                                        ? java.time.LocalDate.parse(((String) cveData.get("published")).substring(0, 10))
-                                        : null)
-                                .build();
+                if (cveId == null) continue;
+                try {
+                    var existing = cveDatabaseRepository.findByCveId(cveId);
+                    if (existing.isEmpty()) {
+                        CveDatabase cve = buildCveFromNvd(cveId, cveData);
                         cveDatabaseRepository.save(cve);
                         added++;
-                    } catch (Exception e) {
-                        log.debug("Failed to save CVE {}: {}", cveId, e.getMessage());
+                    } else {
+                        CveDatabase cve = existing.get();
+                        boolean changed = false;
+                        String newDesc = (String) cveData.get("description");
+                        if (newDesc != null && !newDesc.equals(cve.getDescription())) {
+                            cve.setDescription(newDesc);
+                            changed = true;
+                        }
+                        String newSeverity = (String) cveData.get("severity");
+                        if (newSeverity != null && !newSeverity.equals(cve.getSeverity())) {
+                            cve.setSeverity(newSeverity);
+                            changed = true;
+                        }
+                        if (cveData.get("cvssScore") != null) {
+                            java.math.BigDecimal newScore = java.math.BigDecimal.valueOf(
+                                    ((Number) cveData.get("cvssScore")).doubleValue());
+                            if (cve.getCvssScore() == null
+                                    || newScore.compareTo(cve.getCvssScore()) != 0) {
+                                cve.setCvssScore(newScore);
+                                changed = true;
+                            }
+                        }
+                        if (changed) {
+                            cveDatabaseRepository.save(cve);
+                            updated++;
+                        }
                     }
+                } catch (Exception e) {
+                    log.debug("Failed to process CVE {}: {}", cveId, e.getMessage());
                 }
             }
-            log.info("CVE refresh complete: {} new CVEs added", added);
+            log.info("CVE refresh complete: {} new, {} updated", added, updated);
         } catch (Exception e) {
             log.warn("Scheduled CVE refresh failed: {}", e.getMessage());
         }
+    }
+
+    private CveDatabase buildCveFromNvd(String cveId, Map<String, Object> cveData) {
+        return CveDatabase.builder()
+                .cveId(cveId)
+                .description((String) cveData.get("description"))
+                .severity((String) cveData.get("severity"))
+                .cvssScore(cveData.get("cvssScore") != null
+                        ? java.math.BigDecimal.valueOf(((Number) cveData.get("cvssScore")).doubleValue())
+                        : null)
+                .publicationDate(cveData.get("published") != null
+                        ? java.time.LocalDate.parse(((String) cveData.get("published")).substring(0, 10))
+                        : null)
+                .build();
     }
 
     // ==================== Censys Search API v2 ====================

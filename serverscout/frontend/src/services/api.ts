@@ -34,6 +34,9 @@ export const register = (data: {
 }) =>
   http.post<ApiResponse<{ token: string; username: string; name: string; role: string }>>('/auth/register', data)
 
+export const fetchPublicKey = () =>
+  http.get<ApiResponse<{ publicKey: string }>>('/auth/public-key')
+
 export const fetchCaptcha = () =>
   http.get<ApiResponse<{ captchaId: string; question: string }>>('/auth/captcha')
 
@@ -244,6 +247,12 @@ export const fetchOperationLogs = (params: {
 
 export const fetchOperationLogsByUser = (username: string, params: { page?: number; size?: number }) =>
   http.get<ApiResponse<{ content: any[]; page: any }>>(`/v1/operation-logs/user/${username}`, { params })
+
+export const exportOperationLogs = (params: {
+  format?: string; username?: string; type?: string;
+  startTime?: string; endTime?: string;
+}) =>
+  http.get('/v1/operation-logs/export', { params, responseType: 'blob' })
 
 export const fetchOperationLogStats = () =>
   http.get<ApiResponse<any>>('/v1/operation-logs/stats')

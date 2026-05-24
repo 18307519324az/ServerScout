@@ -16,12 +16,41 @@ import SettingsPage from './pages/SettingsPage'
 import ExternalIntelPage from './pages/ExternalIntelPage'
 import AttackSurfacePage from './pages/AttackSurfacePage'
 
+function reportToBackend(message: string, stack?: string) {
+  try {
+    const payload = {
+      message: message || 'unknown',
+      stack: stack || '',
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+    }
+    fetch('/api/v1/error-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {})
+  } catch {}
+}
+
+if (typeof window !== 'undefined') {
+  window.onerror = (msg, url, line, col, error) => {
+    reportToBackend(String(msg), error instanceof Error ? error.stack : undefined)
+  }
+  window.addEventListener('unhandledrejection', (event) => {
+    reportToBackend('Unhandled Promise: ' + String(event.reason),
+      event.reason instanceof Error ? event.reason.stack : undefined)
+  })
+}
+
 class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
     super(props)
     this.state = { hasError: false }
   }
   static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    reportToBackend(error.message, error.stack + '\nComponent Stack: ' + info.componentStack)
+  }
   render() {
     if (this.state.hasError) {
       return (

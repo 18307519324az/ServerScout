@@ -25,9 +25,11 @@ public class NmapScannerImpl implements ScannerStrategy {
     private String nmapPath;
 
     private final SystemConfigService configService;
+    private final ProcessRegistry processRegistry;
 
-    public NmapScannerImpl(SystemConfigService configService) {
+    public NmapScannerImpl(SystemConfigService configService, ProcessRegistry processRegistry) {
         this.configService = configService;
+        this.processRegistry = processRegistry;
     }
 
     private String getNmapPath() {
@@ -48,6 +50,7 @@ public class NmapScannerImpl implements ScannerStrategy {
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.redirectErrorStream(true);
             Process process = pb.start();
+            processRegistry.register(task.getId(), process);
 
             StringBuilder output = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(

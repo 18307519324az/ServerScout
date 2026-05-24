@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   lookupIpIntel, lookupCveDetails, searchCvesExternal, getLatestCves,
   lookupDomainIntel, getEpssScore, getCombinedReport,
@@ -21,6 +22,7 @@ const EXT_LINKS = {
 }
 
 export default function ExternalIntelPage() {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<TabKey>('ip')
   const [ipInput, setIpInput] = useState('')
   const [cveInput, setCveInput] = useState('')
@@ -109,9 +111,9 @@ export default function ExternalIntelPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold dark:text-white">外部威胁情报</h1>
+          <h1 className="text-2xl font-bold dark:text-white">{t('intel.title')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            集成 Shodan InternetDB &middot; NVD CVE &middot; AlienVault OTX &middot; URLScan &middot; EPSS
+            Shodan InternetDB &middot; NVD CVE &middot; AlienVault OTX &middot; URLScan &middot; EPSS
           </p>
         </div>
       </div>
@@ -119,10 +121,10 @@ export default function ExternalIntelPage() {
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-800 rounded-lg p-1 w-fit flex-wrap">
         {[
-          { key: 'ip' as TabKey, label: 'IP 情报', icon: Server, desc: 'Shodan + 本地资产' },
-          { key: 'cve' as TabKey, label: 'CVE 查询', icon: Bug, desc: 'NVD + EPSS' },
-          { key: 'domain' as TabKey, label: '域名情报', icon: Globe, desc: 'OTX + URLScan' },
-          { key: 'combined' as TabKey, label: '综合报告', icon: FileSearch, desc: '一键聚合查询' },
+          { key: 'ip' as TabKey, label: t('intel.ipLookup'), icon: Server, desc: 'Shodan + Local' },
+          { key: 'cve' as TabKey, label: t('intel.cveSearch'), icon: Bug, desc: 'NVD + EPSS' },
+          { key: 'domain' as TabKey, label: t('intel.domainLookup'), icon: Globe, desc: 'OTX + URLScan' },
+          { key: 'combined' as TabKey, label: t('intel.combinedReport'), icon: FileSearch, desc: t('intel.combinedReportDesc') },
         ].map(t => (
           <button
             key={t.key}
@@ -148,7 +150,7 @@ export default function ExternalIntelPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
-                  placeholder="输入 IP 地址，如 1.1.1.1 或 8.8.8.8"
+                  placeholder={t('intel.searchPlaceholder')}
                   className="pl-9 pr-3 py-2.5 border dark:border-gray-600 rounded-lg w-full text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-200"
                   value={ipInput}
                   onChange={e => setIpInput(e.target.value)}
@@ -161,16 +163,15 @@ export default function ExternalIntelPage() {
                 className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
               >
                 {ipLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                查询
+                {t('intel.lookup')}
               </button>
             </div>
             <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
               <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium mb-0.5">与「资产管理」的关系</p>
-                <p>此处查询 Shodan 互联网公开情报（外部视角），与 Nmap 主动扫描（内网/本机视角）互补。
-                  Shodan 数据库仅覆盖互联网可达的 IP，内网 IP 或未被 Shodan 抓取的地址将<b>自动回退到本地资产库</b>查询。
-                  <Link to="/scan-tasks" className="text-blue-600 hover:underline ml-1">前往扫描任务 →</Link>
+                <p className="font-medium mb-0.5">{t('intel.shodanVsNmap')}</p>
+                <p>{t('intel.shodanDesc')}
+                  <Link to="/scan-tasks" className="text-blue-600 hover:underline ml-1">Go to Scan Tasks →</Link>
                 </p>
               </div>
             </div>
@@ -178,7 +179,7 @@ export default function ExternalIntelPage() {
 
           {ipError && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-4">
-              查询失败，请检查 IP 地址格式
+              {t('intel.failedQuery')}
             </div>
           )}
 
@@ -190,7 +191,7 @@ export default function ExternalIntelPage() {
               <div className="px-6 py-3 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                 <h3 className="font-semibold text-sm dark:text-white flex items-center gap-2">
                   <Database className="w-4 h-4 text-purple-600" />
-                  扩展情报源
+                  {t('intel.extendedIntel')}
                 </h3>
               </div>
               <div className="p-4 space-y-3">
@@ -203,9 +204,9 @@ export default function ExternalIntelPage() {
                       className="px-3 py-1.5 bg-purple-600 text-white rounded text-xs hover:bg-purple-700 disabled:opacity-50 flex items-center gap-1"
                     >
                       {censysLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Eye className="w-3 h-3" />}
-                      {censysTarget === lookupKey ? '隐藏 Censys 结果' : 'Censys 查询'}
+                      {censysTarget === lookupKey ? t('intel.hideCensysResult') : t('intel.censysQuery')}
                     </button>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">需要 API ID + Secret 配置</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{t('intel.requiresApiId')}</span>
                   </div>
                   {censysTarget === lookupKey && censysData?.data?.data && (
                     <CensysResultCard data={censysData.data.data} />
@@ -221,9 +222,9 @@ export default function ExternalIntelPage() {
                       className="px-3 py-1.5 bg-orange-600 text-white rounded text-xs hover:bg-orange-700 disabled:opacity-50 flex items-center gap-1"
                     >
                       {vtIpLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Shield className="w-3 h-3" />}
-                      {vtTarget === lookupKey ? '隐藏 VirusTotal 结果' : 'VirusTotal 查询'}
+                      {vtTarget === lookupKey ? t('intel.hideVtResult') : t('intel.vtQuery')}
                     </button>
-                    <span className="text-xs text-gray-400 dark:text-gray-500">需要 API Key 配置</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{t('intel.requiresApiKey')}</span>
                   </div>
                   {vtTarget === lookupKey && vtIpData?.data?.data && (
                     <VtResultCard data={vtIpData.data.data} type="ip" />
@@ -239,10 +240,10 @@ export default function ExternalIntelPage() {
       {tab === 'cve' && (
         <div>
           <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6 shadow-sm mb-6">
-            <h3 className="font-semibold text-sm mb-3 dark:text-white">CVE 详情查询</h3>
+            <h3 className="font-semibold text-sm mb-3 dark:text-white">{t('intel.cveDetailLookup')}</h3>
             <div className="flex gap-3">
               <input
-                placeholder="输入 CVE 编号，如 CVE-2021-44228"
+                placeholder={t('intel.cvePlaceholder')}
                 className="px-3 py-2.5 border dark:border-gray-600 rounded-lg flex-1 text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-200"
                 value={cveInput}
                 onChange={e => setCveInput(e.target.value)}
@@ -254,7 +255,7 @@ export default function ExternalIntelPage() {
                 className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
               >
                 {cveLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                查询
+                {t('intel.query')}
               </button>
             </div>
           </div>
@@ -263,10 +264,10 @@ export default function ExternalIntelPage() {
 
           {/* CVE Search */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6 shadow-sm mb-6">
-            <h3 className="font-semibold text-sm mb-3 dark:text-white">CVE 关键词搜索</h3>
+            <h3 className="font-semibold text-sm mb-3 dark:text-white">{t('intel.cveKeywordSearch')}</h3>
             <div className="flex gap-3">
               <input
-                placeholder="搜索关键词，如 Apache、Spring、WordPress..."
+                placeholder={t('intel.cveSearchPlaceholder')}
                 className="px-3 py-2.5 border dark:border-gray-600 rounded-lg flex-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-200"
                 value={cveSearchKeyword}
                 onChange={e => setCveSearchKeyword(e.target.value)}
@@ -278,7 +279,7 @@ export default function ExternalIntelPage() {
                 className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
               >
                 {cveSearchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                搜索
+                {t('intel.searchBtn')}
               </button>
             </div>
           </div>
@@ -288,7 +289,7 @@ export default function ExternalIntelPage() {
           {/* Latest CVEs */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-              <h3 className="font-semibold text-sm dark:text-white">最近 30 天新发布的 CVE</h3>
+              <h3 className="font-semibold text-sm dark:text-white">{t('intel.latestCvesDesc')}</h3>
             </div>
             <div className="divide-y">
               {latestCves?.data?.data?.slice(0, 10).map((cve: any) => (
@@ -322,7 +323,7 @@ export default function ExternalIntelPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <input
-                  placeholder="输入域名，如 example.com"
+                  placeholder={t('intel.domainPlaceholder')}
                   className="pl-9 pr-3 py-2.5 border dark:border-gray-600 rounded-lg w-full text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-700 dark:text-gray-200"
                   value={domainInput}
                   onChange={e => setDomainInput(e.target.value)}
@@ -335,16 +336,15 @@ export default function ExternalIntelPage() {
                 className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
               >
                 {domainLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-                查询
+                {t('intel.query')}
               </button>
             </div>
             <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
               <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium mb-0.5">与「资产管理」的关系</p>
-                <p>域名情报通过 OTX 和 URLScan 提供被动 DNS 数据，与主动扫描互补。
-                  查询结果中的子域名可作为扫描目标添加到扫描任务中。
-                  <Link to="/scan-tasks" className="text-blue-600 hover:underline ml-1">新建扫描 →</Link>
+                <p className="font-medium mb-0.5">{t('intel.domainAssetRelation')}</p>
+                <p>{t('intel.domainAssetDesc')}
+                  <Link to="/scan-tasks" className="text-blue-600 hover:underline ml-1">{t('intel.newScanTask')} →</Link>
                 </p>
               </div>
             </div>
@@ -362,6 +362,7 @@ export default function ExternalIntelPage() {
 
 // ==================== IP Result Card ====================
 function IpResultCard({ data, expandedVulns, toggleVuln, severityColor }: any) {
+  const { t } = useTranslation()
   const source = data.source || 'internetdb'
   const hasExternalData = data.ports?.length > 0 || data.hostnames?.length > 0 || data.cpes?.length > 0
   const hasLocalData = !!data.localAssetId
@@ -371,25 +372,25 @@ function IpResultCard({ data, expandedVulns, toggleVuln, severityColor }: any) {
       {/* Source badge */}
       <div className="px-6 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
         <h3 className="font-semibold flex items-center gap-2 dark:text-white">
-          IP 情报: <span className="font-mono">{data.ip}</span>
+          {t('intel.ipIntel')}: <span className="font-mono">{data.ip}</span>
           <a href={EXT_LINKS.shodan(data.ip)} target="_blank" rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800" title="在 Shodan 中查看">
+            className="text-blue-600 hover:text-blue-800" title={t('intel.viewOnShodan')}>
             <ExternalLink className="w-4 h-4" />
           </a>
           <a href={EXT_LINKS.censys(data.ip)} target="_blank" rel="noopener noreferrer"
-            className="text-gray-400 hover:text-gray-600" title="在 Censys 中查看">
+            className="text-gray-400 hover:text-gray-600" title={t('intel.viewOnCensys')}>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </h3>
         <div className="flex items-center gap-2">
           {source === 'local' && (
-            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-medium">本地资产</span>
+            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded text-xs font-medium">{t('intel.localAsset')}</span>
           )}
           {source === 'internetdb' && (
             <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">Shodan InternetDB</span>
           )}
           {source === 'none' && (
-            <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">未收录</span>
+            <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium">{t('intel.notFound')}</span>
           )}
         </div>
       </div>
@@ -400,27 +401,27 @@ function IpResultCard({ data, expandedVulns, toggleVuln, severityColor }: any) {
           <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
             <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-amber-800 mb-1">Shodan InternetDB 未收录此 IP</p>
+              <p className="text-sm font-medium text-amber-800 mb-1">{t('intel.shodanMiss')}</p>
               <p className="text-xs text-amber-700 mb-3">
-                Shodan InternetDB 仅收录互联网可达的 IP。此 IP 可能不在 Shodan 覆盖范围内，或属于内网地址。
-                {hasLocalData && ' 但本地资产库中已有此 IP 的记录。'}
+                {t('intel.shodanMissDesc')}
+                {hasLocalData && ' ' + t('intel.shodanMissHasLocal')}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Link to={`/assets/${data.localAssetId}`}
                   className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 inline-flex items-center gap-1">
-                  <Server className="w-3 h-3" /> 查看本地资产
+                  <Server className="w-3 h-3" /> {t('intel.viewLocalAsset')}
                 </Link>
                 <Link to="/scan-tasks"
                   className="px-3 py-1.5 bg-amber-600 text-white rounded text-xs hover:bg-amber-700 inline-flex items-center gap-1">
-                  <ArrowRight className="w-3 h-3" /> 新建扫描任务
+                  <ArrowRight className="w-3 h-3" /> {t('intel.newScanTask')}
                 </Link>
                 <a href={EXT_LINKS.shodan(data.ip)} target="_blank" rel="noopener noreferrer"
                   className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-xs hover:bg-gray-50 inline-flex items-center gap-1">
-                  <ExternalLink className="w-3 h-3" /> Shodan 查看
+                  <ExternalLink className="w-3 h-3" /> {t('intel.viewOnShodan')}
                 </a>
                 <a href={EXT_LINKS.censys(data.ip)} target="_blank" rel="noopener noreferrer"
                   className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-xs hover:bg-gray-50 inline-flex items-center gap-1">
-                  <ExternalLink className="w-3 h-3" /> Censys 查看
+                  <ExternalLink className="w-3 h-3" /> {t('intel.viewOnCensys')}
                 </a>
               </div>
             </div>
@@ -430,10 +431,10 @@ function IpResultCard({ data, expandedVulns, toggleVuln, severityColor }: any) {
 
       {/* Stats */}
       <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatBox label="开放端口" value={data.ports?.length || 0} />
-        <StatBox label="漏洞数" value={data.vulns?.length || 0} color="text-red-600" />
-        <StatBox label="主机名" value={data.hostnames?.length || 0} />
-        <StatBox label="标签/CPE" value={(data.tags?.length || 0) + (data.cpes?.length || 0)} />
+        <StatBox label={t('intel.openPorts')} value={data.ports?.length || 0} />
+        <StatBox label={t('intel.vulnerabilities_')} value={data.vulns?.length || 0} color="text-red-600" />
+        <StatBox label={t('intel.hostnames')} value={data.hostnames?.length || 0} />
+        <StatBox label={t('intel.tags')} value={(data.tags?.length || 0) + (data.cpes?.length || 0)} />
       </div>
 
       {/* Cross-reference local asset */}
@@ -442,9 +443,9 @@ function IpResultCard({ data, expandedVulns, toggleVuln, severityColor }: any) {
           <div className="flex items-center gap-2 text-sm">
             <Server className="w-4 h-4 text-blue-600" />
             <span className="text-blue-700">
-              此 IP 已在本地资产库中。
+              {t('intel.localAssetDb')}
               <Link to={`/assets/${data.localAssetId}`} className="font-medium hover:underline ml-1">
-                查看资产详情 →
+                {t('intel.viewAssetDetailInt')} →
               </Link>
             </span>
           </div>
@@ -669,10 +670,11 @@ function CveDetailCard({ data, severityColor }: any) {
 
 // ==================== CVE Search Results ====================
 function CveSearchResults({ data, severityColor }: any) {
+  const { t } = useTranslation()
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden mb-6">
       <div className="px-6 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-        <h3 className="font-semibold text-sm dark:text-white">搜索结果 ({data.totalResults} 条)</h3>
+        <h3 className="font-semibold text-sm dark:text-white">{t('intel.result')} ({data.totalResults})</h3>
       </div>
       <div className="divide-y dark:divide-gray-700">
         {data.content?.map((cve: any) => (
@@ -699,6 +701,7 @@ function CveSearchResults({ data, severityColor }: any) {
 
 // ==================== Domain Result Card ====================
 function DomainResultCard({ data }: any) {
+  const { t } = useTranslation()
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex items-center justify-between">
@@ -828,6 +831,7 @@ function InfoRow({ label, value }: { label: string; value: any }) {
 
 // ==================== Censys Result Card ====================
 function CensysResultCard({ data }: any) {
+  const { t } = useTranslation()
   if (data.error) {
     return (
       <div className="border border-purple-200 dark:border-purple-800 rounded-lg p-4 bg-purple-50 dark:bg-purple-900/20 text-sm text-purple-700 dark:text-purple-400">
@@ -855,7 +859,7 @@ function CensysResultCard({ data }: any) {
     <div className="border border-purple-200 dark:border-purple-800 rounded-lg p-4 bg-purple-50/50 dark:bg-purple-900/10 text-sm">
       <p className="font-medium mb-2 flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-purple-500" />
-        Censys 查询结果
+        {t('intel.censysQuery') + ' ' + t('intel.result')}
         {data.country && <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">{data.country}{data.city ? `, ${data.city}` : ''}</span>}
       </p>
       {data.os && <p className="text-xs mb-2">OS: <span className="font-medium">{data.os}</span></p>}
@@ -884,6 +888,7 @@ function CensysResultCard({ data }: any) {
 
 // ==================== VirusTotal Result Card ====================
 function VtResultCard({ data, type }: any) {
+  const { t } = useTranslation()
   if (data.error) {
     return (
       <div className="border border-orange-200 dark:border-orange-800 rounded-lg p-4 bg-orange-50 dark:bg-orange-900/20 text-sm text-orange-700 dark:text-orange-400">
@@ -902,7 +907,7 @@ function VtResultCard({ data, type }: any) {
     return (
       <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800">
         <p className="font-medium">VirusTotal</p>
-        <p className="text-xs">未找到数据或 API 未配置</p>
+        <p className="text-xs">{t('intel.noResult') || t('intel.failedQuery')}</p>
       </div>
     )
   }
@@ -917,20 +922,20 @@ function VtResultCard({ data, type }: any) {
     <div className="border border-orange-200 dark:border-orange-800 rounded-lg p-4 bg-orange-50/50 dark:bg-orange-900/10 text-sm">
       <p className="font-medium mb-2 flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-orange-500" />
-        VirusTotal {type === 'ip' ? 'IP' : '域名'} 查询结果
+        VirusTotal {type === 'ip' ? 'IP' : 'Domain'} {t('intel.result')}
       </p>
       <div className="grid grid-cols-3 gap-2 mb-2">
         <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
           <div className={`text-lg font-bold ${getRepColor(data.malicious || 0)}`}>{data.malicious || 0}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">恶意</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Malicious</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
           <div className="text-lg font-bold text-green-600 dark:text-green-400">{data.harmless || 0}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">安全</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Safe</div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded p-2 text-center">
           <div className="text-lg font-bold text-yellow-600 dark:text-yellow-400">{data.suspicious || 0}</div>
-          <div className="text-xs text-gray-500 dark:text-gray-400">可疑</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Suspicious</div>
         </div>
       </div>
       {data.reputation !== undefined && (
@@ -951,6 +956,7 @@ function VtResultCard({ data, type }: any) {
 
 // ==================== Combined Report Tab ====================
 function CombinedReportTab() {
+  const { t } = useTranslation()
   const [target, setTarget] = useState('')
   const [lookupTarget, setLookupTarget] = useState('')
   const { data, isLoading, isError } = useQuery({
@@ -965,10 +971,10 @@ function CombinedReportTab() {
       <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 p-6 shadow-sm mb-6">
         <div className="flex items-center gap-2 mb-3">
           <FileSearch className="w-5 h-5 text-purple-600" />
-          <h3 className="font-semibold dark:text-white">综合情报查询</h3>
+          <h3 className="font-semibold dark:text-white">{t('intel.combinedReportTitle')}</h3>
         </div>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          输入 IP 地址或域名，同时查询 Shodan、OTX 和本地资产库，生成综合威胁情报报告
+          {t('intel.combinedReportDesc')}
         </p>
         <div className="flex gap-3">
           <div className="relative flex-1">
@@ -987,14 +993,14 @@ function CombinedReportTab() {
             className="px-6 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-            综合查询
+            {t('intel.combinedReport')}
           </button>
         </div>
       </div>
 
       {isError && (
         <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm mb-4">
-          查询失败，请检查输入格式
+          {t('intel.failedQuery')}
         </div>
       )}
 
@@ -1091,7 +1097,7 @@ function CombinedReportTab() {
       {!report && !isLoading && (
         <div className="text-center py-20 text-gray-400 dark:text-gray-500">
           <FileSearch className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          输入目标 IP 或域名进行综合查询，将同时获取 Shodan、OTX 和本地资产库信息
+          {t('intel.combinedReportDesc')}
         </div>
       )}
     </div>

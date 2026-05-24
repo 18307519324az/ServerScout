@@ -23,9 +23,11 @@ public class NucleiScannerImpl implements ScannerStrategy {
     private String nucleiPath;
 
     private final SystemConfigService configService;
+    private final ProcessRegistry processRegistry;
 
-    public NucleiScannerImpl(SystemConfigService configService) {
+    public NucleiScannerImpl(SystemConfigService configService, ProcessRegistry processRegistry) {
         this.configService = configService;
+        this.processRegistry = processRegistry;
     }
 
     private String getNucleiPath() {
@@ -49,6 +51,7 @@ public class NucleiScannerImpl implements ScannerStrategy {
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.redirectErrorStream(true);
             Process process = pb.start();
+            processRegistry.register(task.getId(), process);
 
             List<ScanResult.VulnEntry> vulns = new ArrayList<>();
             try (BufferedReader reader = new BufferedReader(

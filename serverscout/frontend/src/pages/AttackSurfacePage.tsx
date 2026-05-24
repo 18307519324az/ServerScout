@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { fetchAttackSurface, fetchTechStack } from '../services/api'
 import { Shield, Server, Globe, Bug, Activity, Layers, Loader2 } from 'lucide-react'
 import ReactEChartsCore from 'echarts-for-react'
 
 export default function AttackSurfacePage() {
+  const { t } = useTranslation()
   const { data: mapData, isLoading: mapLoading } = useQuery({
     queryKey: ['attack-surface'],
     queryFn: () => fetchAttackSurface(),
@@ -24,7 +26,7 @@ export default function AttackSurfacePage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold dark:text-white">攻击面地图</h1>
+          <h1 className="text-2xl font-bold dark:text-white">{t('attackSurface.title')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             Shannon 风格侦察层级可视化 — Subnet → Asset → Port → Tech → Vuln
           </p>
@@ -35,7 +37,7 @@ export default function AttackSurfacePage() {
       <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-5 mb-6">
         <h3 className="font-semibold mb-3 dark:text-white flex items-center gap-2">
           <Layers className="w-4 h-4 text-blue-600" />
-          侦察层级图谱
+          {t('attackSurface.subtitle')}
         </h3>
         {mapLoading ? (
           <div className="flex items-center justify-center h-[500px] text-gray-400">
@@ -45,15 +47,15 @@ export default function AttackSurfacePage() {
           <ReactEChartsCore option={buildTreeOption(tree, isDark)} style={{ height: 550 }} />
         ) : (
           <div className="flex items-center justify-center h-[500px] text-gray-400 dark:text-gray-500">
-            暂无数据，完成资产扫描后将自动生成攻击面地图
+            {t('attackSurface.noData')}
           </div>
         )}
         <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500" /> 子网</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500" /> 资产</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-yellow-500" /> Web端口</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-500" /> 框架/CMS</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500" /> 漏洞</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-500" /> {t('attackSurface.legendSubnet')}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500" /> {t('attackSurface.legendAsset')}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-yellow-500" /> {t('attackSurface.legendWebPort')}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-500" /> {t('attackSurface.legendFramework')}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500" /> {t('attackSurface.legendVuln')}</span>
         </div>
       </div>
 
@@ -63,7 +65,7 @@ export default function AttackSurfacePage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-5">
           <h3 className="font-semibold mb-4 dark:text-white flex items-center gap-2">
             <Server className="w-4 h-4 text-green-600" />
-            技术栈分布
+            {t('attackSurface.techStack')}
           </h3>
           {techLoading ? (
             <div className="flex items-center justify-center h-60 text-gray-400">
@@ -96,7 +98,7 @@ export default function AttackSurfacePage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-5">
           <h3 className="font-semibold mb-3 dark:text-white flex items-center gap-2">
             <Activity className="w-4 h-4 text-purple-600" />
-            技术栈雷达
+            {t('attackSurface.techRadar')}
           </h3>
           {techStats ? (
             <ReactEChartsCore option={buildRadarOption(techStats, isDark)} style={{ height: 380 }} />

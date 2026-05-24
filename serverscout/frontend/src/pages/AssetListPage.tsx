@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { fetchAssets, mergeAssets, deleteAsset } from '../services/api'
 import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
@@ -10,6 +11,7 @@ import { Search, GitMerge, CheckSquare, Square, Trash2 } from 'lucide-react'
 import dayjs from 'dayjs'
 
 export default function AssetListPage() {
+  const { t } = useTranslation()
   const toast = useToast()
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
@@ -29,14 +31,14 @@ export default function AssetListPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] })
       setSelected(new Set())
-      toast.success('资产合并成功')
+      toast.success(t('assets.mergeSuccess'))
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteAsset,
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['assets'] }); setDeleteId(null); toast.success('资产已删除') },
-    onError: (err: any) => { toast.error(err?.response?.data?.message || '删除失败') },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['assets'] }); setDeleteId(null); toast.success(t('assets.deleteSuccess')) },
+    onError: (err: any) => { toast.error(err?.response?.data?.message || t('common.delete') + '失败') },
   })
 
   const assets = data?.data?.data?.content ?? []
@@ -62,7 +64,7 @@ export default function AssetListPage() {
     const ids = Array.from(selected)
     const targetId = ids[0]
     const sourceIds = ids.slice(1)
-    if (confirm(`合并 ${sourceIds.length} 个资产到 ${ids[0]}？此操作不可撤销。`)) {
+    if (confirm(t('assets.mergeConfirm').replace('{count}', String(sourceIds.length)).replace('{target}', ids[0].toString()))) {
       mergeMutation.mutate({ sourceIds, targetId })
     }
   }
@@ -71,8 +73,8 @@ export default function AssetListPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold dark:text-white">资产管理</h1>
-          <span className="text-sm text-gray-500 dark:text-gray-400">共 {totalElements} 项</span>
+          <h1 className="text-2xl font-bold dark:text-white">{t('assets.title')}</h1>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{t('assets.total').replace('{count}', String(totalElements))}</span>
         </div>
         <div className="flex items-center gap-3">
           {selected.size >= 2 && (
@@ -82,21 +84,47 @@ export default function AssetListPage() {
               className="flex items-center gap-1.5 px-3 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 disabled:opacity-50"
             >
               <GitMerge className="w-4 h-4" />
-              合并选中 ({selected.size})
+              {t('assets.merge')} ({selected.size})
             </button>
           )}
           <div className="relative">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-500" />
-            <input placeholder="搜索 IP/主机名..."
+            <input placeholder={t('assets.searchPlaceholder')}
               className="pl-9 pr-3 py-2 border dark:border-gray-600 rounded-lg w-64 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-gray-200"
               value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0) }} />
           </div>
         </div>
       </div>
 
-      {isLoading ? <div className="text-center py-20 text-gray-400 dark:text-gray-500">加载中...</div> : (
+      {isLoading ? <div className="text-center py-20 text-gray-400 dark:text-gray-500">{t('common.loading')}</div> : (
         <>
-          <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
+          {/* Mobile card view */}
+          <div className="md:hidden space-y-3">
+            {assets.map((a: any) => (
+              <div key={a.id} className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Link to={`/assets/${a.id}`} className="text-blue-600 dark:text-blue-400 font-medium font-mono">
+                    {a.ipAddress}
+                  </Link>
+                  <StatusBadge status={a.status} />
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                  <div className="flex justify-between"><span>{t('common.hostname')}</span><span className="dark:text-gray-300">{a.hostname || '-'}</span></div>
+                  <div className="flex justify-between"><span>{t('common.openPorts')}</span><span className="font-mono">{a.openPortCount}</span></div>
+                  <div className="flex justify-between"><span>{t('common.criticalVulns')}</span><span className={a.criticalVulnCount > 0 ? 'text-red-600 font-bold' : ''}>{a.criticalVulnCount}</span></div>
+                  <div className="flex justify-between"><span>{t('common.lastScan')}</span><span>{a.lastScanTime ? dayjs(a.lastScanTime).format('MM-DD HH:mm') : '-'}</span></div>
+                </div>
+                <div className="flex justify-end mt-2">
+                  <button onClick={() => setDeleteId(a.id)}
+                    className="p-1 text-gray-400 hover:text-red-600">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700 text-left text-sm text-gray-500 dark:text-gray-400">
                 <tr>
@@ -107,14 +135,14 @@ export default function AssetListPage() {
                         : <Square className="w-4 h-4 text-gray-400 dark:text-gray-500" />}
                     </button>
                   </th>
-                  <th className="px-4 py-3">IP</th>
-                  <th className="px-4 py-3">主机名</th>
-                  <th className="px-4 py-3">OS</th>
-                  <th className="px-4 py-3">状态</th>
-                  <th className="px-4 py-3 text-center">开放端口</th>
-                  <th className="px-4 py-3 text-center">高危漏洞</th>
-                  <th className="px-4 py-3">最近扫描</th>
-                  <th className="px-4 py-3">操作</th>
+                  <th className="px-4 py-3">{t('common.ip')}</th>
+                  <th className="px-4 py-3">{t('common.hostname')}</th>
+                  <th className="px-4 py-3">{t('assets.os')}</th>
+                  <th className="px-4 py-3">{t('common.status')}</th>
+                  <th className="px-4 py-3 text-center">{t('common.openPorts')}</th>
+                  <th className="px-4 py-3 text-center">{t('common.criticalVulns')}</th>
+                  <th className="px-4 py-3">{t('common.lastScan')}</th>
+                  <th className="px-4 py-3">{t('common.operation')}</th>
                 </tr>
               </thead>
               <tbody className="text-sm">
@@ -169,9 +197,9 @@ export default function AssetListPage() {
 
       <ConfirmDialog
         open={deleteId !== null}
-        title="删除资产"
-        message="删除后该资产及其端口、漏洞关联数据将被移除，确定继续？"
-        confirmLabel="删除"
+        title={t('assets.deleteTitle')}
+        message={t('assets.deleteMessage')}
+        confirmLabel={t('common.delete')}
         variant="danger"
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         onCancel={() => setDeleteId(null)}

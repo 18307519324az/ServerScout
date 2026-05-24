@@ -92,6 +92,11 @@ public class OperationLogService {
         return repository.findByUsernameOrderByCreatedAtDesc(username, pageable);
     }
 
+    public java.util.List<OperationLog> findAllForExport(String username, String type,
+                                                          Instant start, Instant end) {
+        return repository.findAllForExport(username, type, start, end);
+    }
+
     @Scheduled(cron = "0 0 3 * * ?")
     public void cleanOldLogs() {
         Instant cutoff = Instant.now().minus(90, ChronoUnit.DAYS);

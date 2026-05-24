@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { fetchTopology } from '../services/api'
 import { ZoomIn, ZoomOut, Maximize2, Filter, List, ChevronRight, Loader2, AlertCircle } from 'lucide-react'
 
@@ -33,6 +34,7 @@ function getNodeSize(portCount: number): number {
 }
 
 export default function TopologyPage() {
+  const { t } = useTranslation()
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
@@ -201,30 +203,30 @@ export default function TopologyPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4 dark:text-white">资产网络拓扑图</h1>
+      <h1 className="text-2xl font-bold mb-4 dark:text-white">{t('topology.title')}</h1>
 
       {/* Toolbar */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <button onClick={handleZoomIn} className="flex items-center gap-1 px-3 py-1.5 border dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
-          <ZoomIn className="w-4 h-4" /> 放大
+          <ZoomIn className="w-4 h-4" /> {t('topology.zoomIn')}
         </button>
         <button onClick={handleZoomOut} className="flex items-center gap-1 px-3 py-1.5 border dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
-          <ZoomOut className="w-4 h-4" /> 缩小
+          <ZoomOut className="w-4 h-4" /> {t('topology.zoomOut')}
         </button>
         <button onClick={handleFitView} className="flex items-center gap-1 px-3 py-1.5 border dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
-          <Maximize2 className="w-4 h-4" /> 适合窗口
+          <Maximize2 className="w-4 h-4" /> {t('topology.fitView')}
         </button>
 
         {groups.length > 0 && (
           <div className="relative">
             <button onClick={() => setShowFilter(!showFilter)}
               className={`flex items-center gap-1 px-3 py-1.5 border dark:border-gray-600 rounded-lg text-sm ${filter ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800' : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200'}`}>
-              <Filter className="w-4 h-4" /> {filter || '全部子网'}
+              <Filter className="w-4 h-4" /> {filter || t('topology.all') + ' ' + t('topology.subnet')}
             </button>
             {showFilter && (
               <div className="absolute top-10 left-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-600 py-1 z-20 min-w-[140px]">
                 <button onClick={() => { setFilter(null); setShowFilter(false) }}
-                  className="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">全部</button>
+                  className="block w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">{t('topology.all')}</button>
                 {groups.map(g => (
                   <button key={g} onClick={() => { setFilter(g); setShowFilter(false) }}
                     className={`block w-full text-left px-3 py-1.5 text-sm font-mono ${filter === g ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200'}`}>{g}</button>
@@ -238,7 +240,7 @@ export default function TopologyPage() {
           <div className="relative">
             <button onClick={() => setShowAssetList(!showAssetList)}
               className={`flex items-center gap-1 px-3 py-1.5 border dark:border-gray-600 rounded-lg text-sm ${showAssetList ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800' : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200'}`}>
-              <List className="w-4 h-4" /> 资产列表
+              <List className="w-4 h-4" /> {t('topology.assetList')}
             </button>
             {showAssetList && (
               <div className="absolute top-10 right-0 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-600 py-1 z-20 w-64 max-h-80 overflow-y-auto">
@@ -251,7 +253,7 @@ export default function TopologyPage() {
                     className={`w-full flex items-center justify-between px-3 py-2 text-sm ${selectedNode?.id === n.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200'}`}>
                     <div className="text-left">
                       <div className="font-mono font-medium">{n.ipAddress}</div>
-                      <div className="text-xs text-gray-400 dark:text-gray-500">{n.hostname || '-'} · {n.openPortCount || 0} 端口</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">{n.hostname || '-'} · {n.openPortCount || 0} {t('topology.port')}</div>
                     </div>
                     <ChevronRight className={`w-4 h-4 flex-shrink-0 ${selectedNode?.id === n.id ? 'text-blue-500' : 'text-gray-300 dark:text-gray-600'}`} />
                   </button>
@@ -269,13 +271,13 @@ export default function TopologyPage() {
 
         {/* Legend */}
         <div className="flex gap-4 ml-auto text-xs text-gray-500 dark:text-gray-400 items-center flex-wrap">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500 inline-block" /> 安全</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-yellow-500 inline-block" /> 低风险</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-orange-500 inline-block" /> 中风险</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block" /> 高风险</span>
-          <span className="flex items-center gap-1 ml-3"><span className="w-8 h-px bg-yellow-500 inline-block" /> 网关</span>
-          <span className="flex items-center gap-1"><span className="w-8 h-px bg-blue-500 inline-block" /> 服务</span>
-          <span className="flex items-center gap-1"><span className="w-8 h-px bg-gray-300 dark:bg-gray-600 inline-block" /> 网络</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500 inline-block" /> {t('topology.legendSafe')}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-yellow-500 inline-block" /> {t('topology.legendLow')}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-orange-500 inline-block" /> {t('topology.legendMedium')}</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500 inline-block" /> {t('topology.legendHigh')}</span>
+          <span className="flex items-center gap-1 ml-3"><span className="w-8 h-px bg-yellow-500 inline-block" /> {t('topology.legendGateway')}</span>
+          <span className="flex items-center gap-1"><span className="w-8 h-px bg-blue-500 inline-block" /> {t('topology.legendService')}</span>
+          <span className="flex items-center gap-1"><span className="w-8 h-px bg-gray-300 dark:bg-gray-600 inline-block" /> {t('topology.legendNetwork')}</span>
         </div>
       </div>
 
@@ -294,14 +296,14 @@ export default function TopologyPage() {
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-800/80 z-10">
               <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500">
-                <Loader2 className="w-5 h-5 animate-spin" /> 加载拓扑数据...
+                <Loader2 className="w-5 h-5 animate-spin" /> {t('topology.loadingTopology')}
               </div>
             </div>
           )}
           {!isLoading && !hasData && (
             <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-              <div className="text-gray-400 dark:text-gray-500 text-lg mb-2">暂无拓扑数据</div>
-              <div className="text-gray-400 dark:text-gray-500 text-sm">请先执行端口扫描发现网络资产</div>
+              <div className="text-gray-400 dark:text-gray-500 text-lg mb-2">{t('topology.noData')}</div>
+              <div className="text-gray-400 dark:text-gray-500 text-sm">{t('topology.runScanHint')}</div>
             </div>
           )}
           {hasData && (
@@ -376,36 +378,36 @@ export default function TopologyPage() {
             <div className="p-4 border-b dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
               <h3 className="font-bold flex items-center gap-2 dark:text-white">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ background: getRiskColor(selectedNode.criticalVulnCount || 0) }} />
-                节点详情
+                {t('topology.nodeDetail')}
               </h3>
               <button onClick={() => setSelectedNode(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg leading-none">&times;</button>
             </div>
             <div className="p-4 space-y-0">
               <div className="flex justify-between items-center py-3 border-b dark:border-gray-700">
-                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">IP 地址</span>
+                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">{t('topology.ipAddress')}</span>
                 <span className="font-mono text-sm font-semibold text-gray-800 dark:text-gray-200 break-all text-right ml-2">{selectedNode.ipAddress}</span>
               </div>
               <div className="flex justify-between items-center py-3 border-b dark:border-gray-700">
-                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">主机名</span>
+                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">{t('common.hostname')}</span>
                 <span className="text-sm text-gray-700 dark:text-gray-300 text-right ml-2 break-all">{selectedNode.hostname || '-'}</span>
               </div>
               <div className="flex justify-between items-center py-3 border-b dark:border-gray-700">
-                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">子网</span>
+                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">{t('topology.subnet')}</span>
                 <span className="font-mono text-xs text-gray-600 dark:text-gray-400">{selectedNode.subnet || '-'}</span>
               </div>
               <div className="flex justify-between items-center py-3 border-b dark:border-gray-700">
-                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">开放端口</span>
+                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">{t('topology.openPorts')}</span>
                 <span className="font-mono text-lg font-bold text-blue-600 dark:text-blue-400">{selectedNode.openPortCount}</span>
               </div>
               <div className="flex justify-between items-center py-3 border-b dark:border-gray-700">
-                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">高危漏洞</span>
+                <span className="text-gray-400 dark:text-gray-500 text-xs font-medium">{t('topology.criticalVulns')}</span>
                 <span className={`text-lg font-bold ${selectedNode.criticalVulnCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                   {selectedNode.criticalVulnCount}
                 </span>
               </div>
               {selectedNode.serviceLabels?.length > 0 && (
                 <div className="py-3 border-b dark:border-gray-700">
-                  <span className="text-gray-400 dark:text-gray-500 text-xs font-medium block mb-2">服务</span>
+                  <span className="text-gray-400 dark:text-gray-500 text-xs font-medium block mb-2">{t('topology.serviceLabels')}</span>
                   <div className="flex flex-wrap gap-1.5">
                     {selectedNode.serviceLabels.map(s => (
                       <span key={s} className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-md text-xs font-mono font-medium border border-blue-100 dark:border-blue-800">{s}</span>
@@ -417,7 +419,7 @@ export default function TopologyPage() {
                 <button
                   onClick={() => navigate(`/assets/${selectedNode.id}`)}
                   className="w-full px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                >查看完整资产详情</button>
+                >{t('topology.viewAssetDetail')}</button>
               </div>
             </div>
           </div>

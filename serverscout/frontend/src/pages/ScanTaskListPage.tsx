@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { fetchScanTasks, createScanTask, deleteScanTask, fetchScanTypes } from '../services/api'
 import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
@@ -11,6 +12,7 @@ import { Plus, X, Trash2, AlertCircle } from 'lucide-react'
 import dayjs from 'dayjs'
 
 export default function ScanTaskListPage() {
+  const { t } = useTranslation()
   const toast = useToast()
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
@@ -40,7 +42,7 @@ export default function ScanTaskListPage() {
       queryClient.invalidateQueries({ queryKey: ['scan-tasks'] })
       setShowCreate(false)
       setCreateError('')
-      toast.success('扫描任务创建成功，正在执行...')
+      toast.success(t('scanTasks.createScan') + '成功')
     },
     onError: (err: any) => {
       const msg = err?.response?.data?.message || err?.message || '未知错误'
@@ -54,9 +56,9 @@ export default function ScanTaskListPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scan-tasks'] })
       setDeleteId(null); setDeleteStatus('')
-      toast.success('扫描任务已删除')
+      toast.success(t('scanTasks.deleteScan') + '成功')
     },
-    onError: (err: any) => { toast.error(err?.response?.data?.message || '删除失败') },
+    onError: (err: any) => { toast.error(err?.response?.data?.message || t('common.delete') + '失败') },
   })
 
   const tasks = data?.data?.data?.content ?? []
@@ -66,7 +68,7 @@ export default function ScanTaskListPage() {
   const validateTarget = (value: string): boolean => {
     if (!value) return false
     if (/^https?:\/\//i.test(value)) {
-      setTargetError('请输入 IP 或域名，不需要 http:// 前缀')
+      setTargetError(t('scanTasks.targetRange') + '不需要 http:// 前缀')
       return false
     }
     if (/^(?:\d{1,3}\.){3}\d{1,3}(?::\d{1,5})?$/.test(value)) {
@@ -78,7 +80,7 @@ export default function ScanTaskListPage() {
       return true
     }
     if (/^(?:\d{1,3}\.){3}\d{1,3}\/\d{2,}$/.test(value)) {
-      setTargetError('CIDR 掩码应为 0-32，如需指定端口请在下方"端口范围"字段中输入')
+      setTargetError('CIDR 掩码应为 0-32')
       return false
     }
     if (/^[\w.-]+$/.test(value)) {
@@ -92,26 +94,26 @@ export default function ScanTaskListPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold dark:text-white">扫描任务</h1>
+        <h1 className="text-2xl font-bold dark:text-white">{t('scanTasks.title')}</h1>
         <button onClick={() => setShowCreate(true)}
           className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-          <Plus className="w-4 h-4" /> 新建扫描
+          <Plus className="w-4 h-4" /> {t('scanTasks.newScan')}
         </button>
       </div>
 
-      {isLoading ? <div className="text-center py-20 text-gray-400 dark:text-gray-500">加载中...</div> : (
+      {isLoading ? <div className="text-center py-20 text-gray-400 dark:text-gray-500">{t('common.loading')}</div> : (
         <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700 text-left text-sm text-gray-500 dark:text-gray-400">
               <tr>
-                <th className="px-4 py-3">任务名称</th>
-                <th className="px-4 py-3">目标</th>
-                <th className="px-4 py-3">类型</th>
-                <th className="px-4 py-3">状态</th>
-                <th className="px-4 py-3 w-40">进度</th>
-                <th className="px-4 py-3 text-center">资产</th>
-                <th className="px-4 py-3">时间</th>
-                <th className="px-4 py-3 w-16">操作</th>
+                <th className="px-4 py-3">{t('scanTasks.scanName')}</th>
+                <th className="px-4 py-3">{t('scanTasks.targetRange')}</th>
+                <th className="px-4 py-3">{t('scanTasks.scanType')}</th>
+                <th className="px-4 py-3">{t('common.status')}</th>
+                <th className="px-4 py-3 w-40">{t('scanTasks.progress')}</th>
+                <th className="px-4 py-3 text-center">{t('assets.asset')}</th>
+                <th className="px-4 py-3">{t('common.time')}</th>
+                <th className="px-4 py-3 w-16">{t('common.operation')}</th>
               </tr>
             </thead>
             <tbody className="text-sm">
@@ -136,7 +138,7 @@ export default function ScanTaskListPage() {
               {tasks.length === 0 && (
                 <tr>
                   <td colSpan={8} className="text-center py-16 text-gray-400 dark:text-gray-500">
-                    暂无扫描任务，点击"新建扫描"开始
+                    {t('scanTasks.noTasks')}
                   </td>
                 </tr>
               )}

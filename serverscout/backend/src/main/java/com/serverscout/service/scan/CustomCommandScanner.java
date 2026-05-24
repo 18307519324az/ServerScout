@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 public class CustomCommandScanner implements ScannerStrategy {
 
     private final ScanStrategyPluginRepository pluginRepository;
+    private final ProcessRegistry processRegistry;
 
     @Override
     public boolean supports(String scanType) {
@@ -50,6 +51,7 @@ public class CustomCommandScanner implements ScannerStrategy {
             }
             pb.redirectErrorStream(true);
             Process process = pb.start();
+            processRegistry.register(task.getId(), process);
 
             List<String> outputLines = new ArrayList<>();
             try (BufferedReader reader = new BufferedReader(

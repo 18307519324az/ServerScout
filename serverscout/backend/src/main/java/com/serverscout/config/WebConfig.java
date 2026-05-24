@@ -4,6 +4,7 @@ import com.serverscout.service.SystemConfigService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
@@ -16,9 +17,17 @@ public class WebConfig implements WebMvcConfigurer {
     private String allowedOrigins;
 
     private final SystemConfigService configService;
+    private final RateLimitInterceptor rateLimitInterceptor;
 
-    public WebConfig(SystemConfigService configService) {
+    public WebConfig(SystemConfigService configService, RateLimitInterceptor rateLimitInterceptor) {
         this.configService = configService;
+        this.rateLimitInterceptor = rateLimitInterceptor;
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(rateLimitInterceptor)
+                .addPathPatterns("/api/auth/login", "/api/auth/register", "/api/v1/scan-tasks");
     }
 
     @Override

@@ -61,6 +61,14 @@ public class ScanTask {
     @Column(name = "created_by", length = 64)
     private String createdBy;
 
+    @Column(name = "retry_count", nullable = false)
+    @Builder.Default
+    private Integer retryCount = 0;
+
+    @Column(name = "max_retries", nullable = false)
+    @Builder.Default
+    private Integer maxRetries = 3;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

@@ -106,6 +106,7 @@ public class ScanService {
         if (!"running".equals(task.getStatus())) {
             throw new IllegalStateException("Task is not running");
         }
+        scanExecutionService.forceCancel(id);
         task.setStatus("cancelled");
         scanTaskRepository.save(task);
     }

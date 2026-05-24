@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { fetchScanTasks, downloadPdfReport, downloadExcelReport } from '../services/api'
 import { FileText, Download, Loader2 } from 'lucide-react'
 
 export default function ReportCenterPage() {
+  const { t } = useTranslation()
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null)
 
   const { data: tasksData, isLoading } = useQuery({
@@ -41,12 +43,12 @@ export default function ReportCenterPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6 dark:text-white">报告中心</h1>
+      <h1 className="text-2xl font-bold mb-6 dark:text-white">{t('reports.title')}</h1>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-6">
-        <h2 className="font-semibold mb-4 dark:text-white">导出扫描报告</h2>
+        <h2 className="font-semibold mb-4 dark:text-white">{t('reports.selectTask')}</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          选择一个已完成的扫描任务，导出漏洞和安全分析报告。
+          {t('reports.tipsContent')}
         </p>
 
         {isLoading ? (
@@ -55,7 +57,7 @@ export default function ReportCenterPage() {
           </div>
         ) : tasks.length === 0 ? (
           <div className="text-center py-10 text-gray-400 dark:text-gray-500">
-            暂无已完成的扫描任务
+            {t('reports.noTasks')}
           </div>
         ) : (
           <div className="space-y-2">
@@ -74,7 +76,7 @@ export default function ReportCenterPage() {
                   <div>
                     <p className="font-medium dark:text-white">{task.name}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                      {task.targetRange} · {task.totalAssets} 资产 · {task.totalPorts} 端口
+                      {task.targetRange} · {task.totalAssets} {t('assets.asset')} · {task.totalPorts} {t('common.openPorts')}
                     </p>
                   </div>
                 </div>
@@ -85,14 +87,14 @@ export default function ReportCenterPage() {
                       disabled={pdfMutation.isPending}
                       className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
-                      <Download className="w-4 h-4" /> PDF
+                      <Download className="w-4 h-4" /> {t('reports.exportPdf')}
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDownload('excel', task.id) }}
                       disabled={excelMutation.isPending}
                       className="flex items-center gap-1 px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                     >
-                      <Download className="w-4 h-4" /> Excel
+                      <Download className="w-4 h-4" /> {t('reports.exportExcel')}
                     </button>
                   </div>
                 )}

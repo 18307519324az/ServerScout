@@ -24,6 +24,9 @@ spring:
           order_updates: true
     open-in-view: false
 
+  flyway:
+    enabled: false
+
   jackson:
     date-format: yyyy-MM-dd'T'HH:mm:ss'Z'
     time-zone: UTC

@@ -36,6 +36,7 @@ public class ScanExecutionService {
     private final WebhookNotificationService webhookService;
     private final CrawlerService crawlerService;
     private final ScreenshotService screenshotService;
+    private final ProcessRegistry processRegistry;
 
     @Async("scanExecutor")
     public void executeScan(Long taskId) {
@@ -201,14 +202,46 @@ public class ScanExecutionService {
             webhookService.sendScanCompletedNotification(taskId);
 
         } catch (Exception e) {
-            if (isCancelled(taskId)) return;
-            log.error("Scan failed for task {}", taskId, e);
+            if (isCancelled(taskId)) {
+                processRegistry.cleanup(taskId);
+                return;
+            }
+            log.error("Scan failed for task {} (attempt {}/{})", taskId,
+                    task.getRetryCount() + 1, task.getMaxRetries() + 1, e);
+
+            int currentRetry = task.getRetryCount() != null ? task.getRetryCount() : 0;
+            int maxRetries = task.getMaxRetries() != null ? task.getMaxRetries() : 3;
+
+            if (currentRetry < maxRetries) {
+                task.setRetryCount(currentRetry + 1);
+                task.setErrorMessage("Retry " + task.getRetryCount() + "/" + maxRetries
+                        + ": " + (e.getMessage() != null ? e.getMessage() : "扫描执行异常"));
+                task.setStatus("pending");
+                task.setProgress(0);
+                scanTaskRepository.save(task);
+                progressEmitter.sendProgress(taskId, 0,
+                        "扫描失败，正在自动重试 (" + task.getRetryCount() + "/" + maxRetries + ")...", 0);
+
+                long backoffMs = Math.min(60000L, 5000L * (long) Math.pow(2, currentRetry));
+                try { Thread.sleep(backoffMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); return; }
+
+                executeScan(taskId);
+                return;
+            }
+
             task.setStatus("failed");
             task.setErrorMessage(e.getMessage() != null ? e.getMessage() : "扫描执行异常");
             try { scanTaskRepository.save(task); } catch (Exception ex) { log.error("Failed to save task", ex); }
             progressEmitter.sendError(taskId, task.getErrorMessage());
             webhookService.sendScanCompletedNotification(taskId);
+        } finally {
+            processRegistry.cleanup(taskId);
         }
+    }
+
+    public void forceCancel(Long taskId) {
+        processRegistry.destroyAll(taskId);
+        log.info("Force-cancelled all running processes for task {}", taskId);
     }
 
     private boolean isCancelled(Long taskId) {

@@ -1,5 +1,6 @@
 package com.serverscout.controller;
 
+import com.serverscout.config.RsaKeyProvider;
 import com.serverscout.dto.ApiResponse;
 import com.serverscout.service.CaptchaService;
 import com.serverscout.service.OperationLogService;
@@ -7,10 +8,12 @@ import com.serverscout.service.UserService;
 import com.serverscout.util.JwtTokenUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -20,14 +23,28 @@ public class AuthController {
     private final UserService userService;
     private final CaptchaService captchaService;
     private final OperationLogService logService;
+    private final RsaKeyProvider rsaKeyProvider;
     private final HttpServletRequest request;
+
+    @GetMapping("/public-key")
+    public ApiResponse<Map<String, String>> getPublicKey() {
+        return ApiResponse.success(Map.of("publicKey", rsaKeyProvider.getPublicKeyBase64()));
+    }
 
     @PostMapping("/login")
     public ApiResponse<Map<String, String>> login(@RequestBody Map<String, String> body) {
         String username = body.get("username");
-        String password = body.get("password");
+        String encryptedPassword = body.get("password");
         String captchaId = body.get("captchaId");
         String captchaAnswer = body.get("captchaAnswer");
+
+        String password;
+        try {
+            password = rsaKeyProvider.decrypt(encryptedPassword);
+        } catch (Exception e) {
+            log.warn("RSA decrypt failed for user: {}", username);
+            return ApiResponse.error(4000, "密码解密失败，请刷新页面重试");
+        }
 
         // 验证码校验
         if (captchaId == null || captchaAnswer == null
@@ -56,7 +73,7 @@ public class AuthController {
     @PostMapping("/register")
     public ApiResponse<Map<String, String>> register(@RequestBody Map<String, String> body) {
         String username = body.get("username");
-        String password = body.get("password");
+        String encryptedPassword = body.get("password");
         String name = body.get("name");
         String gender = body.get("gender");
         String email = body.get("email");
@@ -66,6 +83,15 @@ public class AuthController {
         if (username == null || username.trim().isEmpty() || username.length() < 3) {
             return ApiResponse.error(4003, "用户名至少3个字符");
         }
+
+        String password;
+        try {
+            password = rsaKeyProvider.decrypt(encryptedPassword);
+        } catch (Exception e) {
+            log.warn("RSA decrypt failed for register user: {}", username);
+            return ApiResponse.error(4000, "密码解密失败，请刷新页面重试");
+        }
+
         if (password == null || password.length() < 6) {
             return ApiResponse.error(4004, "密码至少6个字符");
         }
