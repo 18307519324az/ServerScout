@@ -69,6 +69,9 @@ export const fetchSystemConfigs = () =>
 export const detectTools = () =>
   http.get<ApiResponse<Record<string, string>>>('/v1/config/detect-tools')
 
+export const detectSingleTool = (toolName: string) =>
+  http.get<ApiResponse<Record<string, string>>>(`/v1/config/detect-tool/${toolName}`)
+
 export const updateSystemConfigs = (configs: Record<string, string>) =>
   http.put<ApiResponse<void>>('/v1/config', configs)
 

@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { fetchUsers, createUser, updateUserApi, resetUserPassword, deleteUser, fetchCurrentUser, updateCurrentUser, changeCurrentUserPassword, fetchSystemConfigs, detectTools, updateSystemConfigs, fetchPlugins, createPlugin, updatePlugin, togglePlugin, deletePlugin } from '../services/api'
+import { fetchUsers, createUser, updateUserApi, resetUserPassword, deleteUser, fetchCurrentUser, updateCurrentUser, changeCurrentUserPassword, fetchSystemConfigs, detectTools, detectSingleTool, updateSystemConfigs, fetchPlugins, createPlugin, updatePlugin, togglePlugin, deletePlugin } from '../services/api'
 import type { User } from '../types'
 import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
 import ConfirmDialog from '../components/ConfirmDialog'
 import OperationLogViewer from '../components/OperationLogViewer'
-import { Plus, Loader2, Trash2, Edit3, Key, UserPlus, Shield, Wrench, Settings, User as UserIcon, Clock, BellRing, Puzzle, ExternalLink, CheckCircle2, XCircle, HelpCircle, ScanLine, Globe, ScrollText } from 'lucide-react'
+import { Plus, Loader2, Trash2, Edit3, Key, UserPlus, Shield, Wrench, Settings, User as UserIcon, Clock, BellRing, Puzzle, ExternalLink, CheckCircle2, XCircle, HelpCircle, ScanLine, Globe, ScrollText, FolderOpen, Search } from 'lucide-react'
 
 const DAYS_OF_WEEK = [
   { value: 'MON', label: '周一' },
@@ -89,6 +89,9 @@ export default function SettingsPage() {
   const [editingToolConfig, setEditingToolConfig] = useState(false)
   const [showToolHelp, setShowToolHelp] = useState(false)
   const toolConfigInitialized = useRef(false)
+  const [originalToolConfig, setOriginalToolConfig] = useState({ nmapPath: '', nucleiPath: '' })
+  const nmapFileInputRef = useRef<HTMLInputElement>(null)
+  const nucleiFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const nmap = configs['nmap-path'] || detected['nmap-path']
@@ -101,6 +104,76 @@ export default function SettingsPage() {
       toolConfigInitialized.current = true
     }
   }, [configs['nmap-path'], configs['nuclei-path'], detected['nmap-path'], detected['nuclei-path']])
+
+  // Auto-detect tool path (per-tool or all)
+  const handleAutoDetect = async (tool?: 'nmap' | 'nuclei') => {
+    const label = tool === 'nmap' ? 'Nmap' : tool === 'nuclei' ? 'Nuclei' : '工具'
+    toast.info(`正在检测${label}路径...`)
+    try {
+      const result = await refetchDetect()
+      if (result.data?.data?.data) {
+        const d = result.data.data.data
+        setToolConfig(prev => ({
+          nmapPath: (!tool || tool === 'nmap') ? (d['nmap-path'] || prev.nmapPath) : prev.nmapPath,
+          nucleiPath: (!tool || tool === 'nuclei') ? (d['nuclei-path'] || prev.nucleiPath) : prev.nucleiPath,
+        }))
+        const found = tool === 'nmap' ? d['nmap-path'] : tool === 'nuclei' ? d['nuclei-path'] : (d['nmap-path'] || d['nuclei-path'])
+        toast.success(found ? `已检测到${label}: ${found}` : `未检测到${label}路径，请手动输入`)
+      }
+    } catch {
+      toast.error('检测失败，请检查后台服务')
+    }
+  }
+
+  // Open file browser to locate tool executable
+  const handleFileBrowse = (tool: 'nmap' | 'nuclei') => {
+    if (tool === 'nmap') nmapFileInputRef.current?.click()
+    else nucleiFileInputRef.current?.click()
+  }
+
+  // Handle file selection from hidden file input — resolve full path via backend
+  const handleFileSelected = async (tool: 'nmap' | 'nuclei', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    const label = tool === 'nmap' ? 'Nmap' : 'Nuclei'
+    toast.info(`正在解析${label}路径...`)
+    try {
+      const result = await detectSingleTool(tool)
+      const detected = result.data?.data?.[`${tool}-path`]
+      if (detected) {
+        setToolConfig(prev => ({
+          ...prev,
+          [tool === 'nmap' ? 'nmapPath' : 'nucleiPath']: detected,
+        }))
+        toast.success(`已定位${label}: ${detected}`)
+      } else {
+        setToolConfig(prev => ({
+          ...prev,
+          [tool === 'nmap' ? 'nmapPath' : 'nucleiPath']: file.name,
+        }))
+        toast.warning(`未能解析完整路径，已填入文件名: ${file.name}`)
+      }
+    } catch {
+      setToolConfig(prev => ({
+        ...prev,
+        [tool === 'nmap' ? 'nmapPath' : 'nucleiPath']: file.name,
+      }))
+      toast.error('路径解析失败')
+    }
+  }
+
+  // Enter edit mode — save current values for cancel recovery
+  const handleEnterEditMode = () => {
+    setOriginalToolConfig({ ...toolConfig })
+    setEditingToolConfig(true)
+  }
+
+  // Cancel edit mode — restore original values
+  const handleCancelEditMode = () => {
+    setToolConfig({ ...originalToolConfig })
+    setEditingToolConfig(false)
+  }
 
   const updateConfigMutation = useMutation({
     mutationFn: () => updateSystemConfigs({ 'nmap-path': toolConfig.nmapPath, 'nuclei-path': toolConfig.nucleiPath }),
@@ -187,19 +260,28 @@ export default function SettingsPage() {
 
   // ========== Webhook Config State ==========
   const [webhookConfig, setWebhookConfig] = useState({
+    enabled: true,
     dingtalk: '',
     feishu: '',
     wecom: '',
+    dingtalkEnabled: true,
+    feishuEnabled: true,
+    wecomEnabled: true,
   })
   const [editingWebhook, setEditingWebhook] = useState(false)
+  const [showWebhookHelp, setShowWebhookHelp] = useState(false)
   const webhookInitialized = useRef(false)
 
   useEffect(() => {
     if (!configsLoading && !webhookInitialized.current) {
       setWebhookConfig({
+        enabled: configs['webhook-enabled'] !== 'false',
         dingtalk: configs['webhook-dingtalk'] || '',
         feishu: configs['webhook-feishu'] || '',
         wecom: configs['webhook-wecom'] || '',
+        dingtalkEnabled: configs['webhook-dingtalk-enabled'] !== 'false',
+        feishuEnabled: configs['webhook-feishu-enabled'] !== 'false',
+        wecomEnabled: configs['webhook-wecom-enabled'] !== 'false',
       })
       webhookInitialized.current = true
     }
@@ -208,9 +290,13 @@ export default function SettingsPage() {
   const updateWebhookMutation = useMutation({
     mutationFn: () => {
       const configs: Record<string, string> = {
+        'webhook-enabled': String(webhookConfig.enabled),
         'webhook-dingtalk': webhookConfig.dingtalk,
         'webhook-feishu': webhookConfig.feishu,
         'webhook-wecom': webhookConfig.wecom,
+        'webhook-dingtalk-enabled': String(webhookConfig.dingtalkEnabled),
+        'webhook-feishu-enabled': String(webhookConfig.feishuEnabled),
+        'webhook-wecom-enabled': String(webhookConfig.wecomEnabled),
       }
       return updateSystemConfigs(configs)
     },
@@ -233,6 +319,7 @@ export default function SettingsPage() {
     smtpSsl: false,
   })
   const emailInitialized = useRef(false)
+  const [editingEmail, setEditingEmail] = useState(false)
 
   useEffect(() => {
     if (!configsLoading && !emailInitialized.current) {
@@ -261,7 +348,34 @@ export default function SettingsPage() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['systemConfigs'] })
+      setEditingEmail(false)
       toast.success('邮件通知配置已保存')
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || '保存失败'),
+  })
+
+  // ========== External API Keys State ==========
+  const [apiKeysConfig, setApiKeysConfig] = useState({ censysId: '', censysSecret: '', virustotalKey: '' })
+  const [showApiKeysHelp, setShowApiKeysHelp] = useState(false)
+  const apiKeysInitialized = useRef(false)
+
+  useEffect(() => {
+    if (!configsLoading && !apiKeysInitialized.current) {
+      setApiKeysConfig({
+        censysId: configs['censys-api-id'] || '',
+        censysSecret: configs['censys-api-secret'] || '',
+        virustotalKey: configs['virustotal-api-key'] || '',
+      })
+      apiKeysInitialized.current = true
+    }
+  }, [configsLoading])
+
+  // ========== External API Keys Mutation ==========
+  const updateApiKeysMutation = useMutation({
+    mutationFn: (configs: Record<string, string>) => updateSystemConfigs(configs),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['systemConfigs'] })
+      toast.success('外部情报 API 密钥已保存')
     },
     onError: (err: any) => toast.error(err?.response?.data?.message || '保存失败'),
   })
@@ -520,22 +634,36 @@ export default function SettingsPage() {
                     onChange={(e) => setToolConfig({ ...toolConfig, nmapPath: e.target.value })}
                     className="flex-1 px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
                     placeholder="例: /usr/bin/nmap 或 C:\tools\nmap\nmap.exe" />
-                  <button onClick={() => { refetchDetect(); toast.success('正在重新检测工具路径...') }}
-                    className="px-3 py-2 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 whitespace-nowrap">
-                    自动检测
+                  <button onClick={() => handleAutoDetect('nmap')}
+                    className="px-3 py-2 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 whitespace-nowrap flex items-center gap-1">
+                    <Search className="w-3.5 h-3.5" /> 自动检测
+                  </button>
+                  <button onClick={() => handleFileBrowse('nmap')}
+                    className="px-3 py-2 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 whitespace-nowrap flex items-center gap-1">
+                    <FolderOpen className="w-3.5 h-3.5" /> 浏览
                   </button>
                 </div>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Nuclei 路径</label>
-                <input type="text" value={toolConfig.nucleiPath}
-                  onChange={(e) => setToolConfig({ ...toolConfig, nucleiPath: e.target.value })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                  placeholder="例: /usr/bin/nuclei 或 C:\tools\nuclei\nuclei.exe" />
+                <div className="flex gap-2">
+                  <input type="text" value={toolConfig.nucleiPath}
+                    onChange={(e) => setToolConfig({ ...toolConfig, nucleiPath: e.target.value })}
+                    className="flex-1 px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                    placeholder="例: /usr/bin/nuclei 或 C:\tools\nuclei\nuclei.exe" />
+                  <button onClick={() => handleAutoDetect('nuclei')}
+                    className="px-3 py-2 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 whitespace-nowrap flex items-center gap-1">
+                    <Search className="w-3.5 h-3.5" /> 自动检测
+                  </button>
+                  <button onClick={() => handleFileBrowse('nuclei')}
+                    className="px-3 py-2 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 whitespace-nowrap flex items-center gap-1">
+                    <FolderOpen className="w-3.5 h-3.5" /> 浏览
+                  </button>
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setEditingToolConfig(false)}
+              <button onClick={handleCancelEditMode}
                 className="px-4 py-1.5 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200">取消</button>
               <button onClick={() => updateConfigMutation.mutate()}
                 disabled={updateConfigMutation.isPending}
@@ -543,6 +671,10 @@ export default function SettingsPage() {
                 {updateConfigMutation.isPending ? '保存中...' : '保存配置'}
               </button>
             </div>
+            <input type="file" ref={nmapFileInputRef} onChange={(e) => handleFileSelected('nmap', e)}
+              className="hidden" accept=".exe" />
+            <input type="file" ref={nucleiFileInputRef} onChange={(e) => handleFileSelected('nuclei', e)}
+              className="hidden" accept=".exe" />
           </div>
         ) : (
           <div className="space-y-3">
@@ -575,7 +707,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setEditingToolConfig(true)}
+              <button onClick={handleEnterEditMode}
                 className="flex items-center gap-1 px-3 py-1.5 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
                 <Settings className="w-3.5 h-3.5" /> 编辑路径
               </button>
@@ -785,46 +917,75 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Censys API ID</label>
-              <input type="text" defaultValue={configs['censys-api-id'] || ''}
-                id="censys-api-id"
+              <input type="text" value={apiKeysConfig.censysId}
+                onChange={(e) => setApiKeysConfig({ ...apiKeysConfig, censysId: e.target.value })}
                 className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
                 placeholder="Censys API ID" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Censys API Secret</label>
-              <input type="password" defaultValue={configs['censys-api-secret'] || ''}
-                id="censys-api-secret"
+              <input type="password" value={apiKeysConfig.censysSecret}
+                onChange={(e) => setApiKeysConfig({ ...apiKeysConfig, censysSecret: e.target.value })}
                 className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
                 placeholder="Censys API Secret" />
             </div>
             <div className="col-span-2">
               <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">VirusTotal API Key</label>
-              <input type="password" defaultValue={configs['virustotal-api-key'] || ''}
-                id="virustotal-api-key"
+              <input type="password" value={apiKeysConfig.virustotalKey}
+                onChange={(e) => setApiKeysConfig({ ...apiKeysConfig, virustotalKey: e.target.value })}
                 className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
                 placeholder="从 https://www.virustotal.com/gui/my-apikey 获取" />
             </div>
           </div>
-          <button onClick={() => {
-            const censysId = (document.getElementById('censys-api-id') as HTMLInputElement)?.value || ''
-            const censysSecret = (document.getElementById('censys-api-secret') as HTMLInputElement)?.value || ''
-            const vtKey = (document.getElementById('virustotal-api-key') as HTMLInputElement)?.value || ''
-            const configs: Record<string, string> = {}
-            if (censysId) configs['censys-api-id'] = censysId
-            if (censysSecret) configs['censys-api-secret'] = censysSecret
-            if (vtKey) configs['virustotal-api-key'] = vtKey
-            updateWebhookMutation.mutate()
-          }}
-            className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-            保存 API 密钥
-          </button>
-          <p className="text-xs text-gray-400 dark:text-gray-500">
-            API Key 可通过
-            <a href="https://search.censys.io/account/api" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline mx-1">Censys</a>
-            和
-            <a href="https://www.virustotal.com/gui/my-apikey" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline ml-1">VirusTotal</a>
-            获取。
-          </p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => {
+              const apiKeys: Record<string, string> = {
+                'censys-api-id': apiKeysConfig.censysId,
+                'censys-api-secret': apiKeysConfig.censysSecret,
+                'virustotal-api-key': apiKeysConfig.virustotalKey,
+              }
+              updateApiKeysMutation.mutate(apiKeys)
+            }}
+              disabled={updateApiKeysMutation.isPending}
+              className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50">
+              {updateApiKeysMutation.isPending ? '保存中...' : '保存 API 密钥'}
+            </button>
+            <button onClick={() => setShowApiKeysHelp(!showApiKeysHelp)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
+              <HelpCircle className="w-3.5 h-3.5" /> {showApiKeysHelp ? '收起教程' : '获取 API Key 教程'}
+            </button>
+          </div>
+
+          {showApiKeysHelp && (
+            <div className="space-y-4 text-sm">
+              <div>
+                <h4 className="font-medium mb-2 dark:text-white flex items-center gap-2">
+                  <span className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center font-bold">1</span>
+                  Censys API 密钥获取
+                </h4>
+                <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                  <p><strong>步骤 1：</strong>访问 <a href="https://search.censys.io/account/api" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5">Censys API 页面 <ExternalLink className="w-3 h-3" /></a>，注册或登录 Censys 账户。</p>
+                  <p><strong>步骤 2：</strong>在 API 管理页面，点击 <strong>"Create API Key"</strong> 或查看已有的 API 凭据。</p>
+                  <p><strong>步骤 3：</strong>复制 <strong>API ID</strong> 和 <strong>API Secret</strong>，分别填入上方的输入框。</p>
+                  <p className="mt-1 text-gray-400 dark:text-gray-500">💡 免费账户每月有 250 次查询额度，可用于 IP 信息查询和证书搜索。</p>
+                  <p className="text-gray-400 dark:text-gray-500">⚠️ Secret 仅在创建时显示一次，请妥善保存。</p>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-medium mb-2 dark:text-white flex items-center gap-2">
+                  <span className="w-5 h-5 rounded bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 text-xs flex items-center justify-center font-bold">2</span>
+                  VirusTotal API 密钥获取
+                </h4>
+                <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                  <p><strong>步骤 1：</strong>访问 <a href="https://www.virustotal.com/gui/my-apikey" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5">VirusTotal API Key 页面 <ExternalLink className="w-3 h-3" /></a>，注册或登录 VirusTotal 账户。</p>
+                  <p><strong>步骤 2：</strong>在个人设置 → API Key 页面，可看到自动生成的 API Key。</p>
+                  <p><strong>步骤 3：</strong>复制 <strong>API Key</strong>，填入上方 "VirusTotal API Key" 输入框。</p>
+                  <p className="mt-1 text-gray-400 dark:text-gray-500">💡 免费 API Key 有每日 500 次查询限制，每分钟最多 4 次。</p>
+                  <p className="text-gray-400 dark:text-gray-500">⚠️ API Key 请勿公开泄露，否则他人可能消耗你的配额。</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -854,27 +1015,36 @@ export default function SettingsPage() {
 
         {editingWebhook ? (
           <div className="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 space-y-4">
-            <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">钉钉 (DingTalk) Webhook URL</label>
-              <input type="text" value={webhookConfig.dingtalk}
-                onChange={(e) => setWebhookConfig({ ...webhookConfig, dingtalk: e.target.value })}
-                className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                placeholder="https://oapi.dingtalk.com/robot/send?access_token=xxx" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">飞书 (Feishu/Lark) Webhook URL</label>
-              <input type="text" value={webhookConfig.feishu}
-                onChange={(e) => setWebhookConfig({ ...webhookConfig, feishu: e.target.value })}
-                className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/xxx" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">企业微信 (WeCom) Webhook URL</label>
-              <input type="text" value={webhookConfig.wecom}
-                onChange={(e) => setWebhookConfig({ ...webhookConfig, wecom: e.target.value })}
-                className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx" />
-            </div>
+            <label className="flex items-center justify-between cursor-pointer border-b dark:border-gray-600 pb-3">
+              <div>
+                <span className="text-sm font-medium dark:text-white">启用告警通知</span>
+                <p className="text-xs text-gray-400 dark:text-gray-500">关闭后所有平台均不发送通知</p>
+              </div>
+              <input type="checkbox" checked={webhookConfig.enabled}
+                onChange={(e) => setWebhookConfig({ ...webhookConfig, enabled: e.target.checked })}
+                className="rounded w-4 h-4" />
+            </label>
+            {([
+              { key: 'dingtalk' as const, label: '钉钉 (DingTalk)', enabledKey: 'dingtalkEnabled' as const },
+              { key: 'feishu' as const, label: '飞书 (Feishu/Lark)', enabledKey: 'feishuEnabled' as const },
+              { key: 'wecom' as const, label: '企业微信 (WeCom)', enabledKey: 'wecomEnabled' as const },
+            ]).map(({ key, label, enabledKey }) => (
+              <div key={key}>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-gray-500 dark:text-gray-400">{label} Webhook URL</label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{webhookConfig[enabledKey] ? '已启用' : '已禁用'}</span>
+                    <input type="checkbox" checked={webhookConfig[enabledKey]}
+                      onChange={(e) => setWebhookConfig({ ...webhookConfig, [enabledKey]: e.target.checked })}
+                      className="rounded" />
+                  </label>
+                </div>
+                <input type="text" value={webhookConfig[key]}
+                  onChange={(e) => setWebhookConfig({ ...webhookConfig, [key]: e.target.value })}
+                  className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                  placeholder={`https://...`} />
+              </div>
+            ))}
             <div className="flex justify-end gap-2">
               <button onClick={() => setEditingWebhook(false)}
                 className="px-4 py-1.5 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200">取消</button>
@@ -887,25 +1057,99 @@ export default function SettingsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {(['dingtalk', 'feishu', 'wecom'] as const).map((key) => {
-              const labels = { dingtalk: '钉钉', feishu: '飞书', wecom: '企业微信' }
+            {/* Global webhook status bar */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700">
+              <div className="flex items-center gap-2">
+                <span className={`inline-block w-2.5 h-2.5 rounded-full ${webhookConfig.enabled ? 'bg-green-500' : 'bg-gray-400'}`} />
+                <span className="text-sm font-medium dark:text-white">全局通知</span>
+              </div>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded ${webhookConfig.enabled ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'}`}>
+                {webhookConfig.enabled ? '已开启' : '已关闭'}
+              </span>
+            </div>
+            {([
+              { key: 'dingtalk' as const, label: '钉钉', enabledKey: 'dingtalkEnabled' as const },
+              { key: 'feishu' as const, label: '飞书', enabledKey: 'feishuEnabled' as const },
+              { key: 'wecom' as const, label: '企业微信', enabledKey: 'wecomEnabled' as const },
+            ]).map(({ key, label, enabledKey }) => {
               const url = webhookConfig[key]
+              const enabled = webhookConfig[enabledKey]
+              const globalOn = webhookConfig.enabled
+              const active = globalOn && enabled && !!url
               return (
-                <div key={key} className="flex justify-between items-center px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <div>
-                    <span className={`inline-block w-2 h-2 rounded-full mr-2 ${url ? 'bg-green-500' : 'bg-gray-300'}`} />
-                    <span className="text-sm font-medium dark:text-white">{labels[key]}</span>
+                <div key={key} className="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`inline-block w-2 h-2 rounded-full ${active ? 'bg-green-500' : !enabled ? 'bg-gray-300' : !url ? 'bg-amber-400' : 'bg-gray-300'}`} />
+                    <span className="text-sm font-medium dark:text-white">{label}</span>
+                    {!enabled && <span className="text-xs text-gray-400 dark:text-gray-500">已禁用</span>}
+                    {enabled && !url && <span className="text-xs text-amber-500">未配置URL</span>}
                   </div>
-                  <code className="text-xs bg-gray-100 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded max-w-xs truncate">
-                    {url || '未配置'}
+                  <code className="text-xs bg-gray-100 dark:bg-gray-700 dark:text-gray-200 px-2 py-0.5 rounded max-w-[240px] truncate ml-2">
+                    {url || '—'}
                   </code>
                 </div>
               )
             })}
-            <button onClick={() => setEditingWebhook(true)}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
-              <Settings className="w-3.5 h-3.5" /> 编辑通知
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => setEditingWebhook(true)}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
+                <Settings className="w-3.5 h-3.5" /> 编辑通知
+              </button>
+              <button onClick={() => setShowWebhookHelp(!showWebhookHelp)}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
+                <HelpCircle className="w-3.5 h-3.5" /> {showWebhookHelp ? '收起教程' : '获取Webhook教程'}
+              </button>
+            </div>
+
+            {/* Webhook tutorial */}
+            {showWebhookHelp && (
+              <div className="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 space-y-4 text-sm">
+                <div>
+                  <h4 className="font-medium mb-2 dark:text-white flex items-center gap-2">
+                    <span className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 text-xs flex items-center justify-center font-bold">1</span>
+                    钉钉 (DingTalk) — 获取 Webhook URL
+                  </h4>
+                  <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                    <p><strong>步骤 1：</strong>打开钉钉 PC 端或移动端，进入目标群聊。</p>
+                    <p><strong>步骤 2：</strong>点击群设置 → <strong>智能群助手</strong> → <strong>添加机器人</strong>。</p>
+                    <p><strong>步骤 3：</strong>选择 <strong>"自定义（通过 Webhook 接入自定义服务）"</strong>。</p>
+                    <p><strong>步骤 4：</strong>填写机器人名称（如 "ServerScout 安全巡检"），可选添加头像。</p>
+                    <p><strong>步骤 5：</strong>勾选协议，点击 <strong>"完成"</strong>，复制生成的 Webhook URL。</p>
+                    <p className="mt-1 text-gray-400 dark:text-gray-500">URL 格式: <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">https://oapi.dingtalk.com/robot/send?access_token=xxxxxx</code></p>
+                    <p className="text-gray-400 dark:text-gray-500">⚠️ 请勿泄露 Webhook URL，否则他人可向您的群聊发送消息。</p>
+                    <p className="text-blue-600 dark:text-blue-400">📖 官方文档: <a href="https://open.dingtalk.com/document/orgapp/custom-robot-access" target="_blank" className="hover:underline inline-flex items-center gap-0.5">自定义机器人接入 <ExternalLink className="w-3 h-3" /></a></p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2 dark:text-white flex items-center gap-2">
+                    <span className="w-5 h-5 rounded bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 text-xs flex items-center justify-center font-bold">2</span>
+                    飞书 (Feishu/Lark) — 获取 Webhook URL
+                  </h4>
+                  <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                    <p><strong>步骤 1：</strong>打开飞书 PC 端或网页版，进入目标群聊。</p>
+                    <p><strong>步骤 2：</strong>点击群设置 → <strong>群机器人</strong> → <strong>添加机器人</strong> → <strong>自定义机器人</strong>。</p>
+                    <p><strong>步骤 3：</strong>填写机器人名称和描述，点击 <strong>"添加"</strong>。</p>
+                    <p><strong>步骤 4：</strong>复制生成的 Webhook URL。</p>
+                    <p className="mt-1 text-gray-400 dark:text-gray-500">URL 格式: <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxx</code></p>
+                    <p className="text-blue-600 dark:text-blue-400">📖 官方文档: <a href="https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot" target="_blank" className="hover:underline inline-flex items-center gap-0.5">自定义机器人使用指南 <ExternalLink className="w-3 h-3" /></a></p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-medium mb-2 dark:text-white flex items-center gap-2">
+                    <span className="w-5 h-5 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 text-xs flex items-center justify-center font-bold">3</span>
+                    企业微信 (WeCom) — 获取 Webhook URL
+                  </h4>
+                  <div className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                    <p><strong>步骤 1：</strong>打开企业微信 PC 端或移动端，进入目标群聊。</p>
+                    <p><strong>步骤 2：</strong>点击群设置 → <strong>群机器人</strong> → <strong>添加群机器人</strong>。</p>
+                    <p><strong>步骤 3：</strong>填写机器人名称，点击 <strong>"添加"</strong>。</p>
+                    <p><strong>步骤 4：</strong>复制生成的 Webhook URL。</p>
+                    <p className="mt-1 text-gray-400 dark:text-gray-500">URL 格式: <code className="bg-gray-200 dark:bg-gray-600 px-1 rounded">https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxxxx</code></p>
+                    <p className="text-blue-600 dark:text-blue-400">📖 官方文档: <a href="https://developer.work.weixin.qq.com/document/path/91770" target="_blank" className="hover:underline inline-flex items-center gap-0.5">群机器人配置说明 <ExternalLink className="w-3 h-3" /></a></p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -920,69 +1164,114 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 space-y-3">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox"
-              checked={emailConfig.enabled}
-              onChange={(e) => setEmailConfig({ ...emailConfig, enabled: e.target.checked })}
-              className="rounded" />
-            <span className="text-sm font-medium dark:text-white">启用邮件通知</span>
-          </label>
-          <div>
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">收件邮箱</label>
-            <input type="email" value={emailConfig.recipient}
-              onChange={(e) => setEmailConfig({ ...emailConfig, recipient: e.target.value })}
-              className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-              placeholder="admin@example.com" />
-          </div>
-          <div className="border-t dark:border-gray-600 pt-3 mt-2">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">SMTP 服务器配置（使用 QQ邮箱/163/Gmail 等邮箱的 SMTP 授权码）</p>
-            <div className="grid grid-cols-2 gap-3">
+        {editingEmail ? (
+          <div className="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700 space-y-3">
+            <label className="flex items-center justify-between cursor-pointer border-b dark:border-gray-600 pb-3">
               <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">SMTP 服务器地址</label>
-                <input type="text" value={emailConfig.smtpHost}
-                  onChange={(e) => setEmailConfig({ ...emailConfig, smtpHost: e.target.value })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                  placeholder="smtp.qq.com" />
+                <span className="text-sm font-medium dark:text-white">启用邮件通知</span>
+                <p className="text-xs text-gray-400 dark:text-gray-500">关闭后扫描完成不发送邮件报告</p>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">SMTP 端口</label>
-                <input type="text" value={emailConfig.smtpPort}
-                  onChange={(e) => setEmailConfig({ ...emailConfig, smtpPort: e.target.value })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                  placeholder="587" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">发件邮箱账号</label>
-                <input type="text" value={emailConfig.smtpUsername}
-                  onChange={(e) => setEmailConfig({ ...emailConfig, smtpUsername: e.target.value })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                  placeholder="your-email@qq.com" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">SMTP 授权码/密码</label>
-                <input type="password" value={emailConfig.smtpPassword}
-                  onChange={(e) => setEmailConfig({ ...emailConfig, smtpPassword: e.target.value })}
-                  className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
-                  placeholder="邮箱 SMTP 授权码（非登录密码）" />
-              </div>
-              <div className="col-span-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox"
-                    checked={emailConfig.smtpSsl}
-                    onChange={(e) => setEmailConfig({ ...emailConfig, smtpSsl: e.target.checked })}
-                    className="rounded" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">启用 SSL 加密 (端口 465 通常需要勾选)</span>
-                </label>
+              <input type="checkbox"
+                checked={emailConfig.enabled}
+                onChange={(e) => setEmailConfig({ ...emailConfig, enabled: e.target.checked })}
+                className="rounded w-4 h-4" />
+            </label>
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">收件邮箱</label>
+              <input type="email" value={emailConfig.recipient}
+                onChange={(e) => setEmailConfig({ ...emailConfig, recipient: e.target.value })}
+                className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                placeholder="admin@example.com" />
+            </div>
+            <div className="border-t dark:border-gray-600 pt-3 mt-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">SMTP 服务器配置（使用 QQ邮箱/163/Gmail 等邮箱的 SMTP 授权码）</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">SMTP 服务器地址</label>
+                  <input type="text" value={emailConfig.smtpHost}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtpHost: e.target.value })}
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                    placeholder="smtp.qq.com" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">SMTP 端口</label>
+                  <input type="text" value={emailConfig.smtpPort}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtpPort: e.target.value })}
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                    placeholder="587" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">发件邮箱账号</label>
+                  <input type="text" value={emailConfig.smtpUsername}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtpUsername: e.target.value })}
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                    placeholder="your-email@qq.com" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">SMTP 授权码/密码</label>
+                  <input type="password" value={emailConfig.smtpPassword}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtpPassword: e.target.value })}
+                    className="w-full px-3 py-2 border dark:border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-600 dark:text-gray-200"
+                    placeholder="邮箱 SMTP 授权码（非登录密码）" />
+                </div>
+                <div className="col-span-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox"
+                      checked={emailConfig.smtpSsl}
+                      onChange={(e) => setEmailConfig({ ...emailConfig, smtpSsl: e.target.checked })}
+                      className="rounded" />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">启用 SSL 加密 (端口 465 通常需要勾选)</span>
+                  </label>
+                </div>
               </div>
             </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setEditingEmail(false)}
+                className="px-4 py-1.5 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200">取消</button>
+              <button onClick={() => updateEmailMutation.mutate()}
+                disabled={updateEmailMutation.isPending}
+                className="px-4 py-1.5 text-sm bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50">
+                {updateEmailMutation.isPending ? '保存中...' : '保存邮件配置'}
+              </button>
+            </div>
           </div>
-          <button onClick={() => updateEmailMutation.mutate()}
-            disabled={updateEmailMutation.isPending}
-            className="px-3 py-1.5 text-sm bg-rose-600 text-white rounded-lg hover:bg-rose-700 disabled:opacity-50">
-            {updateEmailMutation.isPending ? '保存中...' : '保存邮件配置'}
-          </button>
-        </div>
+        ) : (
+          <div className="space-y-3">
+            {/* Status summary bar */}
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700">
+              <div className="flex items-center gap-2">
+                <span className={`inline-block w-2.5 h-2.5 rounded-full ${emailConfig.enabled && emailConfig.recipient && emailConfig.smtpHost ? 'bg-green-500' : 'bg-gray-400'}`} />
+                <span className="text-sm font-medium dark:text-white">邮件通知</span>
+              </div>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded ${emailConfig.enabled ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'}`}>
+                {emailConfig.enabled ? '已开启' : '已关闭'}
+              </span>
+            </div>
+            {/* Detail rows */}
+            <div className="px-3 space-y-1.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">收件邮箱</span>
+                <span className="dark:text-gray-200 font-mono text-xs">{emailConfig.recipient || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">SMTP 服务器</span>
+                <span className="dark:text-gray-200 font-mono text-xs">{emailConfig.smtpHost ? `${emailConfig.smtpHost}:${emailConfig.smtpPort}` : '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">发件账号</span>
+                <span className="dark:text-gray-200 font-mono text-xs">{emailConfig.smtpUsername || '—'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">连接方式</span>
+                <span className="dark:text-gray-200 text-xs">{emailConfig.smtpSsl ? 'SSL 加密' : '普通 / STARTTLS'}</span>
+              </div>
+            </div>
+            <button onClick={() => setEditingEmail(true)}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm border dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
+              <Settings className="w-3.5 h-3.5" /> 编辑邮件配置
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ========== L2 Scan Strategy Plugin Manager ========== */}

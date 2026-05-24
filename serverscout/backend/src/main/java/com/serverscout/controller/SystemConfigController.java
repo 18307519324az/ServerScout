@@ -39,6 +39,15 @@ public class SystemConfigController {
         return ApiResponse.success(result);
     }
 
+    @GetMapping("/detect-tool/{toolName}")
+    public ApiResponse<Map<String, String>> detectSingleTool(@PathVariable String toolName) {
+        Map<String, String> result = new HashMap<>();
+        String path = detectTool(toolName);
+        result.put(toolName + "-path", path.isEmpty() ? "" : path);
+        log.info("Single tool detection for {}: {}", toolName, path.isEmpty() ? "not found" : path);
+        return ApiResponse.success(result);
+    }
+
     private String detectTool(String toolName) {
         // First check if already configured in DB
         String configured = configService.getConfig(toolName + "-path", "");
@@ -108,6 +117,10 @@ public class SystemConfigController {
     private String detectFromCommonPaths(String toolName, boolean isWin) {
         String exeName = isWin ? toolName + ".exe" : toolName;
         String userHome = System.getProperty("user.home", "");
+        String programFiles = System.getenv("ProgramFiles");
+        String programFilesX86 = System.getenv("ProgramFiles(x86)");
+        String localAppData = System.getenv("LOCALAPPDATA");
+        String userName = System.getProperty("user.name", "");
 
         String[][] commonPaths = isWin ? new String[][]{
             // Nmap common paths
@@ -115,20 +128,29 @@ public class SystemConfigController {
             {"nmap", "C:\\Program Files\\Nmap\\" + exeName},
             {"nmap", "D:\\web\\Nmap\\" + exeName},
             {"nmap", "D:\\tools\\Nmap\\" + exeName},
+            {"nmap", programFiles != null ? programFiles + "\\Nmap\\" + exeName : null},
+            {"nmap", programFilesX86 != null ? programFilesX86 + "\\Nmap\\" + exeName : null},
+            {"nmap", "C:\\ProgramData\\chocolatey\\bin\\" + exeName},
+            {"nmap", userHome + "\\scoop\\shims\\" + exeName},
             // Nuclei common paths
             {"nuclei", userHome + "\\go\\bin\\" + exeName},
-            {"nuclei", "C:\\Users\\" + System.getProperty("user.name", "") + "\\go\\bin\\" + exeName},
+            {"nuclei", "C:\\Users\\" + userName + "\\go\\bin\\" + exeName},
+            {"nuclei", userHome + "\\scoop\\shims\\" + exeName},
+            {"nuclei", "C:\\ProgramData\\chocolatey\\bin\\" + exeName},
+            {"nuclei", localAppData != null ? localAppData + "\\Programs\\nuclei\\" + exeName : null},
         } : new String[][]{
             {"nmap", "/usr/bin/" + exeName},
             {"nmap", "/usr/local/bin/" + exeName},
             {"nmap", "/opt/homebrew/bin/" + exeName},
+            {"nmap", "/snap/bin/" + exeName},
             {"nuclei", userHome + "/go/bin/" + exeName},
             {"nuclei", "/usr/local/bin/" + exeName},
             {"nuclei", "/opt/homebrew/bin/" + exeName},
+            {"nuclei", "/snap/bin/" + exeName},
         };
 
         for (String[] entry : commonPaths) {
-            if (entry[0].equals(toolName)) {
+            if (entry[0].equals(toolName) && entry[1] != null) {
                 java.nio.file.Path p = java.nio.file.Path.of(entry[1]);
                 if (java.nio.file.Files.exists(p) && java.nio.file.Files.isExecutable(p)) {
                     log.info("Found {} at common path: {}", toolName, entry[1]);
