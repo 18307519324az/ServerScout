@@ -15,6 +15,7 @@ import ReportCenterPage from './pages/ReportCenterPage'
 import SettingsPage from './pages/SettingsPage'
 import ExternalIntelPage from './pages/ExternalIntelPage'
 import AttackSurfacePage from './pages/AttackSurfacePage'
+import ManualPage from './pages/ManualPage'
 
 function reportToBackend(message: string, stack?: string) {
   try {
@@ -102,6 +103,7 @@ export default function App() {
             <Route path="topology" element={<TopologyPage />} />
             <Route path="attack-surface" element={<AttackSurfacePage />} />
             <Route path="intel" element={<ExternalIntelPage />} />
+            <Route path="manual" element={<ManualPage />} />
           </Route>
         </Routes>
       </BrowserRouter>

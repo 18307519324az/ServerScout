@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { Shield, LayoutDashboard, Server, ScanLine, Bug, Network, FileText, Settings, Globe, Moon, Sun, Map, Menu, X, Languages } from 'lucide-react'
+import { Shield, LayoutDashboard, Server, ScanLine, Bug, Network, FileText, Settings, Globe, Moon, Sun, Map, Menu, X, Languages, BookOpen } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import useDarkMode from '../hooks/useDarkMode'
 
@@ -65,6 +65,14 @@ export default function MainLayout() {
         })}
       </nav>
       <div className="p-3 border-t dark:border-gray-700 space-y-2">
+        <Link
+          to="/manual"
+          onClick={closeSidebar}
+          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+        >
+          <BookOpen className="w-4 h-4" />
+          {i18n.language === 'zh' ? '用户手册' : 'User Manual'}
+        </Link>
         <button onClick={toggleLang}
           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
         >
