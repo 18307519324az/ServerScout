@@ -27,6 +27,7 @@ public class AssetService {
     private final SslCertificateRepository sslCertificateRepository;
     private final ScanAssetMappingRepository scanAssetMappingRepository;
     private final SubdomainRepository subdomainRepository;
+    private final HoneypotDetectionService honeypotDetectionService;
     private final ObjectMapper objectMapper;
 
     public Page<Asset> listAssets(String keyword, String status, Pageable pageable, String username, boolean isAdmin) {
@@ -60,6 +61,22 @@ public class AssetService {
 
         long scanCount = scanAssetMappingRepository.countByAssetId(id);
 
+        // Honeypot detection info
+        List<HoneypotDetection> detections = honeypotDetectionService.getDetectionsForAsset(id);
+        List<AssetResponse.HoneypotDetectionInfo> detectionInfos = detections.stream()
+                .map(d -> AssetResponse.HoneypotDetectionInfo.builder()
+                        .id(d.getId())
+                        .honeypotType(d.getHoneypotType())
+                        .honeypotCategory(d.getHoneypotCategory())
+                        .matchEvidence(d.getMatchEvidence())
+                        .confidence(d.getConfidence())
+                        .detectionMethod(d.getDetectionMethod())
+                        .matchedPort(d.getMatchedPort())
+                        .matchedAt(d.getMatchedAt() != null ? d.getMatchedAt().toString() : null)
+                        .ruleName(d.getRule() != null ? d.getRule().getRuleName() : null)
+                        .build())
+                .collect(Collectors.toList());
+
         return AssetResponse.builder()
                 .id(asset.getId()).ipAddress(asset.getIpAddress())
                 .hostname(asset.getHostname()).hostnameAliases(hostnameAliases)
@@ -72,6 +89,10 @@ public class AssetService {
                 .firstSeenTime(asset.getFirstSeenTime())
                 .scanCount((int) scanCount)
                 .tags(tags).discoveredAt(asset.getDiscoveredAt()).updatedAt(asset.getUpdatedAt())
+                .isHoneypot(asset.getIsHoneypot())
+                .honeypotType(asset.getHoneypotType())
+                .honeypotConfidence(asset.getHoneypotConfidence())
+                .honeypotDetections(detectionInfos)
                 .ports(portDetails).build();
     }
 

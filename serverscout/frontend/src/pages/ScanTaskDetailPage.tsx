@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { fetchScanTaskDetail } from '../services/api'
+import { fetchScanTaskDetail, downloadPdfReport, downloadExcelReport } from '../services/api'
 import StatusBadge from '../components/StatusBadge'
 import ProgressBar from '../components/ProgressBar'
-import { ArrowLeft, Loader2, Server, Shield, Globe, Bug, Layers, CheckCircle2, Circle } from 'lucide-react'
+import { ArrowLeft, Loader2, Server, Shield, Globe, Bug, Layers, CheckCircle2, Circle, Download } from 'lucide-react'
 
 interface DiscoveryEvent {
   type: string
@@ -45,6 +45,24 @@ export default function ScanTaskDetailPage() {
   })
 
   const task = data?.data?.data
+
+  const handleDownload = async (format: 'pdf' | 'excel', taskId: number) => {
+    try {
+      const res = format === 'pdf' ? await downloadPdfReport(taskId) : await downloadExcelReport(taskId)
+      const ext = format === 'pdf' ? 'pdf' : 'xlsx'
+      const blob = new Blob([res.data], {
+        type: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `report_${taskId}.${ext}`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Download failed:', err)
+    }
+  }
 
   // SSE 实时进度监听
   useEffect(() => {
@@ -246,14 +264,14 @@ export default function ScanTaskDetailPage() {
             </div>
           )}
           <div className="flex gap-3 mt-4">
-            <a href={`/api/v1/reports/pdf?taskId=${task.id}`}
-              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700" target="_blank">
-              导出 PDF 报告
-            </a>
-            <a href={`/api/v1/reports/excel?taskId=${task.id}`}
-              className="px-4 py-2 border dark:border-gray-600 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200" target="_blank">
-              导出 Excel 报告
-            </a>
+            <button onClick={() => handleDownload('pdf', task.id)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+              <Download className="w-4 h-4" /> 导出 PDF 报告
+            </button>
+            <button onClick={() => handleDownload('excel', task.id)}
+              className="flex items-center gap-1.5 px-4 py-2 border dark:border-gray-600 text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+              <Download className="w-4 h-4" /> 导出 Excel 报告
+            </button>
           </div>
         </div>
       )}

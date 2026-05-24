@@ -17,6 +17,7 @@ public class DashboardService {
     private final PortRepository portRepository;
     private final AssetVulnerabilityRepository avRepository;
     private final ScanTaskRepository scanTaskRepository;
+    private final HoneypotDetectionRepository honeypotDetectionRepository;
 
     public DashboardResponse getStats(String username, boolean isAdmin) {
         long totalAssets = isAdmin ? assetRepository.count() : assetRepository.countByCreatedBy(username);
@@ -43,6 +44,7 @@ public class DashboardService {
         long riskAssetCount = isAdmin
                 ? assetRepository.countByCriticalVulnCountGreaterThan(0)
                 : assetRepository.countRiskByCreatedBy(username);
+        long honeypotAssetCount = honeypotDetectionRepository.countDistinctAssets();
 
         List<Object[]> rawPorts = isAdmin
                 ? portRepository.findPortDistribution()
@@ -68,6 +70,7 @@ public class DashboardService {
                         .mediumVulns(medium).lowVulns(low)
                         .activeTasks(activeTasks).recentScanCount(recentScans)
                         .riskAssetCount(riskAssetCount)
+                        .honeypotAssetCount(honeypotAssetCount)
                         .build())
                 .portDistribution(portDist)
                 .severityDistribution(sevDist)

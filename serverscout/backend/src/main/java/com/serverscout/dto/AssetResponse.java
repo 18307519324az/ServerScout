@@ -20,6 +20,10 @@ public class AssetResponse {
     private Instant firstSeenTime;
     private int scanCount;
     private List<String> tags;
+    private Boolean isHoneypot;
+    private String honeypotType;
+    private String honeypotConfidence;
+    private List<HoneypotDetectionInfo> honeypotDetections;
     private Instant discoveredAt;
     private Instant updatedAt;
     private List<PortDetail> ports;
@@ -75,5 +79,18 @@ public class AssetResponse {
         private String severity;
         private double cvssScore;
         private String status;
+    }
+
+    @Data @Builder
+    public static class HoneypotDetectionInfo {
+        private Long id;
+        private String honeypotType;
+        private String honeypotCategory;
+        private String matchEvidence;
+        private String confidence;
+        private String detectionMethod;
+        private Integer matchedPort;
+        private String matchedAt;
+        private String ruleName;
     }
 }

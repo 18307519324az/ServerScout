@@ -28,6 +28,24 @@ export interface PageData<T> {
   }
 }
 
+// ========== Honeypot ==========
+export interface HoneypotDetectionInfo {
+  id: number
+  honeypotType: string
+  honeypotCategory: string
+  matchEvidence: string
+  confidence: string
+  detectionMethod: string
+  matchedPort: number | null
+  matchedAt: string
+  ruleName: string
+}
+
+export interface HoneypotStats {
+  honeypotAssetCount: number
+  typeDistribution: { type: string; count: number }[]
+}
+
 // ========== Asset ==========
 export interface Asset {
   id: number
@@ -43,6 +61,10 @@ export interface Asset {
   firstSeenTime?: string
   scanCount?: number
   tags: string[]
+  isHoneypot?: boolean
+  honeypotType?: string
+  honeypotConfidence?: string
+  honeypotDetections?: HoneypotDetectionInfo[]
   discoveredAt: string
   updatedAt: string
   ports?: PortDetail[]
@@ -167,6 +189,7 @@ export interface DashboardStats {
     activeTasks: number
     recentScanCount: number
     riskAssetCount: number
+    honeypotAssetCount: number
   }
   portDistribution: { port: number; count: number }[]
   severityDistribution: { name: string; value: number }[]

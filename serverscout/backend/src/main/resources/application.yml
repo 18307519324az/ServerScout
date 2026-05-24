@@ -48,6 +48,8 @@ app:
     max-concurrent-tasks: ${SCAN_MAX_CONCURRENT:5}
     default-timeout-seconds: ${SCAN_TIMEOUT:300}
     http-probe-timeout: ${HTTP_PROBE_TIMEOUT:3000}
+  pdf:
+    font-path: ${PDF_FONT_PATH:C:/Windows/Fonts/msyh.ttc}
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:5174}
   webhook:

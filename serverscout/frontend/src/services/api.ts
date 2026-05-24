@@ -3,6 +3,7 @@ import type {
   ApiResponse, PageData, Asset, ScanTask, Vulnerability,
   DashboardStats, TopologyData, CreateScanTaskRequest,
   Subdomain, SubdomainStats, User,
+  HoneypotStats, HoneypotDetectionInfo,
 } from '../types'
 
 const http = axios.create({ baseURL: '/api', timeout: 30000 })
@@ -131,6 +132,13 @@ export const updateVulnReproduction = (id: number, steps: string) =>
 
 export const deleteVulnerability = (id: number) =>
   http.delete(`/v1/vulnerabilities/${id}`)
+
+// Honeypot
+export const fetchHoneypotStats = () =>
+  http.get<ApiResponse<HoneypotStats>>('/v1/honeypot/stats')
+
+export const fetchHoneypotDetectionsByAsset = (assetId: number) =>
+  http.get<ApiResponse<HoneypotDetectionInfo[]>>(`/v1/honeypot/asset/${assetId}`)
 
 // Dashboard
 export const fetchDashboardStats = () =>

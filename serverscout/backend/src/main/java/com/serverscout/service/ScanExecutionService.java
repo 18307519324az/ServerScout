@@ -36,6 +36,7 @@ public class ScanExecutionService {
     private final WebhookNotificationService webhookService;
     private final CrawlerService crawlerService;
     private final ScreenshotService screenshotService;
+    private final HoneypotDetectionService honeypotDetectionService;
     private final ProcessRegistry processRegistry;
 
     @Async("scanExecutor")
@@ -185,11 +186,30 @@ public class ScanExecutionService {
                 progressEmitter.sendProgress(taskId, 87, "正在分析证书透明度...", assetCount);
                 var ctResult = certTransparencyService.analyzeCertificates(task);
                 if (isCancelled(taskId)) return;
-                progressEmitter.sendProgress(taskId, 90,
+                progressEmitter.sendProgress(taskId, 88,
                         "证书透明度分析完成，发现 " + ctResult.get("uniqueDomains") + " 个域名", assetCount);
                 log.info("Task {}: CT analysis found {} domains", taskId, ctResult.get("uniqueDomains"));
             } catch (Exception e) {
                 log.warn("Certificate transparency analysis failed: {}", e.getMessage());
+            }
+
+            // Phase 3.7: Honeypot detection (fingerprint-based, offline)
+            try {
+                progressEmitter.sendProgress(taskId, 89, "正在执行蜜罐检测...", assetCount);
+                List<ScanAssetMapping> hpMappings = scanAssetMappingRepository
+                        .findByScanTaskIdWithAsset(task.getId());
+                List<Asset> hpAssets = hpMappings.stream()
+                        .map(ScanAssetMapping::getAsset).distinct().collect(Collectors.toList());
+                int honeypotCount = 0;
+                for (Asset a : hpAssets) {
+                    var detections = honeypotDetectionService.detectByFingerprint(a);
+                    if (!detections.isEmpty()) honeypotCount++;
+                }
+                progressEmitter.sendProgress(taskId, 90,
+                        "蜜罐检测完成，发现 " + honeypotCount + " 个疑似蜜罐资产", assetCount);
+                log.info("Task {}: honeypot detection found {} suspicious assets", taskId, honeypotCount);
+            } catch (Exception e) {
+                log.warn("Honeypot detection failed: {}", e.getMessage());
             }
 
             task.setProgress(90);

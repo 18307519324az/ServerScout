@@ -23,6 +23,7 @@ public class DashboardResponse {
         private long recentScanCount;
         private long activeTasks;
         private long riskAssetCount;
+        private long honeypotAssetCount;
     }
 
     @Data @Builder

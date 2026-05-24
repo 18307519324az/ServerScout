@@ -1,12 +1,16 @@
 package com.serverscout.service;
 
 import com.serverscout.entity.*;
+import com.serverscout.repository.HoneypotDetectionRepository;
 import com.serverscout.repository.*;
 import com.serverscout.util.ResourceNotFoundException;
+import com.itextpdf.io.font.PdfEncodings;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.events.Event;
 import com.itextpdf.kernel.events.IEventHandler;
 import com.itextpdf.kernel.events.PdfDocumentEvent;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfPage;
@@ -22,6 +26,7 @@ import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -35,13 +40,20 @@ import org.apache.poi.ss.usermodel.VerticalAlignment;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReportService {
@@ -50,6 +62,12 @@ public class ReportService {
     private final AssetRepository assetRepository;
     private final PortRepository portRepository;
     private final AssetVulnerabilityRepository vulnRepository;
+    private final HoneypotDetectionRepository honeypotDetectionRepository;
+
+    @Value("${app.pdf.font-path:C:/Windows/Fonts/msyh.ttc}")
+    private String fontPath;
+
+    private PdfFont chineseFont;
 
     private static final DateTimeFormatter DTF = DateTimeFormatter
             .ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("Asia/Shanghai"));
@@ -66,8 +84,60 @@ public class ReportService {
 
     // ═══════════════ PDF Report ═══════════════
 
+    private PdfFont loadChineseFont() {
+        // Try configured path first
+        String[] candidatePaths = {
+            fontPath,
+            "C:/Windows/Fonts/msyh.ttc",
+            "C:/Windows/Fonts/msyhbd.ttf",
+            "C:/Windows/Fonts/simsun.ttc",
+            "C:/Windows/Fonts/NotoSansSC-VF.ttf",
+            "/System/Library/Fonts/PingFang.ttc",
+            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+            "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+        };
+
+        for (String path : candidatePaths) {
+            try {
+                Path p = Paths.get(path);
+                if (Files.exists(p)) {
+                    String fontProgram = path;
+                    if (path.endsWith(".ttc")) {
+                        fontProgram = path + ",0";
+                    }
+                    PdfFont font = PdfFontFactory.createFont(fontProgram, PdfEncodings.IDENTITY_H,
+                            PdfFontFactory.EmbeddingStrategy.PREFER_EMBEDDED);
+                    log.info("PDF: Loaded Chinese font from {}", path);
+                    return font;
+                }
+            } catch (IOException e) {
+                log.debug("PDF font attempt failed for {}: {}", path, e.getMessage());
+            }
+        }
+
+        log.warn("PDF: No Chinese font found. Chinese characters may not render correctly. "
+                + "Please set app.pdf.font-path or install a CJK font.");
+        return null;
+    }
+
+    private Paragraph cPara(String text) {
+        Paragraph p = new Paragraph(text);
+        if (chineseFont != null) p.setFont(chineseFont);
+        return p;
+    }
+
+    private com.itextpdf.layout.element.Cell cCell() {
+        com.itextpdf.layout.element.Cell cell = new com.itextpdf.layout.element.Cell();
+        if (chineseFont != null) cell.setFont(chineseFont);
+        return cell;
+    }
+
+    @Transactional(readOnly = true)
     public byte[] generatePdfReport(Long taskId) {
         try {
+            this.chineseFont = loadChineseFont();
+
             ScanTask task = scanTaskRepository.findById(taskId)
                     .orElseThrow(() -> new ResourceNotFoundException("ScanTask", taskId));
             List<Asset> assets = assetRepository.findByTaskId(taskId);
@@ -81,58 +151,58 @@ public class ReportService {
             pdf.addEventHandler(PdfDocumentEvent.END_PAGE, new PageNumberHandler());
 
             // ═══ Cover Page ═══
-            doc.add(new Paragraph(" ").setHeight(50));
-            doc.add(new Paragraph("ServerScout")
+            doc.add(cPara(" ").setHeight(50));
+            doc.add(cPara("ServerScout")
                     .setFontSize(36).setBold()
                     .setFontColor(COLOR_PRIMARY)
                     .setTextAlignment(TextAlignment.CENTER));
-            doc.add(new Paragraph("安全扫描分析报告")
+            doc.add(cPara("安全扫描分析报告")
                     .setFontSize(22).setFontColor(COLOR_DARK)
                     .setTextAlignment(TextAlignment.CENTER));
-            doc.add(new Paragraph(" ").setHeight(12));
-            doc.add(new Paragraph("网络资产攻击面可视化分析平台")
+            doc.add(cPara(" ").setHeight(12));
+            doc.add(cPara("网络资产攻击面可视化分析平台")
                     .setFontSize(10).setFontColor(COLOR_GRAY)
                     .setTextAlignment(TextAlignment.CENTER));
-            doc.add(new Paragraph(" ").setHeight(18));
+            doc.add(cPara(" ").setHeight(18));
             doc.add(dividerLine());
 
             // Scan metadata table with labels
-            doc.add(new Paragraph(" ").setHeight(8));
-            doc.add(new Paragraph("扫描任务概要").setFontSize(13).setBold()
+            doc.add(cPara(" ").setHeight(8));
+            doc.add(cPara("扫描任务概要").setFontSize(13).setBold()
                     .setFontColor(COLOR_DARK).setTextAlignment(TextAlignment.CENTER));
-            doc.add(new Paragraph(" ").setHeight(6));
+            doc.add(cPara(" ").setHeight(6));
             addMetaTable(doc, task);
-            doc.add(new Paragraph(" ").setHeight(14));
+            doc.add(cPara(" ").setHeight(14));
 
             // Summary stats cards
             addSummaryCards(doc, task, assets);
-            doc.add(new Paragraph(" ").setHeight(8));
-            doc.add(new Paragraph("报告生成时间：" + java.time.LocalDateTime.now().format(DTF))
+            doc.add(cPara(" ").setHeight(8));
+            doc.add(cPara("报告生成时间：" + java.time.LocalDateTime.now().format(DTF))
                     .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.CENTER));
             doc.add(new AreaBreak());
 
             // ═══ Section 1: Summary & Legend ═══
-            doc.add(new Paragraph("一、报告概述").setFontSize(15).setBold().setFontColor(COLOR_DARK));
-            doc.add(new Paragraph(" ").setHeight(4));
-            doc.add(new Paragraph("本报告由 ServerScout 自动生成，包含扫描任务的资产发现、端口信息、漏洞详情等关键安全数据。"
+            doc.add(cPara("一、报告概述").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+            doc.add(cPara(" ").setHeight(4));
+            doc.add(cPara("本报告由 ServerScout 自动生成，包含扫描任务的资产发现、端口信息、漏洞详情等关键安全数据。"
                     + "以下各节分别展示不同维度的扫描结果。")
                     .setFontSize(9).setFontColor(COLOR_GRAY));
-            doc.add(new Paragraph(" ").setHeight(6));
+            doc.add(cPara(" ").setHeight(6));
 
             // Severity legend
-            doc.add(new Paragraph("漏洞严重等级说明：").setFontSize(9).setBold().setFontColor(COLOR_DARK));
+            doc.add(cPara("漏洞严重等级说明：").setFontSize(9).setBold().setFontColor(COLOR_DARK));
             addSeverityLegend(doc);
-            doc.add(new Paragraph(" ").setHeight(8));
+            doc.add(cPara(" ").setHeight(8));
 
             // Stats summary
             addDetailedStats(doc, task, assets);
             doc.add(new AreaBreak());
 
             // ═══ Section 2: Asset List ═══
-            doc.add(new Paragraph("二、资产清单").setFontSize(15).setBold().setFontColor(COLOR_DARK));
-            doc.add(new Paragraph("以下列出扫描发现的所有网络资产，包括 IP 地址、主机名、操作系统指纹、开放端口数量及高危漏洞统计。")
+            doc.add(cPara("二、资产清单").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+            doc.add(cPara("以下列出扫描发现的所有网络资产，包括 IP 地址、主机名、操作系统指纹、开放端口数量及高危漏洞统计。")
                     .setFontSize(8).setFontColor(COLOR_GRAY));
-            doc.add(new Paragraph(" ").setHeight(6));
+            doc.add(cPara(" ").setHeight(6));
 
             if (!assets.isEmpty()) {
                 Table table = new Table(UnitValue.createPercentArray(
@@ -152,12 +222,12 @@ public class ReportService {
                     alt = !alt;
                 }
                 doc.add(table);
-                doc.add(new Paragraph(String.format("（共 %d 个资产）", assets.size()))
+                doc.add(cPara(String.format("（共 %d 个资产）", assets.size()))
                         .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.RIGHT));
             } else {
-                doc.add(new Paragraph("（本次扫描未发现资产）").setFontSize(9).setFontColor(COLOR_GRAY));
+                doc.add(cPara("（本次扫描未发现资产）").setFontSize(9).setFontColor(COLOR_GRAY));
             }
-            doc.add(new Paragraph(" ").setHeight(8));
+            doc.add(cPara(" ").setHeight(8));
 
             // ═══ Section 3: Port Details ═══
             int totalPortRows = 0;
@@ -165,11 +235,11 @@ public class ReportService {
                 totalPortRows += portRepository.findByAssetId(a.getId()).size();
             }
             if (totalPortRows > 0) {
-                doc.add(new Paragraph("三、端口详情").setFontSize(15).setBold().setFontColor(COLOR_DARK));
-                doc.add(new Paragraph("列出每个资产上开放的端口及其服务信息。\"服务\"列显示运行的服务类型（如 HTTP、SSH），"
+                doc.add(cPara("三、端口详情").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(cPara("列出每个资产上开放的端口及其服务信息。\"服务\"列显示运行的服务类型（如 HTTP、SSH），"
                         + "\"产品/版本\"列显示具体软件及版本号，可用于漏洞关联分析。")
                         .setFontSize(8).setFontColor(COLOR_GRAY));
-                doc.add(new Paragraph(" ").setHeight(4));
+                doc.add(cPara(" ").setHeight(4));
 
                 Table pTable = new Table(UnitValue.createPercentArray(
                         new float[]{2.2f, 1, 0.8f, 2.2f, 3, 1.2f})).useAllAvailableWidth();
@@ -192,9 +262,9 @@ public class ReportService {
                     }
                 }
                 doc.add(pTable);
-                doc.add(new Paragraph(String.format("（共 %d 条端口记录）", totalPortRows))
+                doc.add(cPara(String.format("（共 %d 条端口记录）", totalPortRows))
                         .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.RIGHT));
-                doc.add(new Paragraph(" ").setHeight(8));
+                doc.add(cPara(" ").setHeight(8));
             }
 
             // ═══ Section 4: Vulnerability Details ═══
@@ -203,12 +273,12 @@ public class ReportService {
                 totalVulns += vulnRepository.findByAssetIdWithCve(a.getId()).size();
             }
             if (totalVulns > 0) {
-                doc.add(new Paragraph("四、漏洞详情").setFontSize(15).setBold().setFontColor(COLOR_DARK));
-                doc.add(new Paragraph("列出通过 CVE 匹配和 Nuclei 扫描发现的漏洞。"
+                doc.add(cPara("四、漏洞详情").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(cPara("列出通过 CVE 匹配和 Nuclei 扫描发现的漏洞。"
                         + "\"CVSS 评分\"为通用漏洞评分系统得分（0-10，越高越严重），"
                         + "\"受影响软件\"列可用于定位需修复的系统组件。")
                         .setFontSize(8).setFontColor(COLOR_GRAY));
-                doc.add(new Paragraph(" ").setHeight(4));
+                doc.add(cPara(" ").setHeight(4));
 
                 Table vTable = new Table(UnitValue.createPercentArray(
                         new float[]{2, 1.3f, 0.8f, 3, 1.5f})).useAllAvailableWidth();
@@ -230,13 +300,13 @@ public class ReportService {
                     }
                 }
                 doc.add(vTable);
-                doc.add(new Paragraph(String.format("（共 %d 个漏洞）", totalVulns))
+                doc.add(cPara(String.format("（共 %d 个漏洞）", totalVulns))
                         .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.RIGHT));
-                doc.add(new Paragraph(" ").setHeight(8));
+                doc.add(cPara(" ").setHeight(8));
 
                 // Per-vulnerability details section
-                doc.add(new Paragraph("漏洞详细信息：").setFontSize(11).setBold().setFontColor(COLOR_DARK));
-                doc.add(new Paragraph(" ").setHeight(4));
+                doc.add(cPara("漏洞详细信息：").setFontSize(11).setBold().setFontColor(COLOR_DARK));
+                doc.add(cPara(" ").setHeight(4));
                 int vulnIdx = 0;
                 for (Asset a : assets) {
                     for (AssetVulnerability v : vulnRepository.findByAssetIdWithCve(a.getId())) {
@@ -247,34 +317,72 @@ public class ReportService {
                                 vulnIdx, cve.getCveId(),
                                 cve.getSeverity() != null ? cve.getSeverity().toUpperCase() : "N/A",
                                 cve.getCvssScore() != null ? cve.getCvssScore() : 0.0);
-                        doc.add(new Paragraph(header).setFontSize(9).setBold()
+                        doc.add(cPara(header).setFontSize(9).setBold()
                                 .setFontColor(getSeverityColor(cve.getSeverity())));
-                        doc.add(new Paragraph("受影响资产: " + a.getIpAddress()
+                        doc.add(cPara("受影响资产: " + a.getIpAddress()
                                 + (a.getHostname() != null ? " (" + a.getHostname() + ")" : ""))
                                 .setFontSize(8).setFontColor(COLOR_GRAY));
                         if (cve.getDescription() != null) {
-                            doc.add(new Paragraph("描述: " + cve.getDescription())
+                            doc.add(cPara("描述: " + cve.getDescription())
                                     .setFontSize(8).setFontColor(COLOR_DARK));
                         }
                         if (cve.getFixSuggestion() != null) {
-                            doc.add(new Paragraph("修复建议: " + cve.getFixSuggestion())
+                            doc.add(cPara("修复建议: " + cve.getFixSuggestion())
                                     .setFontSize(8).setFontColor(new DeviceRgb(22, 163, 74)));
                         }
-                        doc.add(new Paragraph(" ").setHeight(2));
+                        doc.add(cPara(" ").setHeight(2));
                     }
                 }
             } else {
-                doc.add(new Paragraph("四、漏洞详情").setFontSize(15).setBold().setFontColor(COLOR_DARK));
-                doc.add(new Paragraph("（本次扫描未发现漏洞）").setFontSize(9).setFontColor(COLOR_GRAY));
+                doc.add(cPara("四、漏洞详情").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(cPara("（本次扫描未发现漏洞）").setFontSize(9).setFontColor(COLOR_GRAY));
             }
 
-            doc.add(new Paragraph(" ").setHeight(16));
+            // ═══ Section 5: Honeypot Detection ═══
+            int totalHoneypots = 0;
+            for (Asset a : assets) {
+                totalHoneypots += honeypotDetectionRepository.findByAssetId(a.getId()).size();
+            }
+            if (totalHoneypots > 0) {
+                doc.add(cPara("五、蜜罐检测结果").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(cPara("以下列出通过服务指纹规则检测到的疑似蜜罐资产。"
+                        + "蜜罐是安全研究人员或攻击者部署的诱捕系统，资产若被识别为蜜罐，"
+                        + "表明该目标可能为陷阱系统，需谨慎对待。")
+                        .setFontSize(8).setFontColor(COLOR_GRAY));
+                doc.add(cPara(" ").setHeight(4));
+
+                Table hpTable = new Table(UnitValue.createPercentArray(
+                        new float[]{2, 2, 1.5f, 1.5f, 3})).useAllAvailableWidth();
+                pdfHeaderRow(hpTable, "IP 地址", "蜜罐类型", "置信度", "检测方法", "匹配证据");
+
+                boolean alt = false;
+                for (Asset a : assets) {
+                    List<HoneypotDetection> hds = honeypotDetectionRepository.findByAssetId(a.getId());
+                    for (HoneypotDetection hd : hds) {
+                        DeviceRgb bg = alt ? COLOR_LIGHT_BG : COLOR_WHITE;
+                        pdfCell(hpTable, a.getIpAddress(), bg);
+                        pdfCell(hpTable, hd.getHoneypotType() != null ? hd.getHoneypotType() : "-", bg);
+                        pdfCell(hpTable, hd.getConfidence() != null ? hd.getConfidence() : "-", bg);
+                        pdfCell(hpTable, hd.getDetectionMethod() != null ? hd.getDetectionMethod() : "-", bg);
+                        String evidence = hd.getMatchEvidence() != null ? hd.getMatchEvidence() : "";
+                        if (evidence.length() > 80) evidence = evidence.substring(0, 80) + "...";
+                        pdfCell(hpTable, !evidence.isEmpty() ? evidence : "-", bg);
+                        alt = !alt;
+                    }
+                }
+                doc.add(hpTable);
+                doc.add(cPara(String.format("（共检测到 %d 条蜜罐记录）", totalHoneypots))
+                        .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.RIGHT));
+                doc.add(cPara(" ").setHeight(8));
+            }
+
+            doc.add(cPara(" ").setHeight(16));
             doc.add(dividerLine());
-            doc.add(new Paragraph("本报告由 ServerScout 自动生成 | "
+            doc.add(cPara("本报告由 ServerScout 自动生成 | "
                     + java.time.LocalDateTime.now().format(DTF))
                     .setFontSize(7).setFontColor(COLOR_GRAY)
                     .setTextAlignment(TextAlignment.CENTER));
-            doc.add(new Paragraph("报告数据来源于扫描任务执行结果，仅供参考。请结合实际情况进行安全评估。")
+            doc.add(cPara("报告数据来源于扫描任务执行结果，仅供参考。请结合实际情况进行安全评估。")
                     .setFontSize(6).setFontColor(COLOR_GRAY)
                     .setTextAlignment(TextAlignment.CENTER));
 
@@ -287,6 +395,7 @@ public class ReportService {
 
     // ═══════════════ Excel Report ═══════════════
 
+    @Transactional(readOnly = true)
     public byte[] generateExcelReport(Long taskId) {
         try {
             ScanTask task = scanTaskRepository.findById(taskId)
@@ -419,7 +528,32 @@ public class ReportService {
             }
             freezeAndFilter(vSheet, vCols.length);
 
-            // Sheet 5: Stats
+            // Sheet 5: Honeypot Detection
+            Sheet hpSheet = wb.createSheet("蜜罐检测");
+            String[] hpCols = {"IP地址", "蜜罐类型", "分类", "置信度", "检测方法", "匹配端口", "匹配证据", "规则名称"};
+            int[] hpWidths = {4500, 4000, 3500, 3000, 3500, 2500, 10000, 6000};
+            createSheetHeader(hpSheet, hpCols, hpWidths, headerStyle, wb);
+
+            int hpr = 1;
+            for (Asset a : assets) {
+                for (HoneypotDetection hd : honeypotDetectionRepository.findByAssetId(a.getId())) {
+                    Row row = hpSheet.createRow(hpr++);
+                    String evidence = hd.getMatchEvidence() != null ? hd.getMatchEvidence() : "";
+                    fillRow(row, new String[]{
+                            a.getIpAddress(),
+                            hd.getHoneypotType() != null ? hd.getHoneypotType() : "",
+                            hd.getHoneypotCategory() != null ? hd.getHoneypotCategory() : "",
+                            hd.getConfidence() != null ? hd.getConfidence() : "",
+                            hd.getDetectionMethod() != null ? hd.getDetectionMethod() : "",
+                            hd.getMatchedPort() != null ? String.valueOf(hd.getMatchedPort()) : "",
+                            evidence,
+                            hd.getRule() != null ? hd.getRule().getRuleName() : "",
+                    }, altRowStyle, hpr);
+                }
+            }
+            freezeAndFilter(hpSheet, hpCols.length);
+
+            // Sheet 6: Stats
             Sheet statsSheet = wb.createSheet("统计汇总");
             statsSheet.setColumnWidth(0, 6000);
             statsSheet.setColumnWidth(1, 5000);
@@ -487,7 +621,7 @@ public class ReportService {
         };
         DeviceRgb[] colors = {COLOR_CRITICAL, COLOR_HIGH, COLOR_MEDIUM, COLOR_LOW};
         for (int i = 0; i < legend.length; i++) {
-            doc.add(new Paragraph("  ■ " + legend[i][0] + " — " + legend[i][1])
+            doc.add(cPara("  ■ " + legend[i][0] + " — " + legend[i][1])
                     .setFontSize(7).setFontColor(colors[i]));
         }
     }
@@ -510,12 +644,12 @@ public class ReportService {
             }
         }
 
-        doc.add(new Paragraph("关键数据摘要：").setFontSize(9).setBold().setFontColor(COLOR_DARK));
-        doc.add(new Paragraph(String.format(
+        doc.add(cPara("关键数据摘要：").setFontSize(9).setBold().setFontColor(COLOR_DARK));
+        doc.add(cPara(String.format(
                 "  资产总数: %d 个  |  开放端口: %d 个  |  Web 服务: %d 个  |  漏洞总数: %d 个",
                 assets.size(), task.getTotalPorts(), webCount, critCount + highCount + mediumCount + lowCount))
                 .setFontSize(8).setFontColor(COLOR_DARK));
-        doc.add(new Paragraph(String.format(
+        doc.add(cPara(String.format(
                 "  严重(Critical): %d  |  高危(High): %d  |  中危(Medium): %d  |  低危(Low): %d",
                 critCount, highCount, mediumCount, lowCount))
                 .setFontSize(8).setFontColor(COLOR_DARK));
@@ -548,10 +682,10 @@ public class ReportService {
 
     private void metaRow(Table table, String label, String value) {
         table.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph(label).setFontSize(9).setBold().setFontColor(COLOR_DARK))
+                .add(cPara(label).setFontSize(9).setBold().setFontColor(COLOR_DARK))
                 .setBorder(Border.NO_BORDER).setPadding(4));
         table.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph(value != null ? value : "-").setFontSize(9).setFontColor(COLOR_GRAY))
+                .add(cPara(value != null ? value : "-").setFontSize(9).setFontColor(COLOR_GRAY))
                 .setBorder(Border.NO_BORDER).setPadding(4));
     }
 
@@ -581,9 +715,9 @@ public class ReportService {
         com.itextpdf.layout.element.Cell card = new com.itextpdf.layout.element.Cell()
                 .setBorder(Border.NO_BORDER).setPadding(10).setMargin(4)
                 .setBackgroundColor(COLOR_LIGHT_BG);
-        card.add(new Paragraph(label).setFontSize(8).setFontColor(COLOR_GRAY)
+        card.add(cPara(label).setFontSize(8).setFontColor(COLOR_GRAY)
                 .setTextAlignment(TextAlignment.CENTER));
-        card.add(new Paragraph(value).setFontSize(18).setBold()
+        card.add(cPara(value).setFontSize(18).setBold()
                 .setFontColor(accent).setTextAlignment(TextAlignment.CENTER));
         table.addCell(card);
     }
@@ -597,7 +731,7 @@ public class ReportService {
     private void pdfHeaderRow(Table table, String... headers) {
         for (String h : headers) {
             table.addHeaderCell(new com.itextpdf.layout.element.Cell()
-                    .add(new Paragraph(h).setFontSize(7).setBold().setFontColor(COLOR_WHITE))
+                    .add(cPara(h).setFontSize(7).setBold().setFontColor(COLOR_WHITE))
                     .setBackgroundColor(COLOR_DARK)
                     .setTextAlignment(TextAlignment.CENTER).setPadding(5));
         }
@@ -605,7 +739,7 @@ public class ReportService {
 
     private void pdfCell(Table table, String text, DeviceRgb bg) {
         table.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph(text).setFontSize(7).setFontColor(COLOR_DARK))
+                .add(cPara(text).setFontSize(7).setFontColor(COLOR_DARK))
                 .setBackgroundColor(bg).setPadding(4));
     }
 
@@ -614,7 +748,7 @@ public class ReportService {
         try { val = Integer.parseInt(text); } catch (NumberFormatException ignored) {}
         DeviceRgb color = val > 0 ? COLOR_CRITICAL : COLOR_DARK;
         table.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph(text).setFontSize(7).setFontColor(color).setBold())
+                .add(cPara(text).setFontSize(7).setFontColor(color).setBold())
                 .setBackgroundColor(bg).setTextAlignment(TextAlignment.CENTER).setPadding(4));
     }
 
@@ -628,7 +762,7 @@ public class ReportService {
             default: color = COLOR_GRAY;
         }
         table.addCell(new com.itextpdf.layout.element.Cell()
-                .add(new Paragraph(severity).setFontSize(7).setBold().setFontColor(color))
+                .add(cPara(severity).setFontSize(7).setBold().setFontColor(color))
                 .setBackgroundColor(bg).setTextAlignment(TextAlignment.CENTER).setPadding(4));
     }
 

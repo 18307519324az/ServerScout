@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { fetchDashboardStats } from '../services/api'
 import { CardSkeleton, ChartSkeleton } from '../components/Skeleton'
 import PluginSlot from '../components/PluginSlot'
-import { Server, ScanLine, Bug, Activity, Shield, AlertTriangle, ChevronRight, Globe, Network, FileText } from 'lucide-react'
+import { Server, ScanLine, Bug, Activity, Shield, AlertTriangle, ChevronRight, Globe, Network, FileText, ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import ReactEChartsCore from 'echarts-for-react'
 
@@ -67,6 +67,8 @@ export default function DashboardPage() {
     { label: t('dashboard.totalVulns'), value: stats.overview.totalVulnerabilities, icon: Bug, color: 'text-red-600 dark:text-red-400' },
     { label: t('dashboard.activeTasks'), value: stats.overview.activeTasks, icon: ScanLine, color: 'text-purple-600 dark:text-purple-400' },
   ]
+
+  const honeypotCount = stats.overview.honeypotAssetCount || 0
 
   const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
 
@@ -140,6 +142,47 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Honeypot Warning Card */}
+      {honeypotCount > 0 && (
+        <div className={`rounded-xl border p-5 mb-6 ${
+          honeypotCount >= 5 ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20' :
+          honeypotCount >= 2 ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20' :
+          'border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                honeypotCount >= 5 ? 'bg-red-100 dark:bg-red-800/30' :
+                honeypotCount >= 2 ? 'bg-orange-100 dark:bg-orange-800/30' :
+                'bg-yellow-100 dark:bg-yellow-800/30'
+              }`}>
+                <ShieldAlert className={`w-6 h-6 ${
+                  honeypotCount >= 5 ? 'text-red-600 dark:text-red-400' :
+                  honeypotCount >= 2 ? 'text-orange-600 dark:text-orange-400' :
+                  'text-yellow-600 dark:text-yellow-400'
+                }`} />
+              </div>
+              <div>
+                <p className="text-sm font-medium dark:text-white">{t('dashboard.honeypotAssets')}</p>
+                <p className={`text-3xl font-bold ${
+                  honeypotCount >= 5 ? 'text-red-700 dark:text-red-400' :
+                  honeypotCount >= 2 ? 'text-orange-700 dark:text-orange-400' :
+                  'text-yellow-700 dark:text-yellow-400'
+                }`}>{honeypotCount}</p>
+                <p className="text-xs mt-0.5 text-gray-500 dark:text-gray-400">{t('dashboard.honeypotDesc')}</p>
+              </div>
+            </div>
+            <Link to="/assets" className={`text-sm font-medium hover:underline ${
+              honeypotCount >= 5 ? 'text-red-600 dark:text-red-400' :
+              honeypotCount >= 2 ? 'text-orange-600 dark:text-orange-400' :
+              'text-yellow-600 dark:text-yellow-400'
+            }`}>
+              {t('dashboard.alertView')} <ChevronRight className="w-4 h-4 inline" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Port Distribution + Severity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

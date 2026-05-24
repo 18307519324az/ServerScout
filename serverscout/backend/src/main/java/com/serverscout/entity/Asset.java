@@ -62,6 +62,15 @@ public class Asset {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "is_honeypot")
+    private Boolean isHoneypot;
+
+    @Column(name = "honeypot_type", length = 64)
+    private String honeypotType;
+
+    @Column(name = "honeypot_confidence", length = 16)
+    private String honeypotConfidence;
+
     @PrePersist
     protected void onCreate() {
         Instant now = Instant.now();
@@ -73,6 +82,7 @@ public class Asset {
         if (this.openPortCount == null) this.openPortCount = 0;
         if (this.criticalVulnCount == null) this.criticalVulnCount = 0;
         if (this.tags == null) this.tags = "[]";
+        if (this.isHoneypot == null) this.isHoneypot = false;
     }
 
     @PreUpdate

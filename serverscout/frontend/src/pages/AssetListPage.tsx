@@ -7,7 +7,7 @@ import { useToast } from '../hooks/useToast'
 import StatusBadge from '../components/StatusBadge'
 import Pagination from '../components/Pagination'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { Search, GitMerge, CheckSquare, Square, Trash2 } from 'lucide-react'
+import { Search, GitMerge, CheckSquare, Square, Trash2, AlertTriangle } from 'lucide-react'
 import dayjs from 'dayjs'
 
 export default function AssetListPage() {
@@ -106,7 +106,15 @@ export default function AssetListPage() {
                   <Link to={`/assets/${a.id}`} className="text-blue-600 dark:text-blue-400 font-medium font-mono">
                     {a.ipAddress}
                   </Link>
-                  <StatusBadge status={a.status} />
+                  <div className="flex items-center gap-1.5">
+                    {a.isHoneypot && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs rounded font-medium">
+                        <AlertTriangle className="w-3 h-3" />
+                        {t('assetDetail.suspectedHoneypot')}
+                      </span>
+                    )}
+                    <StatusBadge status={a.status} />
+                  </div>
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
                   <div className="flex justify-between"><span>{t('common.hostname')}</span><span className="dark:text-gray-300">{a.hostname || '-'}</span></div>
@@ -156,9 +164,17 @@ export default function AssetListPage() {
                       </button>
                     </td>
                     <td className="px-4 py-3">
-                      <Link to={`/assets/${a.id}`} className="text-blue-600 dark:text-blue-400 hover:underline font-medium font-mono">
-                        {a.ipAddress}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link to={`/assets/${a.id}`} className="text-blue-600 dark:text-blue-400 hover:underline font-medium font-mono">
+                          {a.ipAddress}
+                        </Link>
+                        {a.isHoneypot && (
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs rounded font-medium" title={a.honeypotType}>
+                            <AlertTriangle className="w-3 h-3" />
+                            {t('assetDetail.suspectedHoneypot')}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{a.hostname || '-'}</td>
                     <td className="px-4 py-3 text-xs text-gray-700 dark:text-gray-200">{a.osFingerprint || '-'}</td>
