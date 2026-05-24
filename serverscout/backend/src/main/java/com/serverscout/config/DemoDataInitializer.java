@@ -35,7 +35,6 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final CrawledUrlRepository crawledUrlRepository;
 
     @Override
-    @Transactional
     public void run(String... args) {
         // Seed crawled URLs regardless of existing asset data
         try {
@@ -56,6 +55,8 @@ public class DemoDataInitializer implements CommandLineRunner {
         }
 
         log.info("Seeding demo data with 12+ targets...");
+
+        try {
 
         createDemoUser("demo_user", "demo123", "演示用户", "MALE", "USER", "demo@serverscout.local");
         createDemoUser("security_ops", "ops123", "安全运营", "FEMALE", "USER", "secops@serverscout.local");
@@ -236,6 +237,10 @@ public class DemoDataInitializer implements CommandLineRunner {
 
         log.info("Demo data seeded: 12 assets, {} ports, {} crawled URLs",
                 portRepository.count(), crawledUrlRepository.count());
+
+        } catch (Exception e) {
+            log.warn("Demo data seeding failed: {} — app will start without demo data", e.getMessage());
+        }
     }
 
     private void createDemoUser(String username, String password, String name,

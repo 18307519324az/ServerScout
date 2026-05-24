@@ -6,9 +6,9 @@ spring:
     name: server-scout
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/serverscout?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:root}
+    url: jdbc:mysql://localhost:3306/serverscout?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: serverscout
+    password: 1A5089879282
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -35,7 +35,7 @@ spring:
 
 logging:
   level:
-    com.serverscout: ${LOG_LEVEL:DEBUG}
+    com.serverscout: ${LOG_LEVEL:INFO}
     org.springframework: WARN
 
 app:
@@ -49,9 +49,9 @@ app:
     default-timeout-seconds: ${SCAN_TIMEOUT:300}
     http-probe-timeout: ${HTTP_PROBE_TIMEOUT:3000}
   pdf:
-    font-path: ${PDF_FONT_PATH:C:/Windows/Fonts/msyh.ttc}
+    font-path: ${PDF_FONT_PATH:/usr/share/fonts/google-noto-cjk/NotoSansCJK-Regular.ttc}
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:5174}
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:8080}
   webhook:
     dingtalk: ${WEBHOOK_DINGTALK:}
     feishu: ${WEBHOOK_FEISHU:}

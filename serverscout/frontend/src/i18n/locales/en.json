@@ -83,7 +83,21 @@
     "errorEmail": "Please enter your email address",
     "errorEmailInvalid": "Please enter a valid email address",
     "errorEncrypt": "Encryption failed, please refresh",
-    "errorGeneral": "Operation failed"
+    "errorGeneral": "Operation failed",
+    "disclaimerTitle": "Disclaimer & License Terms",
+    "disclaimerSummary": "This software is a graduation project, intended for study, research, and authorized security testing only. Please read the full terms before use. Using the software constitutes acceptance.",
+    "disclaimerRead": "Read Full Disclaimer",
+    "disclaimerHide": "Collapse",
+    "disclaimerAgree": "I have read and agree to the above terms",
+    "disclaimerItem1": "This software (ServerScout) is a graduation project intended solely for study, research, and legally authorized security testing. Unauthorized network scanning, penetration testing, or any other activities that may violate laws or regulations are strictly prohibited.",
+    "disclaimerItem2": "Before scanning or testing any target, you must obtain explicit written authorization from the target organization/owner. Without valid authorization, you may not scan, probe, or detect vulnerabilities in any system, network, or application.",
+    "disclaimerItem3": "Asset information, port data, and vulnerability details obtained through this software are sensitive information belonging to the target organization. You must handle such information strictly within the authorized scope. Unauthorized external transmission, disclosure, sale, or any form of leakage is prohibited. Upon completion of testing, related data must be deleted or returned as required by the target organization.",
+    "disclaimerItem4": "You may not reverse engineer, decompile, tamper with authentication processes, or attempt to bypass security restrictions. Unless expressly permitted by applicable law, any modification or disruption of software integrity is prohibited. Secondary development or integration should comply with the project's applicable open-source license (if any).",
+    "disclaimerItem5": "You are solely responsible for all actions performed using this software. Any and all legal liability arising from violation of the above terms or illegal activity during use shall be borne solely by you, independent of the software developer and affiliated institutions. The developer reserves the right to cooperate with law enforcement investigations and provide necessary technical information.",
+    "disclaimerItem6": "This software is provided \"AS IS\" without any express or implied warranties, including but not limited to merchantability, fitness for a particular purpose, and non-infringement. The developer does not guarantee that the software will fully meet your requirements or operate without interruptions or errors. To the maximum extent permitted by law, the developer shall not be liable for any direct or indirect damages arising from the use or inability to use this software.",
+    "disclaimerItem7": "During local runtime, this software may log technical information such as operation time, scan targets, and execution results for debugging and usage auditing. This software does not actively collect or upload your personally identifiable information or system information. If deployed in a server environment, you are responsible for log security and compliance.",
+    "disclaimerItem8": "Downloading, installing, or using this software signifies that you have read, understood, and agree to be bound by this disclaimer and license terms. If you disagree with any of the above terms, please immediately cease use and delete this software and all copies.",
+    "disclaimerFinal": "The final interpretation of this statement belongs to the software developer."
   },
   "dashboard": {
     "title": "Dashboard",

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, Eye, EyeOff, RefreshCw, ChevronDown } from 'lucide-react'
+import { Shield, Eye, EyeOff, RefreshCw, ChevronDown, AlertTriangle, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { login, register, fetchCaptcha, fetchPublicKey } from '../services/api'
 import JSEncrypt from 'jsencrypt'
@@ -22,6 +22,8 @@ export default function LoginPage() {
   const [captchaQuestion, setCaptchaQuestion] = useState('')
   const [captchaAnswer, setCaptchaAnswer] = useState('')
   const [captchaLoading, setCaptchaLoading] = useState(false)
+
+  const [showDisclaimer, setShowDisclaimer] = useState(false)
 
   const navigate = useNavigate()
 
@@ -140,8 +142,64 @@ export default function LoginPage() {
   ]
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className={`bg-white p-8 rounded-2xl shadow-lg ${isRegister ? 'w-[440px]' : 'w-96'} transition-all`}>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
+      {/* Disclaimer Banner */}
+      <div className="w-full max-w-[440px] mb-6">
+        <div className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-900">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold">{t('login.disclaimerTitle')}</p>
+              <p className="mt-1 text-amber-800">{t('login.disclaimerSummary')}</p>
+              <button
+                onClick={() => setShowDisclaimer(!showDisclaimer)}
+                className="mt-2 text-amber-700 underline hover:text-amber-900 font-medium"
+              >
+                {showDisclaimer ? t('login.disclaimerHide') : t('login.disclaimerRead')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Disclaimer Modal */}
+      {showDisclaimer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+              <h2 className="text-lg font-bold text-gray-900">{t('login.disclaimerTitle')}</h2>
+              <button
+                onClick={() => setShowDisclaimer(false)}
+                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto px-6 py-4 text-sm text-gray-700 leading-relaxed space-y-3">
+              <p><strong>1.</strong> {t('login.disclaimerItem1')}</p>
+              <p><strong>2.</strong> {t('login.disclaimerItem2')}</p>
+              <p><strong>3.</strong> {t('login.disclaimerItem3')}</p>
+              <p><strong>4.</strong> {t('login.disclaimerItem4')}</p>
+              <p><strong>5.</strong> {t('login.disclaimerItem5')}</p>
+              <p><strong>6.</strong> {t('login.disclaimerItem6')}</p>
+              <p><strong>7.</strong> {t('login.disclaimerItem7')}</p>
+              <p><strong>8.</strong> {t('login.disclaimerItem8')}</p>
+              <p className="text-gray-400 text-xs mt-4 italic">{t('login.disclaimerFinal')}</p>
+            </div>
+            <div className="px-6 py-4 border-t bg-gray-50 rounded-b-2xl">
+              <button
+                onClick={() => setShowDisclaimer(false)}
+                className="w-full py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition"
+              >
+                {t('login.disclaimerAgree')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Login/Register Card */}
+      <div className={`bg-white p-6 sm:p-8 rounded-2xl shadow-lg w-full ${isRegister ? 'max-w-[440px]' : 'max-w-96'} transition-all`}>
         <div className="flex items-center justify-center gap-2 mb-6">
           <Shield className="w-8 h-8 text-blue-600" />
           <span className="text-2xl font-bold">{t('login.title')}</span>
@@ -292,6 +350,9 @@ export default function LoginPage() {
           )}
         </p>
       </div>
+
+      {/* Footer copyright */}
+      <p className="mt-6 text-xs text-gray-400">ServerScout v1.0 &copy; {new Date().getFullYear()}</p>
     </div>
   )
 }

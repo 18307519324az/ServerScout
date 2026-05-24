@@ -102,8 +102,8 @@ export default function ScanTaskListPage() {
       </div>
 
       {isLoading ? <div className="text-center py-20 text-gray-400 dark:text-gray-500">{t('common.loading')}</div> : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[800px]">
             <thead className="bg-gray-50 dark:bg-gray-700 text-left text-sm text-gray-500 dark:text-gray-400">
               <tr>
                 <th className="px-4 py-3">{t('scanTasks.scanName')}</th>
@@ -159,7 +159,7 @@ export default function ScanTaskListPage() {
       {/* Create Dialog */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center" onClick={() => setShowCreate(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-[500px]" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-[500px] mx-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-bold text-lg dark:text-white">新建扫描任务</h2>
               <button onClick={() => setShowCreate(false)}><X className="w-5 h-5 dark:text-gray-300" /></button>
@@ -200,7 +200,7 @@ export default function ScanTaskListPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1 dark:text-gray-300">扫描模板预设</label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { id: 'quick', label: 'Quick', desc: '主机发现', color: 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' },
                     { id: 'stealth', label: 'Stealth', desc: '隐匿扫描', color: 'border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300' },

@@ -71,7 +71,7 @@ export default function AssetListPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold dark:text-white">{t('assets.title')}</h1>
           <span className="text-sm text-gray-500 dark:text-gray-400">{t('assets.total').replace('{count}', String(totalElements))}</span>
@@ -90,7 +90,7 @@ export default function AssetListPage() {
           <div className="relative">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input placeholder={t('assets.searchPlaceholder')}
-              className="pl-9 pr-3 py-2 border dark:border-gray-600 rounded-lg w-64 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-gray-200"
+              className="pl-9 pr-3 py-2 border dark:border-gray-600 rounded-lg w-full sm:w-64 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-gray-200"
               value={keyword} onChange={e => { setKeyword(e.target.value); setPage(0) }} />
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function AssetListPage() {
             ))}
           </div>
 
-          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-700 text-left text-sm text-gray-500 dark:text-gray-400">
                 <tr>
