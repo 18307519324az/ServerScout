@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchAssets, mergeAssets, deleteAsset } from '../services/api'
 import { useToast } from '../hooks/useToast'
+import { useDebounce } from '../hooks/useDebounce'
 import StatusBadge from '../components/StatusBadge'
 import Pagination from '../components/Pagination'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -16,13 +17,14 @@ export default function AssetListPage() {
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
+  const debouncedKeyword = useDebounce(keyword, 350)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['assets', page, pageSize, keyword],
-    queryFn: () => fetchAssets({ page, size: pageSize, keyword: keyword || undefined }),
+    queryKey: ['assets', page, pageSize, debouncedKeyword],
+    queryFn: () => fetchAssets({ page, size: pageSize, keyword: debouncedKeyword || undefined }),
   })
 
   const mergeMutation = useMutation({

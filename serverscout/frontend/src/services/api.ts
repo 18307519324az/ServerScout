@@ -56,7 +56,7 @@ export const fetchPublicKey = () =>
   http.get<ApiResponse<{ publicKey: string }>>('/auth/public-key')
 
 export const fetchCaptcha = () =>
-  http.get<ApiResponse<{ captchaId: string; question: string }>>('/auth/captcha')
+  http.get<ApiResponse<{ captchaId: string; imageBase64: string }>>('/auth/captcha')
 
 // Users
 export const fetchCurrentUser = () =>

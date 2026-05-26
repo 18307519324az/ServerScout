@@ -6,6 +6,7 @@ import PluginSlot from '../components/PluginSlot'
 import { Server, ScanLine, Bug, Activity, Shield, AlertTriangle, ChevronRight, Globe, Network, FileText, ShieldAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import ReactEChartsCore from 'echarts-for-react'
+import echartsInstance from '../echarts'
 
 export default function DashboardPage() {
   const { t } = useTranslation()
@@ -188,7 +189,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border dark:border-gray-700 shadow-sm">
           <h3 className="font-semibold mb-3 dark:text-white">{t('dashboard.portDistTitle')}</h3>
-          <ReactEChartsCore option={{
+          <ReactEChartsCore echarts={echartsInstance} option={{
             tooltip: {},
             grid: { top: 10, right: 20, bottom: 30, left: 40 },
             xAxis: { type: 'category', data: stats.portDistribution.map((p: any) => p.port), axisLabel: { color: isDark ? '#9ca3af' : '#6b7280' } },
@@ -198,7 +199,7 @@ export default function DashboardPage() {
         </div>
         <div className="bg-white dark:bg-gray-800 p-5 rounded-xl border dark:border-gray-700 shadow-sm">
           <h3 className="font-semibold mb-3 dark:text-white">{t('dashboard.severityDistTitle')}</h3>
-          <ReactEChartsCore option={{
+          <ReactEChartsCore echarts={echartsInstance} option={{
             tooltip: { trigger: 'item' },
             series: [{
               type: 'pie', radius: ['45%', '75%'],
@@ -217,7 +218,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 bg-white dark:bg-gray-800 p-5 rounded-xl border dark:border-gray-700 shadow-sm">
           <h3 className="font-semibold mb-3 dark:text-white">{t('dashboard.trendTitle')}</h3>
           {stats.trend?.length > 0 ? (
-            <ReactEChartsCore option={{
+            <ReactEChartsCore echarts={echartsInstance} option={{
               tooltip: { trigger: 'axis' },
               legend: { data: [t('scanTasks.newAssets'), t('scanTasks.vulnsFound'), t('dashboard.fixedCount')], textStyle: { color: isDark ? '#d1d5db' : '#374151' } },
               grid: { top: 40, right: 20, bottom: 30, left: 40 },

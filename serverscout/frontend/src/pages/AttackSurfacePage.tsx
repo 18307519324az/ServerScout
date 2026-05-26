@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { fetchAttackSurface, fetchTechStack } from '../services/api'
 import { Shield, Server, Globe, Bug, Activity, Layers, Loader2 } from 'lucide-react'
 import ReactEChartsCore from 'echarts-for-react'
+import echartsInstance from '../echarts'
 
 export default function AttackSurfacePage() {
   const { t } = useTranslation()
@@ -44,7 +45,7 @@ export default function AttackSurfacePage() {
             <Loader2 className="w-6 h-6 animate-spin" />
           </div>
         ) : tree ? (
-          <ReactEChartsCore option={buildTreeOption(tree, isDark)} style={{ height: 550 }} />
+          <ReactEChartsCore echarts={echartsInstance} option={buildTreeOption(tree, isDark)} style={{ height: 550 }} />
         ) : (
           <div className="flex items-center justify-center h-[500px] text-gray-400 dark:text-gray-500">
             {t('attackSurface.noData')}
@@ -101,7 +102,7 @@ export default function AttackSurfacePage() {
             {t('attackSurface.techRadar')}
           </h3>
           {techStats ? (
-            <ReactEChartsCore option={buildRadarOption(techStats, isDark)} style={{ height: 380 }} />
+            <ReactEChartsCore echarts={echartsInstance} option={buildRadarOption(techStats, isDark)} style={{ height: 380 }} />
           ) : (
             <div className="flex items-center justify-center h-[380px] text-gray-400 dark:text-gray-500">
               {techLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : '暂无数据'}

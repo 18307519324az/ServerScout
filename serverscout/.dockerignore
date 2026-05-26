@@ -1,0 +1,16 @@
+**/node_modules
+**/target
+**/dist
+**/.git
+**/.gitignore
+**/.idea
+**/.vscode
+**/*.log
+**/.env
+**/.claude
+**/test-results
+**/.playwright-mcp
+*.md
+*.png
+*.jpg
+*.yml.snapshot

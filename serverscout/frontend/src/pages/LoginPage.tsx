@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
 
   const [captchaId, setCaptchaId] = useState('')
-  const [captchaQuestion, setCaptchaQuestion] = useState('')
+  const [captchaImage, setCaptchaImage] = useState('')
   const [captchaAnswer, setCaptchaAnswer] = useState('')
   const [captchaLoading, setCaptchaLoading] = useState(false)
 
@@ -32,7 +32,7 @@ export default function LoginPage() {
     try {
       const res = await fetchCaptcha()
       setCaptchaId(res.data.data.captchaId)
-      setCaptchaQuestion(res.data.data.question)
+      setCaptchaImage(res.data.data.imageBase64)
       setCaptchaAnswer('')
     } catch {
       // ignore
@@ -299,15 +299,14 @@ export default function LoginPage() {
                 type="button"
                 onClick={loadCaptcha}
                 disabled={captchaLoading}
-                className="flex items-center gap-1 px-3 py-2 bg-gray-100 rounded-lg text-sm font-mono font-bold text-gray-700 hover:bg-gray-200 whitespace-nowrap min-w-[100px]"
+                className="flex-shrink-0 overflow-hidden rounded-lg border border-gray-200 hover:border-blue-400 transition-colors h-[42px]"
               >
                 {captchaLoading ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <RefreshCw className="w-4 h-4 animate-spin m-3" />
+                ) : captchaImage ? (
+                  <img src={captchaImage} alt="CAPTCHA" className="h-full cursor-pointer" onClick={loadCaptcha} />
                 ) : (
-                  <>
-                    <span>{captchaQuestion || t('common.loading')}</span>
-                    <RefreshCw className="w-3.5 h-3.5 text-gray-400" />
-                  </>
+                  <RefreshCw className="w-4 h-4 animate-spin m-3" />
                 )}
               </button>
             </div>

@@ -39,6 +39,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/error-report").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/screenshot/file/**").permitAll()
                 .requestMatchers("/api/v1/scan-tasks/*/progress").permitAll()
                 .requestMatchers("/api/v1/users/me/**").authenticated()

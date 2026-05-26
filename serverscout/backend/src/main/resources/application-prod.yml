@@ -1,0 +1,21 @@
+# 生产环境配置 — 敏感值通过环境变量注入
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+
+logging:
+  level:
+    com.serverscout: ${LOG_LEVEL:INFO}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:8080}

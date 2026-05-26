@@ -57,6 +57,24 @@ app:
     feishu: ${WEBHOOK_FEISHU:}
     wecom: ${WEBHOOK_WECOM:}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ServerScout
+    version: 1.0.0
+    description: 服务器资产攻击面可视化分析平台
+
 springdoc:
   swagger-ui:
     path: /docs
