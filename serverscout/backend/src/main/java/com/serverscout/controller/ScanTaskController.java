@@ -22,7 +22,7 @@ public class ScanTaskController {
     private final ProgressEmitter progressEmitter;
 
     private String getUsername(Authentication auth) {
-        return auth != null ? auth.getName() : "anonymous";
+        return auth != null ? auth.getName() : null;
     }
 
     private boolean isAdmin(Authentication auth) {

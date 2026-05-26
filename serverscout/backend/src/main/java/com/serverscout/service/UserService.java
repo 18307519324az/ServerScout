@@ -37,11 +37,15 @@ public class UserService {
         if (userRepository.existsByUsername(username)) {
             throw new IllegalArgumentException("Username already exists: " + username);
         }
-        if (email == null || email.isBlank() || !email.matches("^[\\w.%+-]+@[\\w.-]+\\.[A-Za-z]{2,}$")) {
-            throw new IllegalArgumentException("Invalid email: " + email);
-        }
-        if (userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("Email already exists: " + email);
+        if (email == null || email.isBlank()) {
+            email = username + "@placeholder.local";
+        } else {
+            if (!email.matches("^[\\w.%+-]+@[\\w.-]+\\.[A-Za-z]{2,}$")) {
+                throw new IllegalArgumentException("Invalid email: " + email);
+            }
+            if (userRepository.existsByEmail(email)) {
+                throw new IllegalArgumentException("Email already exists: " + email);
+            }
         }
         User user = User.builder()
                 .username(username)

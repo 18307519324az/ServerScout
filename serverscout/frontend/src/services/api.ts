@@ -6,11 +6,28 @@ import type {
   HoneypotStats, HoneypotDetectionInfo,
 } from '../types'
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp ? Date.now() >= payload.exp * 1000 : false
+  } catch {
+    return true
+  }
+}
+
 const http = axios.create({ baseURL: '/api', timeout: 30000 })
 
 http.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
+  if (token) {
+    if (isTokenExpired(token)) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('role')
+      window.location.href = '/login'
+      return Promise.reject(new Error('Token expired'))
+    }
+    config.headers.Authorization = `Bearer ${token}`
+  }
   return config
 })
 

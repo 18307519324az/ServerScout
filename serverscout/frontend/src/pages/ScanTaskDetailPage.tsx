@@ -184,6 +184,18 @@ export default function ScanTaskDetailPage() {
         </div>
       </div>
 
+      {/* Error message display for failed tasks */}
+      {task.status === 'failed' && task.errorMessage && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-red-300 dark:border-red-700 shadow-sm p-5 mb-6">
+          <h3 className="font-semibold mb-2 text-red-600 dark:text-red-400 flex items-center gap-2">
+            <span className="text-lg">⚠</span> 扫描失败原因
+          </h3>
+          <p className="text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 p-3 rounded-lg font-mono whitespace-pre-wrap">
+            {task.errorMessage}
+          </p>
+        </div>
+      )}
+
       {/* Shannon-style Pipeline Visualization */}
       {isRunning && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-5 mb-6">

@@ -15,6 +15,9 @@ public class ScanTaskResponse {
     private Integer progress;
     private Integer totalAssets;
     private Integer totalPorts;
+    private Boolean enableFingerprint;
+    private Boolean enableVulnScan;
+    private Boolean enableCrawler;
     private Instant startedAt;
     private Instant completedAt;
     private Instant createdAt;

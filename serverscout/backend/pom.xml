@@ -153,6 +153,10 @@
                 <directory>../frontend/dist</directory>
                 <targetPath>static</targetPath>
             </resource>
+            <resource>
+                <directory>scripts</directory>
+                <targetPath>scripts</targetPath>
+            </resource>
         </resources>
         <plugins>
             <plugin>

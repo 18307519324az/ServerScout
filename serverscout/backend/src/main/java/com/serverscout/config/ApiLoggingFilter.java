@@ -70,8 +70,10 @@ public class ApiLoggingFilter extends OncePerRequestFilter {
     }
 
     private boolean shouldLog(String method, int status) {
-        // Log all non-GET requests, and any error responses
+        // Log all non-GET requests, and error responses from authenticated users only
         if (!"GET".equalsIgnoreCase(method)) return true;
+        // Skip GET auth errors (401/403) — these are stale/expired tokens, not real operations
+        if (status == 401 || status == 403) return false;
         return status >= 400;
     }
 }

@@ -3,8 +3,11 @@
  * Called by ScreenshotService.java via ProcessBuilder.
  * Usage: node screenshot.mjs <url> <width> <height> [output.png]
  * Outputs base64-encoded PNG to stdout, or saves to file if path provided.
+ * Uses createRequire to support NODE_PATH for global playwright installs.
  */
-import { chromium } from 'playwright';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { chromium } = require('playwright');
 
 const url = process.argv[2];
 const width = parseInt(process.argv[3]) || 1280;
@@ -20,6 +23,7 @@ let browser;
 try {
   browser = await chromium.launch({
     headless: true,
+    executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || process.env.CHROMIUM_PATH || undefined,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu']
   });
 
@@ -30,13 +34,11 @@ try {
 
   const page = await context.newPage();
 
-  // Navigate with timeout
   await page.goto(url, {
     waitUntil: 'networkidle',
     timeout: 25000
   });
 
-  // Extra wait for dynamic content
   await page.waitForTimeout(1500);
 
   if (outputFile) {

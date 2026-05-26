@@ -172,7 +172,7 @@ public class HttpProbeService {
             );
 
         } catch (Exception e) {
-            log.debug("HTTP probe failed for {}:{} - {}", ip, portNum, e.getMessage());
+            log.warn("HTTP probe failed for {}:{} - {}", ip, portNum, e.getMessage());
             return null;
         }
     }
@@ -443,7 +443,7 @@ public class HttpProbeService {
                 return String.valueOf(murmurHash32(b64.getBytes(StandardCharsets.UTF_8)));
             }
         } catch (Exception e) {
-            log.debug("Favicon fetch failed for {}:{} - {}", ip, portNum, e.getMessage());
+            log.warn("Favicon fetch failed for {}:{} - {}", ip, portNum, e.getMessage());
         }
         return null;
     }

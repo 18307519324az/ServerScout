@@ -12,6 +12,8 @@ import java.util.Base64;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.core.io.ClassPathResource;
+
 @Slf4j
 @Service
 public class ScreenshotService {
@@ -27,20 +29,30 @@ public class ScreenshotService {
             log.warn("Could not create screenshot dir: {}", e.getMessage());
         }
 
-        // Resolve the Playwright script relative to the working directory
-        Path resolved = Paths.get("scripts", "screenshot.mjs").toAbsolutePath();
-        if (Files.exists(resolved)) {
-            this.scriptPath = resolved;
-            log.info("Screenshot script found: {}", resolved);
-        } else {
-            // Try relative to backend module
-            resolved = Paths.get("backend", "scripts", "screenshot.mjs").toAbsolutePath();
-            if (Files.exists(resolved)) {
-                this.scriptPath = resolved;
-            } else {
-                this.scriptPath = null;
-                log.warn("Screenshot script not found, falling back to legacy tools");
+        // Resolve the Playwright script: always extract from classpath to ensure latest version
+        Path resolved = null;
+        try (InputStream is = new ClassPathResource("scripts/screenshot.mjs").getInputStream()) {
+            Files.createDirectories(Paths.get("scripts"));
+            Files.copy(is, Paths.get("scripts", "screenshot.mjs"),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            resolved = Paths.get("scripts", "screenshot.mjs").toAbsolutePath();
+            log.info("Screenshot script extracted from classpath to: {}", resolved);
+        } catch (IOException e) {
+            // Try filesystem fallback
+            resolved = Paths.get("scripts", "screenshot.mjs").toAbsolutePath();
+            if (!Files.exists(resolved)) {
+                resolved = Paths.get("backend", "scripts", "screenshot.mjs").toAbsolutePath();
             }
+            if (!Files.exists(resolved)) {
+                resolved = null;
+            }
+            log.warn("Screenshot: using fallback path: {} (classpath error: {})", resolved, e.getMessage());
+        }
+        this.scriptPath = resolved != null && Files.exists(resolved) ? resolved : null;
+        if (this.scriptPath != null) {
+            log.info("Screenshot script found: {}", this.scriptPath);
+        } else {
+            log.warn("Screenshot script not found, falling back to legacy tools");
         }
     }
 
@@ -109,15 +121,33 @@ public class ScreenshotService {
      */
     private String captureWithPlaywright(String url, int width, int height) {
         if (!isNodeAvailable()) {
-            log.debug("Node.js not available");
+            log.warn("Screenshot: Node.js not available (which node failed)");
             return null;
         }
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
-                    "node", scriptPath.toString(), url,
+                    nodeCommand,
+                    "--experimental-specifier-resolution=node",
+                    scriptPath.toString(), url,
                     String.valueOf(width), String.valueOf(height));
             pb.redirectErrorStream(false);
+            // Ensure node can find globally installed modules (playwright)
+            String nodePath = System.getenv("NODE_PATH");
+            if (nodePath == null || nodePath.isBlank()) {
+                // Fallback to common global node_modules paths
+                for (String p : new String[]{"/usr/lib/node_modules", "/usr/local/lib/node_modules"}) {
+                    if (Files.exists(Paths.get(p, "playwright"))) { nodePath = p; break; }
+                }
+            }
+            if (nodePath != null && !nodePath.isBlank()) {
+                pb.environment().put("NODE_PATH", nodePath);
+            }
+            String chromiumPath = System.getenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH");
+            if (chromiumPath == null || chromiumPath.isBlank()) {
+                chromiumPath = "/usr/lib64/chromium-browser/headless_shell";
+            }
+            pb.environment().put("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH", chromiumPath);
 
             Process process = pb.start();
             ByteArrayOutputStream stdout = new ByteArrayOutputStream();
@@ -138,8 +168,8 @@ public class ScreenshotService {
 
             if (process.exitValue() != 0) {
                 String errMsg = stderr.toString().trim();
-                log.debug("Playwright exited with {}: {}", process.exitValue(),
-                        errMsg.length() > 200 ? errMsg.substring(0, 200) : errMsg);
+                log.warn("Playwright exited with {}: {}", process.exitValue(),
+                        errMsg.length() > 300 ? errMsg.substring(0, 300) : errMsg);
                 return null;
             }
 
@@ -158,17 +188,28 @@ public class ScreenshotService {
     }
 
     private boolean isNodeAvailable() {
-        try {
-            boolean isWin = System.getProperty("os.name", "").toLowerCase().contains("win");
-            String[] cmd = isWin ? new String[]{"where", "node"} : new String[]{"which", "node"};
-            ProcessBuilder pb = new ProcessBuilder(cmd);
-            pb.redirectErrorStream(true);
-            Process p = pb.start();
-            return p.waitFor(5, TimeUnit.SECONDS) && p.exitValue() == 0;
-        } catch (Exception e) {
-            return false;
+        // Try which/node first, then direct paths
+        String[] nodePaths = {"node", "/usr/bin/node", "/usr/local/bin/node", "/bin/node"};
+        for (String nodePath : nodePaths) {
+            try {
+                ProcessBuilder pb = new ProcessBuilder(nodePath, "--version");
+                pb.redirectErrorStream(true);
+                Process p = pb.start();
+                if (p.waitFor(5, TimeUnit.SECONDS) && p.exitValue() == 0) {
+                    // Found working node — if it's a custom path, set it for later use
+                    if (!"node".equals(nodePath)) {
+                        this.nodeCommand = nodePath;
+                    }
+                    return true;
+                }
+            } catch (Exception e) {
+                // try next
+            }
         }
+        return false;
     }
+
+    private String nodeCommand = "node";
 
     private String tryCapture(String tool, String... args) {
         if (!isToolAvailable(tool)) return null;

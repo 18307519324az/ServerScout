@@ -50,6 +50,9 @@ public class ScanStrategyPlugin {
     @Builder.Default
     private Instant updatedAt = Instant.now();
 
+    @Column(name = "created_by", length = 64)
+    private String createdBy;
+
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = Instant.now();

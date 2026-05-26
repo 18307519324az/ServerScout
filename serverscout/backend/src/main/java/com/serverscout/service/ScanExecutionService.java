@@ -384,13 +384,18 @@ public class ScanExecutionService {
     private void probeWebServices(ScanTask task) {
         List<ScanAssetMapping> mappings = scanAssetMappingRepository.findByScanTaskIdWithAsset(task.getId());
         List<Asset> assets = mappings.stream().map(ScanAssetMapping::getAsset).distinct().collect(Collectors.toList());
+        log.info("Task {}: probeWebServices found {} mappings → {} assets", task.getId(), mappings.size(), assets.size());
         if (assets.size() > 50) { assets = assets.subList(0, 50); }
 
         int probed = 0;
+        int webPortCount = 0;
         for (Asset asset : assets) {
             String ip = asset.getIpAddress();
-            for (Port port : portRepository.findByAssetId(asset.getId())) {
+            List<Port> ports = portRepository.findByAssetId(asset.getId());
+            log.info("Task {}: asset {} (id={}) has {} ports", task.getId(), ip, asset.getId(), ports.size());
+            for (Port port : ports) {
                 if (Boolean.TRUE.equals(port.getIsWebService())) {
+                    webPortCount++;
                     try {
                         HttpProbeService.ProbeResult pr = httpProbeService.probePort(ip, port);
                         if (pr != null) {
@@ -414,11 +419,12 @@ public class ScanExecutionService {
                                 log.debug("Auto-screenshot failed for {}:{}: {}", ip, port.getPortNumber(), e.getMessage());
                             }
                         }
-                    } catch (Exception e) { log.debug("HTTP probe error: {}", e.getMessage()); }
+                    } catch (Exception e) { log.warn("HTTP probe error: {}", e.getMessage()); }
                 }
             }
         }
-        log.info("Task {}: HTTP probed {} web services", task.getId(), probed);
+        log.info("Task {}: HTTP probed {} web services ({} web ports flagged out of {} total)",
+                task.getId(), probed, webPortCount, mappings.size());
     }
 
     private void collectSslCerts(ScanTask task) {

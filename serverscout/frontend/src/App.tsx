@@ -71,10 +71,31 @@ class ErrorBoundary extends Component<{ children: React.ReactNode }, { hasError:
   }
 }
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    // exp is in seconds since epoch
+    return payload.exp ? Date.now() >= payload.exp * 1000 : false
+  } catch {
+    return true // invalid token → treat as expired
+  }
+}
+
+function getStoredToken(): string | null {
+  const token = localStorage.getItem('token')
+  if (!token) return null
+  if (isTokenExpired(token)) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('role')
+    return null
+  }
+  return token
+}
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const [isAuth, setIsAuth] = useState(!!localStorage.getItem('token'))
+  const [isAuth, setIsAuth] = useState(() => !!getStoredToken())
   useEffect(() => {
-    const check = () => setIsAuth(!!localStorage.getItem('token'))
+    const check = () => setIsAuth(!!getStoredToken())
     window.addEventListener('storage', check)
     return () => window.removeEventListener('storage', check)
   }, [])

@@ -45,33 +45,52 @@ public class NmapScannerImpl implements ScannerStrategy {
     public ScanResult execute(ScanTask task) {
         try {
             List<String> command = buildCommand(task);
-            log.info("Executing Nmap: {}", String.join(" ", command));
-
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-            processRegistry.register(task.getId(), process);
-
-            StringBuilder output = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    output.append(line).append("\n");
-                }
-            }
-
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                throw new ScanException("Nmap exited with code: " + exitCode);
-            }
-
-            return parseXmlOutput(output.toString());
+            return executeCommand(command, task.getId());
 
         } catch (IOException | InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ScanException("Nmap execution failed", e);
         }
+    }
+
+    private ScanResult executeCommand(List<String> command, Long taskId) throws IOException, InterruptedException {
+        log.info("Executing Nmap: {}", String.join(" ", command));
+
+        ProcessBuilder pb = new ProcessBuilder(command);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        processRegistry.register(taskId, process);
+
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+        }
+
+        int exitCode = process.waitFor();
+
+        if (exitCode != 0) {
+            // SYN scan (-sS) and OS detection (-O) both require root/cap_net_raw.
+            // Fall back to TCP connect scan (-sT) and remove -O for non-root environments.
+            if (command.contains("-sS") || command.contains("-O")) {
+                log.warn("Nmap exited with code {} — retrying with TCP connect scan (-sT) without OS detection", exitCode);
+                List<String> retryCmd = new ArrayList<>(command);
+                for (int i = 0; i < retryCmd.size(); i++) {
+                    String arg = retryCmd.get(i);
+                    if ("-sS".equals(arg)) {
+                        retryCmd.set(i, "-sT");
+                    }
+                }
+                retryCmd.removeIf(arg -> "-O".equals(arg));
+                return executeCommand(retryCmd, taskId);
+            }
+            throw new ScanException("Nmap exited with code: " + exitCode);
+        }
+
+        return parseXmlOutput(output.toString());
     }
 
     private List<String> buildCommand(ScanTask task) {
@@ -88,6 +107,8 @@ public class NmapScannerImpl implements ScannerStrategy {
                 cmd.add("--version-intensity"); cmd.add("3");
                 cmd.add("--script"); cmd.add("banner");
                 cmd.add("--script-timeout"); cmd.add("30s");
+                cmd.add("--min-rate"); cmd.add("500");
+                cmd.add("--max-retries"); cmd.add("2");
             }
             case "full" -> {
                 cmd.add("-sS");
@@ -96,6 +117,8 @@ public class NmapScannerImpl implements ScannerStrategy {
                 cmd.add("--version-intensity"); cmd.add("7");
                 cmd.add("--script"); cmd.add("banner,http-title,ssl-cert,ssl-enum-ciphers");
                 cmd.add("--script-timeout"); cmd.add("60s");
+                cmd.add("--min-rate"); cmd.add("300");
+                cmd.add("--max-retries"); cmd.add("2");
             }
         }
 

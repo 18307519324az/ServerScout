@@ -1,7 +1,6 @@
 package com.serverscout.service;
 
 import com.serverscout.entity.*;
-import com.serverscout.repository.HoneypotDetectionRepository;
 import com.serverscout.repository.*;
 import com.serverscout.util.ResourceNotFoundException;
 import com.itextpdf.io.font.PdfEncodings;
@@ -51,7 +50,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -63,6 +66,9 @@ public class ReportService {
     private final PortRepository portRepository;
     private final AssetVulnerabilityRepository vulnRepository;
     private final HoneypotDetectionRepository honeypotDetectionRepository;
+    private final ScanAssetMappingRepository scanAssetMappingRepository;
+    private final WebFingerprintRepository webFingerprintRepository;
+    private final SslCertificateRepository sslCertificateRepository;
 
     @Value("${app.pdf.font-path:C:/Windows/Fonts/msyh.ttc}")
     private String fontPath;
@@ -80,6 +86,27 @@ public class ReportService {
     private static final DeviceRgb COLOR_HIGH = new DeviceRgb(234, 88, 12);
     private static final DeviceRgb COLOR_MEDIUM = new DeviceRgb(202, 138, 4);
     private static final DeviceRgb COLOR_LOW = new DeviceRgb(37, 99, 235);
+
+    /**
+     * Get all assets associated with a scan task, combining both linkages:
+     * 1. asset.task_id (set on first discovery, used by demo data)
+     * 2. scan_asset_mapping (set on every scan, used by re-scans)
+     */
+    private List<Asset> getTaskAssets(Long taskId) {
+        List<Asset> assets = new ArrayList<>(assetRepository.findByTaskId(taskId));
+        Set<Long> seen = new HashSet<>();
+        for (Asset a : assets) seen.add(a.getId());
+        for (ScanAssetMapping m : scanAssetMappingRepository.findByScanTaskIdWithAsset(taskId)) {
+            if (seen.add(m.getAsset().getId())) {
+                assets.add(m.getAsset());
+            }
+        }
+        // Fallback: if no assets found via task linkage, include all assets in system
+        if (assets.isEmpty()) {
+            assets = assetRepository.findAll();
+        }
+        return assets;
+    }
     private static final DeviceRgb COLOR_WHITE = new DeviceRgb(255, 255, 255);
 
     // ═══════════════ PDF Report ═══════════════
@@ -93,6 +120,7 @@ public class ReportService {
             "C:/Windows/Fonts/simsun.ttc",
             "C:/Windows/Fonts/NotoSansSC-VF.ttf",
             "/System/Library/Fonts/PingFang.ttc",
+            "/usr/share/fonts/wqy-microhei/wqy-microhei.ttc",
             "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
             "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
             "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
@@ -140,7 +168,7 @@ public class ReportService {
 
             ScanTask task = scanTaskRepository.findById(taskId)
                     .orElseThrow(() -> new ResourceNotFoundException("ScanTask", taskId));
-            List<Asset> assets = assetRepository.findByTaskId(taskId);
+            List<Asset> assets = getTaskAssets(taskId);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             PdfWriter writer = new PdfWriter(baos);
@@ -267,13 +295,103 @@ public class ReportService {
                 doc.add(cPara(" ").setHeight(8));
             }
 
-            // ═══ Section 4: Vulnerability Details ═══
+            // ═══ Section 4: Web Fingerprint ═══
+            int totalFingerprints = 0;
+            List<String> fpLines = new ArrayList<>();
+            for (Asset a : assets) {
+                for (Port p : portRepository.findByAssetId(a.getId())) {
+                    var wfOpt = webFingerprintRepository.findByPortId(p.getId());
+                    if (wfOpt.isPresent()) {
+                        totalFingerprints++;
+                        var wf = wfOpt.get();
+                        String fwCms = "";
+                        if (wf.getFrameworkName() != null) fwCms = wf.getFrameworkName();
+                        if (wf.getCmsName() != null) fwCms += (fwCms.isEmpty() ? "" : "/") + wf.getCmsName();
+                        fpLines.add(a.getIpAddress() + ":" + p.getPortNumber() + "|"
+                                + (wf.getServerHeader() != null ? wf.getServerHeader() : "-") + "|"
+                                + (!fwCms.isEmpty() ? fwCms : "-") + "|"
+                                + (wf.getTechStack() != null ? wf.getTechStack() : "-") + "|"
+                                + (wf.getWafName() != null ? wf.getWafName() : "-") + "|"
+                                + (wf.getTitle() != null ? wf.getTitle() : "-"));
+                    }
+                }
+            }
+            if (totalFingerprints > 0) {
+                doc.add(cPara("四、Web 服务指纹").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(cPara("HTTP/HTTPS 探测结果，展示每个 Web 服务的服务器类型、框架、CMS 和技术栈信息。")
+                        .setFontSize(8).setFontColor(COLOR_GRAY));
+                doc.add(cPara(" ").setHeight(4));
+
+                Table fpTable = new Table(UnitValue.createPercentArray(
+                        new float[]{2.5f, 2, 2, 2, 2.5f, 1.2f})).useAllAvailableWidth();
+                pdfHeaderRow(fpTable, "IP:端口", "服务器", "框架/CMS", "技术栈", "WAF", "标题");
+
+                boolean alt = false;
+                for (String line : fpLines) {
+                    String[] cols = line.split("\\|", -1);
+                    DeviceRgb bg = alt ? COLOR_LIGHT_BG : COLOR_WHITE;
+                    for (int i = 0; i < 6 && i < cols.length; i++) {
+                        String val = cols[i];
+                        if (val.length() > 30) val = val.substring(0, 30);
+                        pdfCell(fpTable, val, bg);
+                    }
+                    alt = !alt;
+                }
+                doc.add(fpTable);
+                doc.add(cPara(String.format("（共 %d 条 Web 指纹记录）", totalFingerprints))
+                        .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.RIGHT));
+                doc.add(cPara(" ").setHeight(8));
+            }
+
+            // ═══ Section 4.5: SSL Certificates ═══
+            int totalCerts = 0;
+            for (Asset a : assets) {
+                for (Port p : portRepository.findByAssetId(a.getId())) {
+                    if (sslCertificateRepository.findByPortId(p.getId()).isPresent()) totalCerts++;
+                }
+            }
+            if (totalCerts > 0) {
+                doc.add(cPara("五、SSL 证书信息").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(cPara(" ").setHeight(4));
+                Table certTable = new Table(UnitValue.createPercentArray(
+                        new float[]{2, 1, 2.5f, 2.5f, 1.5f, 1.5f})).useAllAvailableWidth();
+                pdfHeaderRow(certTable, "IP:端口", "端口", "Subject", "Issuer", "有效期自", "有效期至");
+                boolean alt = false;
+                for (Asset a : assets) {
+                    for (Port p : portRepository.findByAssetId(a.getId())) {
+                        var certOpt = sslCertificateRepository.findByPortId(p.getId());
+                        if (certOpt.isPresent()) {
+                            SslCertificate cert = certOpt.get();
+                            DeviceRgb bg = alt ? COLOR_LIGHT_BG : COLOR_WHITE;
+                            pdfCell(certTable, a.getIpAddress() + ":" + p.getPortNumber(), bg);
+                            pdfCell(certTable, String.valueOf(p.getPortNumber()), bg);
+                            pdfCell(certTable, cert.getSubject() != null ? cert.getSubject() : "-", bg);
+                            pdfCell(certTable, cert.getIssuer() != null ? cert.getIssuer() : "-", bg);
+                            pdfCell(certTable, cert.getNotBefore() != null ? cert.getNotBefore().toString() : "-", bg);
+                            pdfCell(certTable, cert.getNotAfter() != null ? cert.getNotAfter().toString() : "-", bg);
+                            alt = !alt;
+                        }
+                    }
+                }
+                doc.add(certTable);
+                doc.add(cPara(String.format("（共 %d 条 SSL 证书）", totalCerts))
+                        .setFontSize(7).setFontColor(COLOR_GRAY).setTextAlignment(TextAlignment.RIGHT));
+                doc.add(cPara(" ").setHeight(8));
+            }
+
+            int sec = 4;
+            if (totalFingerprints > 0) sec++;
+            if (totalCerts > 0) sec++;
+            String vulnTitle = numToChinese(sec) + "、漏洞详情";
+            String hpTitle = numToChinese(sec + 1) + "、蜜罐检测结果";
+
+            // ═══ Section N: Vulnerability Details ═══
             int totalVulns = 0;
             for (Asset a : assets) {
                 totalVulns += vulnRepository.findByAssetIdWithCve(a.getId()).size();
             }
             if (totalVulns > 0) {
-                doc.add(cPara("四、漏洞详情").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(cPara(vulnTitle).setFontSize(15).setBold().setFontColor(COLOR_DARK));
                 doc.add(cPara("列出通过 CVE 匹配和 Nuclei 扫描发现的漏洞。"
                         + "\"CVSS 评分\"为通用漏洞评分系统得分（0-10，越高越严重），"
                         + "\"受影响软件\"列可用于定位需修复的系统组件。")
@@ -338,13 +456,13 @@ public class ReportService {
                 doc.add(cPara("（本次扫描未发现漏洞）").setFontSize(9).setFontColor(COLOR_GRAY));
             }
 
-            // ═══ Section 5: Honeypot Detection ═══
+            // ═══ Section N+1: Honeypot Detection ═══
             int totalHoneypots = 0;
             for (Asset a : assets) {
                 totalHoneypots += honeypotDetectionRepository.findByAssetId(a.getId()).size();
             }
             if (totalHoneypots > 0) {
-                doc.add(cPara("五、蜜罐检测结果").setFontSize(15).setBold().setFontColor(COLOR_DARK));
+                doc.add(cPara(hpTitle).setFontSize(15).setBold().setFontColor(COLOR_DARK));
                 doc.add(cPara("以下列出通过服务指纹规则检测到的疑似蜜罐资产。"
                         + "蜜罐是安全研究人员或攻击者部署的诱捕系统，资产若被识别为蜜罐，"
                         + "表明该目标可能为陷阱系统，需谨慎对待。")
@@ -400,7 +518,7 @@ public class ReportService {
         try {
             ScanTask task = scanTaskRepository.findById(taskId)
                     .orElseThrow(() -> new ResourceNotFoundException("ScanTask", taskId));
-            List<Asset> assets = assetRepository.findByTaskId(taskId);
+            List<Asset> assets = getTaskAssets(taskId);
 
             Workbook wb = new XSSFWorkbook();
 
@@ -495,7 +613,66 @@ public class ReportService {
             }
             freezeAndFilter(portSheet, pCols.length);
 
-            // Sheet 4: Vulnerabilities
+            // Sheet 4: Web Fingerprint
+            Sheet fpSheet = wb.createSheet("Web指纹");
+            String[] fpCols = {"IP:端口", "HTTP状态", "服务器", "标题", "框架", "CMS", "CMS版本", "技术栈", "WAF", "响应摘要"};
+            int[] fpWidths = {4500, 2500, 4500, 6000, 4000, 4000, 3000, 8000, 3500, 8000};
+            createSheetHeader(fpSheet, fpCols, fpWidths, headerStyle, wb);
+            int fpr = 1;
+            for (Asset a : assets) {
+                for (Port p : portRepository.findByAssetId(a.getId())) {
+                    var wfOpt = webFingerprintRepository.findByPortId(p.getId());
+                    if (wfOpt.isPresent()) {
+                        var wf = wfOpt.get();
+                        Row row = fpSheet.createRow(fpr++);
+                        fillRow(row, new String[]{
+                                a.getIpAddress() + ":" + p.getPortNumber(),
+                                wf.getHttpStatus() != null ? String.valueOf(wf.getHttpStatus()) : "",
+                                wf.getServerHeader() != null ? wf.getServerHeader() : "",
+                                wf.getTitle() != null ? wf.getTitle() : "",
+                                wf.getFrameworkName() != null ? wf.getFrameworkName() : "",
+                                wf.getCmsName() != null ? wf.getCmsName() : "",
+                                wf.getCmsVersion() != null ? wf.getCmsVersion() : "",
+                                wf.getTechStack() != null ? wf.getTechStack() : "",
+                                wf.getWafName() != null ? wf.getWafName() : "",
+                                wf.getResponseSummary() != null ? wf.getResponseSummary() : "",
+                        }, altRowStyle, fpr);
+                    }
+                }
+            }
+            freezeAndFilter(fpSheet, fpCols.length);
+
+            // Sheet 5: SSL Certificates
+            Sheet certSheet = wb.createSheet("SSL证书");
+            String[] certCols = {"IP:端口", "Subject", "Issuer", "有效期自", "有效期至", "序列号", "SHA256指纹", "SAN", "签名算法", "密钥长度", "是否过期"};
+            int[] certWidths = {4500, 10000, 10000, 5000, 5000, 5000, 10000, 8000, 4000, 3000, 3000};
+            createSheetHeader(certSheet, certCols, certWidths, headerStyle, wb);
+            int certR = 1;
+            for (Asset a : assets) {
+                for (Port p : portRepository.findByAssetId(a.getId())) {
+                    var certOpt = sslCertificateRepository.findByPortId(p.getId());
+                    if (certOpt.isPresent()) {
+                        SslCertificate cert = certOpt.get();
+                        Row row = certSheet.createRow(certR++);
+                        fillRow(row, new String[]{
+                                a.getIpAddress() + ":" + p.getPortNumber(),
+                                cert.getSubject() != null ? cert.getSubject() : "",
+                                cert.getIssuer() != null ? cert.getIssuer() : "",
+                                cert.getNotBefore() != null ? cert.getNotBefore().toString() : "",
+                                cert.getNotAfter() != null ? cert.getNotAfter().toString() : "",
+                                cert.getSerialNumber() != null ? cert.getSerialNumber() : "",
+                                cert.getFingerprintSha256() != null ? cert.getFingerprintSha256() : "",
+                                cert.getSan() != null ? cert.getSan() : "",
+                                cert.getSigAlg() != null ? cert.getSigAlg() : "",
+                                cert.getKeySize() != null ? String.valueOf(cert.getKeySize()) : "",
+                                Boolean.TRUE.equals(cert.getIsExpired()) ? "是" : "否",
+                        }, altRowStyle, certR);
+                    }
+                }
+            }
+            freezeAndFilter(certSheet, certCols.length);
+
+            // Sheet 6: Vulnerabilities
             Sheet vSheet = wb.createSheet("漏洞详情");
             String[] vCols = {"CVE编号", "严重等级", "CVSS评分", "描述", "受影响软件", "受影响版本", "修复建议", "状态", "发现时间"};
             int[] vWidths = {4500, 3000, 3000, 8000, 6000, 4000, 8000, 2500, 5000};
@@ -720,6 +897,14 @@ public class ReportService {
         card.add(cPara(value).setFontSize(18).setBold()
                 .setFontColor(accent).setTextAlignment(TextAlignment.CENTER));
         table.addCell(card);
+    }
+
+    private static final String[] CN_NUM = {"零","一","二","三","四","五","六","七","八","九","十"};
+
+    private String numToChinese(int n) {
+        if (n <= 10) return CN_NUM[n];
+        if (n < 20) return "十" + CN_NUM[n % 10];
+        return String.valueOf(n);
     }
 
     private LineSeparator dividerLine() {

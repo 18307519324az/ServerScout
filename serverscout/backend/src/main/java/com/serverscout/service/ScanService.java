@@ -118,6 +118,9 @@ public class ScanService {
                 .portRange(task.getPortRange())
                 .status(task.getStatus()).progress(task.getProgress())
                 .totalAssets(task.getTotalAssets()).totalPorts(task.getTotalPorts())
+                .enableFingerprint(task.getEnableFingerprint())
+                .enableVulnScan(task.getEnableVulnScan())
+                .enableCrawler(task.getEnableCrawler())
                 .startedAt(task.getStartedAt()).completedAt(task.getCompletedAt())
                 .createdAt(task.getCreatedAt()).build();
     }
@@ -164,6 +167,9 @@ public class ScanService {
                 .portRange(task.getPortRange())
                 .status(task.getStatus()).progress(task.getProgress())
                 .totalAssets(task.getTotalAssets()).totalPorts(task.getTotalPorts())
+                .enableFingerprint(task.getEnableFingerprint())
+                .enableVulnScan(task.getEnableVulnScan())
+                .enableCrawler(task.getEnableCrawler())
                 .startedAt(task.getStartedAt()).completedAt(task.getCompletedAt())
                 .createdAt(task.getCreatedAt()).errorMessage(task.getErrorMessage())
                 .summary(summary).build();

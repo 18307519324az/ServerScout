@@ -35,6 +35,7 @@ public class DemoDataInitializer implements CommandLineRunner {
     private final CrawledUrlRepository crawledUrlRepository;
 
     @Override
+    @Transactional
     public void run(String... args) {
         // Seed crawled URLs regardless of existing asset data
         try {
@@ -50,7 +51,7 @@ public class DemoDataInitializer implements CommandLineRunner {
         }
 
         if (assetRepository.count() >= 5) {
-            log.info("Demo data: {} assets exist, skipping asset seed", assetRepository.count());
+            log.info("Demo data: {} assets exist, skipping seed", assetRepository.count());
             return;
         }
 
@@ -61,14 +62,19 @@ public class DemoDataInitializer implements CommandLineRunner {
         createDemoUser("demo_user", "demo123", "演示用户", "MALE", "USER", "demo@serverscout.local");
         createDemoUser("security_ops", "ops123", "安全运营", "FEMALE", "USER", "secops@serverscout.local");
 
-        ScanTask demoTask = ScanTask.builder()
-                .name("演示数据导入").targetRange("demo").scanType("full")
-                .status("completed").progress(100).totalAssets(12).totalPorts(45)
-                .startedAt(Instant.now().minusSeconds(3600))
-                .completedAt(Instant.now().minusSeconds(1800))
-                .createdBy("admin").createdAt(Instant.now().minusSeconds(7200))
-                .build();
-        demoTask = scanTaskRepository.save(demoTask);
+        ScanTask demoTask = scanTaskRepository.findAll().stream()
+                .filter(t -> "演示数据导入".equals(t.getName())).findFirst()
+                .orElse(null);
+        if (demoTask == null) {
+            demoTask = ScanTask.builder()
+                    .name("演示数据导入").targetRange("demo").scanType("full")
+                    .status("completed").progress(100).totalAssets(12).totalPorts(45)
+                    .startedAt(Instant.now().minusSeconds(3600))
+                    .completedAt(Instant.now().minusSeconds(1800))
+                    .createdBy("admin").createdAt(Instant.now().minusSeconds(7200))
+                    .build();
+            demoTask = scanTaskRepository.save(demoTask);
+        }
 
         Instant now = Instant.now();
 
@@ -256,7 +262,20 @@ public class DemoDataInitializer implements CommandLineRunner {
     private Asset createAsset(String ip, String hostname, String os,
                                int[] ports, ScanTask task, Instant now) {
         var existing = assetRepository.findByIpAddress(ip);
-        if (existing.isPresent()) return existing.get();
+        if (existing.isPresent()) {
+            Asset asset = existing.get();
+            // Refresh task link and ensure mapping exists for the current demo task
+            asset.setTask(task);
+            asset.setLastScanTime(now);
+            assetRepository.save(asset);
+            if (mappingRepository.findByScanTaskIdAndAssetId(task.getId(), asset.getId()).isEmpty()) {
+                ScanAssetMapping mapping = ScanAssetMapping.builder()
+                        .scanTask(task).asset(asset).scanTime(now)
+                        .isNew(false).portsFound(asset.getOpenPortCount() != null ? asset.getOpenPortCount() : ports.length).build();
+                mappingRepository.save(mapping);
+            }
+            return asset;
+        }
 
         Asset asset = Asset.builder()
                 .task(task).ipAddress(ip).hostname(hostname)
