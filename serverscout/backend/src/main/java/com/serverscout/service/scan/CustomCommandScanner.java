@@ -24,8 +24,13 @@ public class CustomCommandScanner implements ScannerStrategy {
     private final ScanStrategyPluginRepository pluginRepository;
     private final ProcessRegistry processRegistry;
 
+    private static final java.util.Set<String> BUILTIN_TYPES =
+            java.util.Set.of("quick", "full", "custom", "vuln", "nuclei");
+
     @Override
     public boolean supports(String scanType) {
+        // Never intercept built-in scan types — those belong to NmapScanner/NucleiScanner
+        if (BUILTIN_TYPES.contains(scanType)) return false;
         return pluginRepository.existsByScanType(scanType);
     }
 
@@ -77,9 +82,10 @@ public class CustomCommandScanner implements ScannerStrategy {
 
     private String buildCommand(ScanStrategyPlugin plugin, ScanTask task) {
         String cmd = plugin.getCommandTemplate();
-        cmd = cmd.replace("{target}", task.getTargetRange());
+        if (cmd == null) cmd = "";
+        cmd = cmd.replace("{target}", task.getTargetRange() != null ? task.getTargetRange() : "");
         cmd = cmd.replace("{port_range}", task.getPortRange() != null ? task.getPortRange() : "1-1000");
-        cmd = cmd.replace("{task_name}", task.getName());
+        cmd = cmd.replace("{task_name}", task.getName() != null ? task.getName() : "serverscout-task");
         return cmd;
     }
 

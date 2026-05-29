@@ -22,6 +22,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PluginController {
 
+    private static final java.util.Set<String> BUILTIN_SCAN_TYPES =
+            java.util.Set.of("quick", "full", "custom", "vuln", "nuclei");
+
     private final ScanStrategyPluginRepository pluginRepository;
 
     private String getUsername(Authentication auth) {
@@ -66,6 +69,9 @@ public class PluginController {
                                                          Authentication auth) {
         if (pluginRepository.existsByScanType(request.getScanType())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Plugin scanType already exists: " + request.getScanType());
+        }
+        if (BUILTIN_SCAN_TYPES.contains(request.getScanType())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot override built-in scan type: " + request.getScanType());
         }
         ScanStrategyPlugin plugin = ScanStrategyPlugin.builder()
                 .name(request.getName())
