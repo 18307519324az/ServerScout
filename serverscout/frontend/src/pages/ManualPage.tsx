@@ -1,453 +1,424 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import {
-  BookOpen, Rocket, Shield, User, LayoutDashboard, Server,
-  ScanLine, Bug, Network, Map, Globe, FileText, Settings,
-  HelpCircle, Code, Database, ChevronRight, ExternalLink,
-} from 'lucide-react'
+import { BookOpen, ChevronRight, ExternalLink } from 'lucide-react'
 
-interface Section {
+interface TocItem {
   id: string
   title: string
-  icon: React.ReactNode
-  subsections?: { id: string; title: string }[]
+  level: 2 | 3
+}
+
+type ManualLang = 'zh' | 'en'
+
+const MANUAL_TEXT = {
+  zh: {
+    toc: '目录',
+    title: 'ServerScout 用户手册',
+    subtitle: '版本 v1.0 | 更新日期 2026-05-30',
+    docsLabel: '在线 API 文档',
+    docsUrl: 'http://localhost:8080/docs',
+    linksTitle: '快速链接',
+    links: [
+      { label: '登录页', path: '/login' },
+      { label: '扫描任务', path: '/scan-tasks' },
+      { label: '资产管理', path: '/assets' },
+      { label: '网络拓扑图', path: '/topology' },
+      { label: '攻击面地图', path: '/attack-surface' },
+      { label: '外部情报', path: '/intel' },
+      { label: '报告中心', path: '/reports' },
+      { label: '系统设置', path: '/settings' },
+    ],
+    section1: '1. 快速开始',
+    section11: '1.1 环境要求',
+    section12: '1.2 启动顺序',
+    section13: '1.3 首次登录',
+    section2: '2. 功能总览（按页面）',
+    section21: '2.1 登录前展示页（/）',
+    section22: '2.2 扫描任务（/scan-tasks）',
+    section23: '2.3 扫描详情（/scan-tasks/:id）',
+    section24: '2.4 资产管理（/assets）',
+    section25: '2.5 资产详情（/assets/:id）',
+    section26: '2.6 网络拓扑图（/topology）',
+    section27: '2.7 攻击面地图（/attack-surface）',
+    section28: '2.8 外部情报与报告',
+    section3: '3. 管理员配置与建议',
+    section31: '3.1 扫描工具与插件',
+    section32: '3.2 通知与审计',
+    section4: '4. 常见问题与排查',
+    section41: '4.1 扫描任务卡在 pending',
+    section42: '4.2 删除运行中任务报错',
+    section43: '4.3 assets found 跳转为空',
+    section44: '4.4 目录高亮不实时变化',
+    section5: '5. 近期更新（本次）',
+    tableHeaderName: '组件',
+    tableHeaderVersion: '建议版本',
+    tableHeaderNote: '说明',
+    btnGo: '打开',
+  },
+  en: {
+    toc: 'Table of Contents',
+    title: 'ServerScout User Manual',
+    subtitle: 'Version v1.0 | Updated on 2026-05-30',
+    docsLabel: 'Online API Docs',
+    docsUrl: 'http://localhost:8080/docs',
+    linksTitle: 'Quick Links',
+    links: [
+      { label: 'Login', path: '/login' },
+      { label: 'Scan Tasks', path: '/scan-tasks' },
+      { label: 'Assets', path: '/assets' },
+      { label: 'Topology', path: '/topology' },
+      { label: 'Attack Surface', path: '/attack-surface' },
+      { label: 'Threat Intel', path: '/intel' },
+      { label: 'Reports', path: '/reports' },
+      { label: 'Settings', path: '/settings' },
+    ],
+    section1: '1. Quick Start',
+    section11: '1.1 Requirements',
+    section12: '1.2 Startup Order',
+    section13: '1.3 First Login',
+    section2: '2. Feature Overview (by page)',
+    section21: '2.1 Showcase Before Login (/)',
+    section22: '2.2 Scan Tasks (/scan-tasks)',
+    section23: '2.3 Scan Task Detail (/scan-tasks/:id)',
+    section24: '2.4 Asset Management (/assets)',
+    section25: '2.5 Asset Detail (/assets/:id)',
+    section26: '2.6 Network Topology (/topology)',
+    section27: '2.7 Attack Surface Map (/attack-surface)',
+    section28: '2.8 Threat Intel and Reports',
+    section3: '3. Admin Configuration',
+    section31: '3.1 Scan Tools and Plugins',
+    section32: '3.2 Notifications and Auditing',
+    section4: '4. Troubleshooting',
+    section41: '4.1 Task stays in pending',
+    section42: '4.2 Deleting running task fails',
+    section43: '4.3 assets found navigates to empty list',
+    section44: '4.4 TOC highlight does not update in real time',
+    section5: '5. Recent Updates (this round)',
+    tableHeaderName: 'Component',
+    tableHeaderVersion: 'Recommended',
+    tableHeaderNote: 'Note',
+    btnGo: 'Open',
+  },
+} as const
+
+function ManualH2({ id, title }: { id: string; title: string }) {
+  return (
+    <h2
+      id={id}
+      data-manual-anchor="true"
+      data-toc-id={id}
+      data-toc-title={title}
+      data-toc-level="2"
+      className="text-xl font-bold text-gray-900 dark:text-gray-100 mt-10 mb-4 pb-2 border-b border-gray-200 dark:border-gray-700"
+    >
+      {title}
+    </h2>
+  )
+}
+
+function ManualH3({ id, title }: { id: string; title: string }) {
+  return (
+    <h3
+      id={id}
+      data-manual-anchor="true"
+      data-toc-id={id}
+      data-toc-title={title}
+      data-toc-level="3"
+      className="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-6 mb-3"
+    >
+      {title}
+    </h3>
+  )
 }
 
 export default function ManualPage() {
-  const { t } = useTranslation()
-  const [activeSection, setActiveSection] = useState('quickstart')
+  const { i18n } = useTranslation()
+  const lang: ManualLang = i18n.language.startsWith('zh') ? 'zh' : 'en'
+  const text = useMemo(() => MANUAL_TEXT[lang], [lang])
+  const tx = useCallback((zh: string, en: string) => (lang === 'zh' ? zh : en), [lang])
 
-  const sections: Section[] = [
-    { id: 'quickstart', title: '1. 快速开始', icon: <Rocket className="w-4 h-4" />, subsections: [
-      { id: 'env', title: '环境要求' }, { id: 'install', title: '安装启动' }, { id: 'login', title: '首次登录' }
-    ]},
-    { id: 'admin', title: '2. 管理员指南', icon: <Shield className="w-4 h-4" />, subsections: [
-      { id: 'users', title: '用户管理' }, { id: 'tools', title: '扫描工具配置' }, { id: 'schedule', title: '定时扫描' },
-      { id: 'api-keys', title: '情报API配置' }, { id: 'notify', title: '通知配置' },
-      { id: 'plugins', title: '扫描策略插件' }, { id: 'oplogs', title: '操作日志' },
-    ]},
-    { id: 'user-guide', title: '3. 用户指南', icon: <User className="w-4 h-4" />, subsections: [
-      { id: 'create-scan', title: '创建扫描' }, { id: 'scan-results', title: '查看结果' },
-      { id: 'assets-mgmt', title: '资产管理' }, { id: 'vuln-analysis', title: '漏洞分析' },
-    ]},
-    { id: 'features', title: '4. 核心功能', icon: <LayoutDashboard className="w-4 h-4" />, subsections: [
-      { id: 'dashboard', title: '仪表盘' }, { id: 'topology', title: '资产拓扑' },
-      { id: 'attack-surface', title: '攻击面地图' }, { id: 'intel', title: '外部威胁情报' },
-      { id: 'reports', title: '报告导出' },
-    ]},
-    { id: 'scenario', title: '5. 典型场景', icon: <ScanLine className="w-4 h-4" /> },
-    { id: 'faq', title: '6. 常见问题', icon: <HelpCircle className="w-4 h-4" /> },
-    { id: 'appendix', title: '7. 附录', icon: <Code className="w-4 h-4" />, subsections: [
-      { id: 'api-list', title: 'API端点速查' }, { id: 'db-schema', title: '数据库表结构' },
-      { id: 'architecture', title: '技术架构图' },
-    ]},
-  ]
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [tocItems, setTocItems] = useState<TocItem[]>([])
+  const [activeSection, setActiveSection] = useState('')
+
+  const rebuildToc = useCallback(() => {
+    const root = contentRef.current
+    if (!root) return
+
+    const headings = Array.from(root.querySelectorAll<HTMLElement>('[data-manual-anchor="true"]'))
+    const items: TocItem[] = headings
+      .map((heading) => {
+        const id = heading.dataset.tocId || heading.id
+        const title = heading.dataset.tocTitle || heading.textContent || ''
+        const rawLevel = Number(heading.dataset.tocLevel || 2)
+        const level: 2 | 3 = rawLevel === 3 ? 3 : 2
+        return { id, title, level }
+      })
+      .filter((item) => item.id && item.title)
+
+    setTocItems(items)
+    setActiveSection((prev) => {
+      if (items.length === 0) return prev
+      return items.some((item) => item.id === prev) ? prev : items[0].id
+    })
+  }, [])
+
+  useEffect(() => {
+    const root = contentRef.current
+    if (!root) return
+
+    rebuildToc()
+
+    const headings = Array.from(root.querySelectorAll<HTMLElement>('[data-manual-anchor="true"]'))
+    if (headings.length === 0) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+
+        if (visible[0]) {
+          const id = (visible[0].target as HTMLElement).dataset.tocId
+          if (id) setActiveSection(id)
+        }
+      },
+      {
+        root,
+        rootMargin: '-20% 0px -65% 0px',
+        threshold: [0, 1],
+      }
+    )
+
+    headings.forEach((heading) => observer.observe(heading))
+
+    const mutationObserver = new MutationObserver(() => {
+      rebuildToc()
+    })
+    mutationObserver.observe(root, { subtree: true, childList: true, characterData: true })
+
+    return () => {
+      observer.disconnect()
+      mutationObserver.disconnect()
+    }
+  }, [lang, rebuildToc])
 
   const scrollTo = (id: string) => {
+    const root = contentRef.current
+    if (!root) return
+
+    const target = root.querySelector<HTMLElement>(`[data-toc-id="${id}"]`)
+    if (!target) return
+
     setActiveSection(id)
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    root.scrollTo({ top: Math.max(0, target.offsetTop - 8), behavior: 'smooth' })
   }
-
-  const Img = ({ src, alt, caption }: { src: string; alt: string; caption?: string }) => (
-    <div className="my-6">
-      <img src={src} alt={alt} className="rounded-lg border shadow-sm w-full" />
-      {caption && <p className="text-sm text-gray-500 mt-2 text-center">{caption}</p>}
-    </div>
-  )
-
-  const H2 = ({ id, children }: { id?: string; children: string }) => (
-    <h2 id={id} className="text-xl font-bold text-gray-900 mt-10 mb-4 pb-2 border-b">{children}</h2>
-  )
-
-  const H3 = ({ id, children }: { id?: string; children: string }) => (
-    <h3 id={id} className="text-lg font-semibold text-gray-800 mt-6 mb-3">{children}</h3>
-  )
-
-  const CodeBlock = ({ children }: { children: string }) => (
-    <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto my-3 font-mono">{children}</pre>
-  )
-
-  const Table = ({ headers, rows }: { headers: string[]; rows: string[][] }) => (
-    <div className="overflow-x-auto my-4">
-      <table className="min-w-full border text-sm">
-        <thead className="bg-gray-100">
-          <tr>{headers.map((h, i) => <th key={i} className="border px-3 py-2 text-left font-medium">{h}</th>)}</tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="hover:bg-gray-50">
-              {row.map((cell, j) => <td key={j} className="border px-3 py-2">{cell}</td>)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
 
   return (
     <div className="flex h-[calc(100vh-6rem)] gap-6">
-      {/* Sidebar TOC */}
-      <aside className="hidden xl:block w-56 flex-shrink-0 overflow-y-auto">
-        <div className="sticky top-0 bg-white rounded-lg border p-4">
-          <h3 className="font-bold text-sm text-gray-500 uppercase tracking-wide mb-3">目录</h3>
+      <aside className="hidden xl:block w-64 flex-shrink-0 overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <h3 className="font-bold text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">{text.toc}</h3>
           <nav className="space-y-1">
-            {sections.map((s) => (
-              <div key={s.id}>
-                <button
-                  onClick={() => scrollTo(s.id)}
-                  className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-sm transition ${
-                    activeSection === s.id
-                      ? 'bg-blue-50 text-blue-700 font-medium'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {s.icon}
-                  <span className="truncate">{s.title}</span>
-                </button>
-                {s.subsections && (
-                  <div className="ml-6 mt-0.5 space-y-0.5">
-                    {s.subsections.map((sub) => (
-                      <button
-                        key={sub.id}
-                        onClick={() => scrollTo(sub.id)}
-                        className="flex items-center gap-1 w-full text-left px-2 py-1 rounded text-xs text-gray-500 hover:text-blue-600 hover:bg-blue-50/50 transition"
-                      >
-                        <ChevronRight className="w-3 h-3 flex-shrink-0" />
-                        <span className="truncate">{sub.title}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {tocItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => scrollTo(item.id)}
+                className={`flex items-center gap-2 w-full text-left rounded transition ${
+                  item.level === 2 ? 'px-2 py-1.5 text-sm' : 'ml-4 px-2 py-1 text-xs'
+                } ${
+                  activeSection === item.id
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+              >
+                {item.level === 3 && <ChevronRight className="w-3 h-3 flex-shrink-0" />}
+                <span className="truncate">{item.title}</span>
+              </button>
             ))}
           </nav>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-y-auto bg-white rounded-lg border p-6 lg:p-10">
-        <div className="max-w-4xl mx-auto">
-          {/* Title */}
+      <div
+        ref={contentRef}
+        className="flex-1 overflow-y-auto bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-6 lg:p-10"
+      >
+        <div className="max-w-4xl mx-auto text-gray-700 dark:text-gray-300 leading-7">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
               <BookOpen className="w-8 h-8 text-blue-600" />
-              ServerScout 用户使用手册
+              {text.title}
             </h1>
-            <p className="text-gray-500 mt-2">版本 v1.0 | 更新日期 2026-05-24</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-2">{text.subtitle}</p>
+            <p className="text-sm mt-2">
+              <a
+                href={text.docsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {text.docsLabel} <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </p>
           </div>
 
-          {/* Chapter 1: Quick Start */}
-          <H2 id="quickstart">1. 快速开始</H2>
-          <p className="text-gray-600 mb-4">环境要求、安装启动、首次登录</p>
+          <ManualH2 id="quickstart" title={text.section1} />
+          <ManualH3 id="requirements" title={text.section11} />
+          <div className="overflow-x-auto my-3">
+            <table className="min-w-full border border-gray-200 dark:border-gray-700 text-sm">
+              <thead className="bg-gray-100 dark:bg-gray-800">
+                <tr>
+                  <th className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-left">{text.tableHeaderName}</th>
+                  <th className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-left">{text.tableHeaderVersion}</th>
+                  <th className="border border-gray-200 dark:border-gray-700 px-3 py-2 text-left">{text.tableHeaderNote}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td className="border px-3 py-2">Java</td><td className="border px-3 py-2">17+</td><td className="border px-3 py-2">{tx('后端运行环境（Spring Boot）', 'Spring Boot backend runtime')}</td></tr>
+                <tr><td className="border px-3 py-2">MySQL</td><td className="border px-3 py-2">8.0+</td><td className="border px-3 py-2">{tx('主数据存储', 'Primary storage')}</td></tr>
+                <tr><td className="border px-3 py-2">Node.js</td><td className="border px-3 py-2">18+</td><td className="border px-3 py-2">{tx('前端构建与运行', 'Frontend build/runtime')}</td></tr>
+                <tr><td className="border px-3 py-2">Nmap</td><td className="border px-3 py-2">7.x+</td><td className="border px-3 py-2">{tx('端口与服务扫描', 'Port and service scanning')}</td></tr>
+                <tr><td className="border px-3 py-2">Nuclei</td><td className="border px-3 py-2">3.x+</td><td className="border px-3 py-2">{tx('漏洞模板扫描', 'Vulnerability templates')}</td></tr>
+                <tr><td className="border px-3 py-2">Redis</td><td className="border px-3 py-2">{tx('6/7（可选）', '6/7 (optional)')}</td><td className="border px-3 py-2">{tx('多实例并发控制（同目标限流）', 'Cross-process target concurrency control')}</td></tr>
+              </tbody>
+            </table>
+          </div>
 
-          <H3 id="env">1.1 环境要求</H3>
-          <Table
-            headers={['组件', '版本要求', '说明']}
-            rows={[
-              ['Java JDK', '17+', '后端运行环境'],
-              ['Maven', '3.9+', '后端构建工具'],
-              ['Node.js', '18+', '前端运行环境'],
-              ['npm', '9+', '前端包管理'],
-              ['MySQL', '8.0+', '数据库服务'],
-              ['Nmap', '7.x+ (可选)', '端口扫描引擎'],
-              ['Nuclei', '3.x+ (可选)', '漏洞扫描引擎'],
-            ]}
-          />
-
-          <H3 id="install">1.2 安装与启动</H3>
-          <p className="text-gray-600 mb-2"><strong>后端启动：</strong></p>
-          <CodeBlock>{`# 1. 创建数据库
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS serverscout \\
-  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# 2. 修改 application.yml 中的数据库连接配置
-
-# 3. 启动后端
-cd serverscout/backend
-mvn spring-boot:run
-# 后端运行在 http://localhost:8080
-# API 文档: http://localhost:8080/docs`}</CodeBlock>
-
-          <p className="text-gray-600 mb-2 mt-4"><strong>前端启动：</strong></p>
-          <CodeBlock>{`cd serverscout/frontend
-npm install
-npm run dev
-# 前端运行在 http://localhost:5173`}</CodeBlock>
-
-          <H3 id="login">1.3 首次登录</H3>
-          <ol className="list-decimal ml-6 text-gray-600 space-y-1 mb-4">
-            <li>浏览器访问 <code className="bg-gray-100 px-1 rounded">http://localhost:5173</code></li>
-            <li>系统自动跳转到登录页面</li>
+          <ManualH3 id="startup" title={text.section12} />
+          <ol className="list-decimal ml-6 space-y-1">
+            <li>{tx('先启动 MySQL，确保 `serverscout` 数据库存在。', 'Start MySQL and ensure database `serverscout` exists.')}</li>
+            <li>{tx('先启动后端（`backend`，默认端口 `8080`）。', 'Start backend first (`backend`, default port `8080`).')}</li>
+            <li>{tx('再启动前端（`frontend`，默认端口 `5173`）。', 'Start frontend dev server (`frontend`, default port `5173`).')}</li>
+            <li>{tx('先访问 `/` 展示页，再进入 `/login` 登录。', 'Access `/` (showcase), then go to `/login`.')}</li>
           </ol>
-          <Img src="/docs/images/ch1-login-page.png" alt="登录页面" caption="图1: 登录页面" />
-          <Table
-            headers={['字段', '值']}
-            rows={[
-              ['用户名', 'admin'],
-              ['密码', 'admin123'],
-              ['验证码', '计算页面显示的数学题答案（如 17+13=30）'],
-            ]}
-          />
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 my-4 text-sm text-amber-800">
-            <strong>安全提示：</strong>首次登录后请立即修改默认密码！详见设置页面的"修改密码"功能。
-          </div>
 
-          <Img src="/docs/images/ch4-dashboard-full.png" alt="仪表盘首页" caption="图2: 登录后进入仪表盘首页" />
-
-          {/* Chapter 2: Admin Guide */}
-          <H2 id="admin">2. 管理员操作指南</H2>
-          <p className="text-gray-600 mb-4">管理员拥有系统最高权限。所有管理功能统一在 <strong>设置</strong> 页面。</p>
-
-          <Img src="/docs/images/ch2-settings.png" alt="系统设置页面" caption="图3: 系统设置页面全景" />
-
-          <H3 id="users">2.1 用户管理</H3>
-          <p className="text-gray-600 mb-2">在设置页面的 <strong>用户管理</strong> 区域：</p>
-          <ul className="list-disc ml-6 space-y-1 text-gray-600">
-            <li><strong>添加用户：</strong>点击"添加用户"，填写用户名/密码/角色/邮箱</li>
-            <li><strong>角色说明：</strong>ADMIN（管理员）拥有全部权限，USER（普通用户）可创建扫描和查看结果</li>
-            <li><strong>编辑用户：</strong>修改角色、姓名、邮箱、启用/禁用状态</li>
-            <li><strong>重置密码：</strong>点击"重置密码"输入新密码</li>
-            <li><strong>删除用户：</strong>确认后永久删除</li>
+          <ManualH3 id="first-login" title={text.section13} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('完成验证码后登录。', 'Complete captcha and log in.')}</li>
+            <li>{tx('首次登录后请在设置中立即修改默认密码。', 'Change default password immediately in Settings.')}</li>
+            <li>{tx('管理员建议先检查扫描工具路径和通知配置，再执行生产扫描。', 'Admin users should verify tool paths and notification settings before the first production scan.')}</li>
           </ul>
 
-          <H3 id="tools">2.2 扫描工具配置</H3>
-          <p className="text-gray-600">在 <strong>扫描工具配置</strong> 区域查看 Nmap/Nuclei 检测状态，点击"编辑路径"修改执行路径，点击"安装指南"了解工具安装方法。</p>
+          <ManualH2 id="overview" title={text.section2} />
+          <ManualH3 id="showcase" title={text.section21} />
+          <p>{tx('展示页用于登录前能力说明，支持点击截图预览与中英文文案切换。', 'Showcase page presents platform capabilities before authentication. It supports image preview and bilingual content switching.')}</p>
 
-          <H3 id="schedule">2.3 定时扫描配置</H3>
-          <p className="text-gray-600">配置每日巡检和每周全面扫描，支持 Cron 表达式灵活设定执行时间，可启用/禁用定时任务。</p>
-
-          <H3 id="api-keys">2.4 外部情报 API 配置</H3>
-          <p className="text-gray-600">配置 <strong>Censys API ID/Secret</strong> 和 <strong>VirusTotal API Key</strong> 以启用扩展威胁情报查询功能。</p>
-
-          <H3 id="notify">2.5 告警与邮件通知</H3>
-          <p className="text-gray-600 mb-2">在设置页面可配置：</p>
-          <ul className="list-disc ml-6 space-y-1 text-gray-600">
-            <li><strong>Webhook 通知：</strong>钉钉、飞书、企业微信 — 扫描完成后推送结果摘要</li>
-            <li><strong>邮件通知：</strong>配置 SMTP 服务器，扫描完成后发送邮件报告</li>
+          <ManualH3 id="scan-tasks" title={text.section22} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('支持预设模板（`quick` / `stealth` / `web` / `full`）和插件扫描类型。', 'Create tasks using presets (`quick`, `stealth`, `web`, `full`) or plugin scan types.')}</li>
+            <li>{tx('支持多目标输入与端口范围自定义。', 'Supports multi-target input and custom port range.')}</li>
+            <li>{tx('任务列表中的资产数支持直接跳转到过滤后的资产列表（`/assets?taskId=...`）。', 'Task list supports direct jump from asset count to filtered asset list (`/assets?taskId=...`).')}</li>
           </ul>
 
-          <H3 id="plugins">2.6 扫描策略插件 (L2)</H3>
-          <p className="text-gray-600">管理自定义扫描策略（如 SSH 弱口令检测），支持自定义命令模板和结果解析正则，可启用/禁用/编辑/删除。</p>
+          <ManualH3 id="scan-detail" title={text.section23} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('通过 SSE 展示实时扫描进度与发现日志。', 'Real-time progress and discovery feed via SSE.')}</li>
+            <li>{tx('`assets found` 支持一键跳转到该任务对应资产。', 'One-click jump from `assets found` to related asset list.')}</li>
+            <li>{tx('任务摘要区域可导出 PDF / Excel 报告。', 'PDF/Excel export is available on task summary block.')}</li>
+          </ul>
 
-          <H3 id="oplogs">2.7 操作日志</H3>
-          <p className="text-gray-600">在设置页面底部查看所有用户的操作记录，支持按用户名/类型筛选，显示 IP 归属地，支持导出 CSV/Excel。</p>
+          <ManualH3 id="assets" title={text.section24} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('支持关键字搜索、合并、删除与分页。', 'Keyword search, merge, delete, pagination.')}</li>
+            <li>{tx('从扫描详情跳转时会显示任务筛选标签。', 'Task filter badge appears when entering from scan detail.')}</li>
+            <li>{tx('开放端口数量可跳转到资产详情的端口区块。', 'Open-port count can jump to the corresponding asset port section.')}</li>
+          </ul>
 
-          {/* Chapter 3: User Guide */}
-          <H2 id="user-guide">3. 普通用户操作指南</H2>
-          <p className="text-gray-600 mb-4">创建扫描、查看结果、分析漏洞的完整流程。</p>
+          <ManualH3 id="asset-detail" title={text.section25} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('统一查看端口、指纹、漏洞、SSL 证书、爬虫结果与蜜罐迹象。', 'Unified view of ports, fingerprints, vulnerabilities, SSL certificates, crawler results and honeypot indicators.')}</li>
+            <li>{tx('支持外部情报快捷查询（IP 信誉 / Censys / VirusTotal）。', 'Supports quick external intel lookup (IP reputation / Censys / VirusTotal).')}</li>
+          </ul>
 
-          <H3 id="create-scan">3.1 创建扫描任务</H3>
-          <ol className="list-decimal ml-6 space-y-1 text-gray-600 mb-4">
-            <li>点击左侧导航栏 <strong>扫描任务</strong></li>
-            <li>点击 <strong>新建扫描</strong> 按钮</li>
-            <li>填写任务名称、扫描目标（IP/域名/CIDR）、选择扫描类型</li>
-            <li>点击确认开始扫描</li>
-          </ol>
-          <Img src="/docs/images/ch3-create-scan.png" alt="新建扫描对话框" caption="图4: 新建扫描任务对话框" />
+          <ManualH3 id="topology" title={text.section26} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('拓扑图支持拖拽、缩放、适合窗口、全屏查看。', 'Topology supports drag, zoom, fit view, and full-screen navigation.')}</li>
+            <li>{tx('已优化排版，减少连线过密并让整体居中展示。', 'Layout was optimized to reduce dense edge overlap and keep graph centered in viewport.')}</li>
+          </ul>
 
-          <Table
-            headers={['参数', '说明', '示例']}
-            rows={[
-              ['任务名称', '便于识别的名称', '生产环境巡检'],
-              ['扫描目标', 'IP、域名或CIDR网段', '192.168.1.1 / example.com / 10.0.0.0/24'],
-              ['扫描类型', 'quick（快速）/ full（全面）/ 自定义插件', 'full'],
-            ]}
-          />
+          <ManualH3 id="attack-surface" title={text.section27} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('包含攻击面图谱与技术栈雷达。', 'Attack-surface graph plus tech-stack radar.')}</li>
+            <li>{tx('雷达图分类、图例与指标支持中英文切换。', 'Radar labels and legend support Chinese/English switching.')}</li>
+          </ul>
 
-          <H3 id="scan-results">3.2 查看扫描结果</H3>
-          <p className="text-gray-600 mb-2">扫描任务列表展示所有任务及其状态：</p>
-          <Img src="/docs/images/ch3-scan-tasks.png" alt="扫描任务列表" caption="图5: 扫描任务列表" />
-          <p className="text-gray-600 mb-2">点击任务名称进入详情页，查看扫描进度、发现的资产、端口、漏洞、Web截图等：</p>
-          <Img src="/docs/images/ch3-scan-task-detail.png" alt="扫描任务详情" caption="图6: 扫描任务详情页" />
+          <ManualH3 id="intel-and-report" title={text.section28} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('外部情报页支持 IP / 域名 / CVE 查询与综合报告视图。', 'Threat intel page supports IP/domain/CVE queries and combined report view.')}</li>
+            <li>{tx('报告中心支持按任务导出 PDF 与 Excel。', 'Report center supports task-based PDF and Excel export.')}</li>
+          </ul>
 
-          <H3 id="assets-mgmt">3.3 资产管理</H3>
-          <p className="text-gray-600 mb-2">点击 <strong>资产列表</strong> 查看所有已发现的资产，可按状态/关键词筛选：</p>
-          <Img src="/docs/images/ch2-assets.png" alt="资产列表" caption="图7: 资产列表页面" />
-          <p className="text-gray-600 mb-2">点击资产进入详情，可查看基本信息、开放端口、漏洞、SSL证书、子域名、蜜罐检测、Web爬虫结果等：</p>
-          <Img src="/docs/images/ch3-asset-detail.png" alt="资产详情" caption="图8: 资产详情页面" />
+          <ManualH2 id="admin-config" title={text.section3} />
+          <ManualH3 id="admin-tools" title={text.section31} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('大规模扫描前，请先在设置中确认 Nmap / Nuclei 路径。', 'Configure Nmap/Nuclei path in Settings before enabling large scans.')}</li>
+            <li>{tx('扫描策略插件（L2）支持自定义命令模板与解析模式。', 'Scan strategy plugins (L2) support custom command templates and parser modes.')}</li>
+            <li>{tx('多后端实例部署时建议启用 Redis 作为并发协调。', 'Recommended production setting: enable Redis when deploying multiple backend instances.')}</li>
+          </ul>
 
-          <H3 id="vuln-analysis">3.4 漏洞分析</H3>
-          <p className="text-gray-600 mb-2">点击 <strong>漏洞列表</strong> 查看所有检测到的漏洞，可按严重程度/状态筛选：</p>
-          <Img src="/docs/images/ch3-vulnerabilities.png" alt="漏洞列表" caption="图9: 漏洞列表页面" />
-          <p className="text-gray-600 mb-2">点击漏洞进入详情，查看CVE信息、CVSS评分、复现步骤、修复建议、状态变更历史：</p>
-          <Img src="/docs/images/ch3-vuln-detail.png" alt="漏洞详情" caption="图10: 漏洞详情页面" />
+          <ManualH3 id="admin-notify" title={text.section32} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('Webhook 通知：钉钉 / 飞书 / 企业微信。', 'Webhook notification: DingTalk / Feishu / WeCom.')}</li>
+            <li>{tx('邮件通知：配置 SMTP 地址、账号与授权码。', 'Email notification: configure SMTP host, account, and auth code.')}</li>
+            <li>{tx('操作日志支持筛选与导出，用于审计。', 'Operation logs support filtering and export for audit.')}</li>
+          </ul>
 
-          {/* Chapter 4: Core Features */}
-          <H2 id="features">4. 核心功能详解</H2>
+          <ManualH2 id="troubleshooting" title={text.section4} />
+          <ManualH3 id="faq-pending" title={text.section41} />
+          <p>
+            {tx('先确认该目标是否已有运行中的任务。当前默认限制为', 'Check whether the same target is already occupied by a running task. Current default is')}
+            <code className="mx-1 px-1 rounded bg-gray-100 dark:bg-gray-800">max-per-target = 1</code>
+            {tx('，用于避免同一目标被重复高强度扫描。', 'to avoid duplicate aggressive scans on the same host.')}
+          </p>
 
-          <H3 id="dashboard">4.1 仪表盘</H3>
-          <p className="text-gray-600 mb-2">首页仪表盘提供系统全局概览：统计卡片区（资产/扫描/漏洞/高危漏洞/蜜罐）、漏洞趋势图、资产分布图、严重程度分布、最近扫描活动、技术栈分布。</p>
-          <Img src="/docs/images/ch4-dashboard-full.png" alt="仪表盘" caption="图11: 仪表盘全局概览" />
+          <ManualH3 id="faq-delete" title={text.section42} />
+          <p>
+            {tx(
+              '若删除运行中任务失败，请确认后端已更新到当前版本（删除流程会按顺序处理取消与清理）。',
+              'If deleting a running task fails, verify backend is updated to current version where running-task delete path handles cancellation and cleanup in order.'
+            )}
+          </p>
 
-          <H3 id="topology">4.2 资产拓扑图</H3>
-          <p className="text-gray-600 mb-2">使用 G6 图可视化引擎展示资产之间的关系网络图，节点代表资产（不同颜色表示不同类型），连线表示网络关系，支持拖拽、缩放、点击查看详情。</p>
-          <Img src="/docs/images/ch4-topology-full.png" alt="资产拓扑" caption="图12: 资产拓扑图" />
+          <ManualH3 id="faq-assets-empty" title={text.section43} />
+          <p>
+            {tx(
+              '若 assets found 跳转后为空，请确认后端已使用任务过滤兼容分页（任务查询不应套用无效映射排序字段）。',
+              'Ensure backend uses task-filter query compatible pagination (task-scoped query should not apply invalid mapping sort field).'
+            )}
+          </p>
 
-          <H3 id="attack-surface">4.3 攻击面地图</H3>
-          <p className="text-gray-600 mb-2">使用 D3.js 力导向图可视化攻击面，展示端口、服务、漏洞之间的关联关系，帮助安全团队快速识别风险暴露面。</p>
-          <Img src="/docs/images/ch4-attack-surface.png" alt="攻击面地图" caption="图13: 攻击面地图" />
+          <ManualH3 id="faq-toc-live" title={text.section44} />
+          <p>
+            {tx(
+              '本页目录已改为从实际标题自动生成，并随滚动位置实时同步高亮。',
+              'TOC in this page is now auto-built from rendered headings and synchronized in real time with scroll position.'
+            )}
+          </p>
 
-          <H3 id="intel">4.4 外部威胁情报</H3>
-          <p className="text-gray-600 mb-2">集成 Censys 和 VirusTotal，支持 IP 情报查询、CVE 详情查询、域名情报查询、综合报告生成。</p>
-          <Img src="/docs/images/ch4-intel.png" alt="外部威胁情报" caption="图14: 外部威胁情报页面" />
+          <ManualH2 id="release-note" title={text.section5} />
+          <ul className="list-disc ml-6 space-y-1">
+            <li>{tx('同一目标默认并发上限恢复为 1。', 'Same-target default concurrency restored to 1.')}</li>
+            <li>{tx('补充扫描详情 `assets found` 跳转与关联资产过滤说明。', 'Scan detail `assets found` jump and related asset filtering behavior documented.')}</li>
+            <li>{tx('用户手册目录升级为自动生成 + 滚动实时高亮，修复目录不实时变化问题。', 'Manual TOC upgraded to auto-generate + live scroll highlight, fixing non-realtime directory state.')}</li>
+          </ul>
 
-          <H3 id="reports">4.5 报告导出</H3>
-          <p className="text-gray-600 mb-2">按扫描任务导出 PDF 安全评估报告或 Excel 结构化数据，报告包含资产清单、端口信息、漏洞详情、修复建议、扫描统计。</p>
-          <Img src="/docs/images/ch4-reports.png" alt="报告中心" caption="图15: 报告中心页面" />
-
-          {/* Chapter 5: Scenario */}
-          <H2 id="scenario">5. 典型使用场景</H2>
-          <p className="text-gray-600 mb-4">场景：对新上线的 Web 应用进行完整安全评估</p>
-          <div className="space-y-3 text-gray-600">
-            <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">1</span>
-              <div><strong>登录系统</strong> — 使用管理员账号登录 ServerScout</div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">2</span>
-              <div><strong>创建扫描</strong> — 扫描任务 → 新建扫描 → 填写目标域名 → 选择"full"全面扫描</div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">3</span>
-              <div><strong>等待完成</strong> — 观察任务状态从 running 变为 completed</div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">4</span>
-              <div><strong>查看结果</strong> — 进入任务详情，查看发现的资产、端口和漏洞</div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">5</span>
-              <div><strong>分析资产</strong> — 资产列表 → 查看详情（端口/服务/SSL/蜜罐/爬虫）</div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">6</span>
-              <div><strong>处理漏洞</strong> — 按严重程度排序 → 逐个确认 → 修复 → 更新状态</div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">7</span>
-              <div><strong>查看攻击面</strong> — 攻击面地图直观了解服务暴露情况</div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">8</span>
-              <div><strong>导出报告</strong> — 报告中心 → 选择任务 → 导出PDF报告</div>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-bold">9</span>
-              <div><strong>补充情报</strong> — 外部情报页查询 IP 威胁情报、CVE 详情</div>
-            </div>
-          </div>
-
-          {/* Chapter 6: FAQ */}
-          <H2 id="faq">6. 常见问题与排错</H2>
-          <div className="space-y-4 text-gray-600">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="font-semibold text-gray-800">Q1: 登录失败怎么办？</p>
-              <p className="mt-1">检查用户名密码（默认 admin/admin123），确认验证码计算正确，检查后端是否正常运行。</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="font-semibold text-gray-800">Q2: 扫描无结果？</p>
-              <p className="mt-1">检查目标可达性（ping），检查防火墙规则，确认 Nmap/Nuclei 工具路径配置正确，尝试 full 扫描模式。</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="font-semibold text-gray-800">Q3: 端口被占用怎么办？</p>
-              <p className="mt-1">后端可通过 <code className="bg-gray-200 px-1 rounded">SERVER_PORT=9090 mvn spring-boot:run</code> 修改端口。前端修改 <code className="bg-gray-200 px-1 rounded">vite.config.ts</code> 中的端口配置。</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="font-semibold text-gray-800">Q4: MySQL 连接失败？</p>
-              <p className="mt-1">确保 MySQL 已启动，检查 <code className="bg-gray-200 px-1 rounded">serverscout</code> 数据库已创建，核对 application.yml 中的连接配置。</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="font-semibold text-gray-800">Q5: 如何重置管理员密码？</p>
-              <p className="mt-1">通过其他管理员账号在设置页重置，或直接在 MySQL 中更新 user 表的 BCrypt 密码字段。</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="font-semibold text-gray-800">Q6: PDF 报告中文乱码？</p>
-              <p className="mt-1">在 application.yml 中配置正确的中文字体路径，Windows: <code className="bg-gray-200 px-1 rounded">C:/Windows/Fonts/msyh.ttc</code>，Linux: 安装 fonts-noto-cjk。</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="font-semibold text-gray-800">Q7: Nuclei 模板下载失败？</p>
-              <p className="mt-1">手动下载 nuclei-templates 仓库，或配置网络代理后运行 <code className="bg-gray-200 px-1 rounded">nuclei -update-templates</code>。</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="font-semibold text-gray-800">Q8: 扫描速度太慢？</p>
-              <p className="mt-1">使用 quick 模式（仅 Top 1000 端口），扫描单个 IP 而非大段 CIDR，调整扫描超时和并发数设置。</p>
-            </div>
-          </div>
-
-          {/* Chapter 7: Appendix */}
-          <H2 id="appendix">7. 附录（开发者参考）</H2>
-
-          <H3 id="api-list">7.1 API 端点速查</H3>
-          <p className="text-gray-600 mb-2">在线文档: <a href="http://localhost:8080/docs" target="_blank" rel="noopener" className="text-blue-600 hover:underline">http://localhost:8080/docs <ExternalLink className="w-3 h-3 inline" /></a></p>
-          <Img src="/docs/images/ch7-swagger-api.png" alt="Swagger API文档" caption="图16: Swagger API 在线文档" />
-
-          <Table
-            headers={['模块', '前缀', '主要端点']}
-            rows={[
-              ['认证', '/api/auth', 'POST /login, /register, GET /captcha, /public-key'],
-              ['用户管理', '/api/v1/users', 'CRUD 用户, GET /me, PUT /me/password'],
-              ['资产管理', '/api/v1/assets', '分页查询, 详情, 标签, 拓扑, 攻击面, 合并'],
-              ['扫描任务', '/api/v1/scan-tasks', '创建, 分页, 详情, 取消, 删除'],
-              ['漏洞管理', '/api/v1/vulnerabilities', '分页, 详情, 状态更新, 复现步骤, 日志'],
-              ['仪表盘', '/api/v1/dashboard', 'GET /stats, /tech-stack'],
-              ['子域名', '/api/v1/subdomains', '枚举, 按域名/资产查询'],
-              ['报告', '/api/v1/reports', 'GET /pdf, /excel (按taskId)'],
-              ['外部情报', '/api/v1/intel', 'IP/CVE/域名查询, Censys, VirusTotal'],
-              ['蜜罐检测', '/api/v1/honeypot', 'GET /stats, /asset/{id}'],
-              ['截图/爬虫', '/api/v1/screenshot, /crawler', '网页截图, URL爬取'],
-              ['插件管理', '/api/v1/plugins', 'CRUD + 启用/禁用'],
-              ['系统配置', '/api/v1/config', '配置管理, 工具检测'],
-              ['操作日志', '/api/v1/operation-logs', '分页查询, 导出, 统计'],
-            ]}
-          />
-
-          <H3 id="db-schema">7.2 数据库表结构</H3>
-          <Table
-            headers={['表名', '说明', '主要字段']}
-            rows={[
-              ['asset', '资产表', 'id, ip, domain, os, tags, status, honeypot_probability'],
-              ['port', '端口表', 'id, asset_id, port_number, protocol, service, version'],
-              ['scan_task', '扫描任务表', 'id, name, target, scan_type, status, progress'],
-              ['asset_vulnerability', '漏洞表', 'id, name, severity, cve_id, cvss_score, status'],
-              ['vuln_status_log', '漏洞状态日志', 'id, vuln_id, old_status, new_status, operator'],
-              ['user', '用户表', 'id, username, password, name, role, email, enabled'],
-              ['subdomain', '子域名表', 'id, domain, subdomain, ip, source'],
-              ['ssl_certificate', 'SSL证书表', 'id, asset_id, subject, issuer, valid_from/to'],
-              ['web_fingerprint', 'Web指纹表', 'id, asset_id, server, tech_stack, title'],
-              ['honeypot_rule', '蜜罐规则表', 'id, name, pattern, category, confidence'],
-              ['honeypot_detection', '蜜罐检测表', 'id, asset_id, rule_id, match_detail, confidence'],
-              ['scan_strategy_plugin', '插件表', 'id, name, scan_type, command_template, enabled'],
-              ['crawled_url', '爬虫URL表', 'id, url, title, status_code, task_id, asset_id'],
-              ['operation_log', '操作日志表', 'id, username, type, target, ip_address'],
-              ['cve_database', 'CVE数据库', 'id, cve_id, description, cvss_score, severity'],
-            ]}
-          />
-
-          <H3 id="architecture">7.3 技术架构图</H3>
-          <div className="bg-gray-900 text-green-400 p-6 rounded-lg text-xs font-mono leading-relaxed overflow-x-auto my-4">
-{`┌──────────────────────────────────────────────────────┐
-│              前端 (React 18 + TypeScript)              │
-│  Vite · Tailwind CSS · Ant Design · ECharts           │
-│  React Router · i18next · React Query                 │
-│  G6 (拓扑) · D3.js (攻击面) · jsencrypt (RSA)         │
-└──────────────────────┬───────────────────────────────┘
-                       │ HTTP REST + JWT Auth
-┌──────────────────────▼───────────────────────────────┐
-│              后端 (Spring Boot 3 + Java 17)            │
-│                                                       │
-│  Auth · Scan Engine · Asset Mgmt · Vulnerability Mgmt │
-│  Report Gen · Intel Service · Screenshot · Notify     │
-└──────────────────────┬───────────────────────────────┘
-                       │ JDBC
-┌──────────────────────▼───────────────────────────────┐
-│                  MySQL 8.0 数据库                      │
-└──────────────────────────────────────────────────────┘
-
-外部工具:  Nmap (端口扫描) · Nuclei (漏洞扫描)
-          Censys (主机情报) · VirusTotal (威胁情报)`}
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-8 mb-2">{text.linksTitle}</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {text.links.map((link) => (
+              <a
+                key={link.path}
+                href={link.path}
+                className="flex items-center justify-between px-3 py-2 rounded border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                <span className="text-sm">{link.label}</span>
+                <span className="text-xs text-blue-600 dark:text-blue-400">{text.btnGo}</span>
+              </a>
+            ))}
           </div>
         </div>
       </div>
     </div>
   )
 }
+
