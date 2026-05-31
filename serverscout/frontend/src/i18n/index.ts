@@ -3,11 +3,20 @@ import { initReactI18next } from 'react-i18next'
 import zh from './locales/zh.json'
 import en from './locales/en.json'
 
-const saved = localStorage.getItem('lang') || 'zh'
+function detectBrowserLang() {
+  if (typeof navigator === 'undefined') return 'zh'
+  const langs = [...(navigator.languages || []), navigator.language]
+    .filter(Boolean)
+    .map((value) => value.toLowerCase())
+  return langs.some((value) => value.startsWith('zh')) ? 'zh' : 'en'
+}
+
+const saved = localStorage.getItem('lang')
+const initialLang = saved || detectBrowserLang()
 
 i18n.use(initReactI18next).init({
   resources: { zh: { translation: zh }, en: { translation: en } },
-  lng: saved,
+  lng: initialLang,
   fallbackLng: 'zh',
   interpolation: { escapeValue: false },
 })
