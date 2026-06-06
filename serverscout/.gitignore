@@ -47,3 +47,5 @@ _tmp_browser_test/
 *.txt
 !serverscout-init.sql
 .playwright-mcp/
+serverscout/release/*.zip
+*.zip
