@@ -3,8 +3,12 @@ package com.serverscout.service;
 import com.serverscout.dto.CreateScanTaskRequest;
 import com.serverscout.dto.ScanSummary;
 import com.serverscout.dto.ScanTaskResponse;
-import com.serverscout.entity.*;
+import com.serverscout.entity.Asset;
+import com.serverscout.entity.Port;
+import com.serverscout.entity.ScanAssetMapping;
+import com.serverscout.entity.ScanTask;
 import com.serverscout.repository.*;
+import com.serverscout.service.scan.TargetConcurrencyLimiter;
 import com.serverscout.util.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,25 +16,36 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ScanService {
+    private static final Pattern HOST_OR_HOST_PORT = Pattern.compile("^[\\w.-]+(?::\\d{1,5})?$");
+    private static final Pattern PORT_TOKEN = Pattern.compile("^\\d{1,5}(?:-\\d{1,5})?$");
 
     private final ScanTaskRepository scanTaskRepository;
     private final AssetRepository assetRepository;
     private final PortRepository portRepository;
     private final ScanAssetMappingRepository scanAssetMappingRepository;
     private final WebFingerprintRepository webFingerprintRepository;
+    private final CrawledUrlRepository crawledUrlRepository;
     private final ScanExecutionService scanExecutionService;
-
+    private final ProgressEmitter progressEmitter;
+    private final TargetConcurrencyLimiter targetConcurrencyLimiter;
+    @Transactional
     public ScanTaskResponse createTask(CreateScanTaskRequest req, String createdBy) {
+        validateTargetRange(req.getTargetRange());
+        validatePortRange(req.getPortRange());
+
         ScanTask task = ScanTask.builder()
                 .name(req.getName())
                 .targetRange(req.getTargetRange())
@@ -46,8 +61,17 @@ public class ScanService {
                 .createdBy(createdBy)
                 .build();
         task = scanTaskRepository.save(task);
-
-        scanExecutionService.executeScan(task.getId());
+        final Long taskId = task.getId();
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    scanExecutionService.executeScan(taskId);
+                }
+            });
+        } else {
+            scanExecutionService.executeScan(taskId);
+        }
 
         return toResponse(task);
     }
@@ -82,12 +106,21 @@ public class ScanService {
     public void deleteTask(Long id) {
         ScanTask task = scanTaskRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ScanTask", id));
-        // Cancel running tasks first so the async executor stops
-        if ("running".equals(task.getStatus())) {
+
+        boolean wasRunning = "running".equals(task.getStatus());
+        if ("running".equals(task.getStatus()) || "pending".equals(task.getStatus())) {
+            scanExecutionService.forceCancel(id);
             task.setStatus("cancelled");
             scanTaskRepository.save(task);
         }
-        // 解除资产与此任务的关联
+        if (wasRunning) {
+            targetConcurrencyLimiter.forceReleaseByTarget(task.getTargetRange());
+        }
+        progressEmitter.cleanup(id);
+
+        // Delete child rows first to avoid FK violations.
+        crawledUrlRepository.deleteByTaskId(id);
+
         List<ScanAssetMapping> mappings = scanAssetMappingRepository.findByScanTaskId(id);
         for (ScanAssetMapping m : mappings) {
             Asset asset = m.getAsset();
@@ -95,20 +128,126 @@ public class ScanService {
                 asset.setTask(null);
                 assetRepository.save(asset);
             }
-            scanAssetMappingRepository.delete(m);
         }
+        if (!mappings.isEmpty()) {
+            scanAssetMappingRepository.deleteAll(mappings);
+        }
+
         scanTaskRepository.delete(task);
     }
 
     public void cancelTask(Long id) {
         ScanTask task = scanTaskRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ScanTask", id));
-        if (!"running".equals(task.getStatus())) {
-            throw new IllegalStateException("Task is not running");
+
+        if ("completed".equals(task.getStatus()) || "failed".equals(task.getStatus()) || "cancelled".equals(task.getStatus())) {
+            throw new IllegalStateException("Task already finished");
         }
+
+        boolean wasRunning = "running".equals(task.getStatus());
         scanExecutionService.forceCancel(id);
         task.setStatus("cancelled");
         scanTaskRepository.save(task);
+        if (wasRunning) {
+            targetConcurrencyLimiter.forceReleaseByTarget(task.getTargetRange());
+        }
+        progressEmitter.cleanup(id);
+    }
+
+    private void validateTargetRange(String targetRange) {
+        if (targetRange == null || targetRange.isBlank()) {
+            throw new IllegalArgumentException("Scan target cannot be empty");
+        }
+        String[] targets = targetRange.split(",");
+        boolean hasAny = false;
+        for (String raw : targets) {
+            String target = raw == null ? "" : raw.trim();
+            if (target.isEmpty()) {
+                continue;
+            }
+            hasAny = true;
+            if (isIpv4(target) || isCidr(target) || isHostOrHostPort(target)) {
+                continue;
+            }
+            throw new IllegalArgumentException("Invalid target format: " + target);
+        }
+        if (!hasAny) {
+            throw new IllegalArgumentException("Scan target cannot be empty");
+        }
+    }
+
+    private void validatePortRange(String portRange) {
+        if (portRange == null || portRange.isBlank()) {
+            throw new IllegalArgumentException("Port range cannot be empty");
+        }
+        for (String raw : portRange.split(",")) {
+            String token = raw.trim();
+            if (!PORT_TOKEN.matcher(token).matches()) {
+                throw new IllegalArgumentException("Invalid port range: " + token);
+            }
+            String[] bounds = token.split("-");
+            int start = Integer.parseInt(bounds[0]);
+            int end = bounds.length == 2 ? Integer.parseInt(bounds[1]) : start;
+            if (start < 1 || end > 65535 || start > end) {
+                throw new IllegalArgumentException("Invalid port range: " + token);
+            }
+        }
+    }
+
+    private boolean isHostOrHostPort(String value) {
+        if (!HOST_OR_HOST_PORT.matcher(value).matches()) {
+            return false;
+        }
+        int colonIdx = value.lastIndexOf(':');
+        if (colonIdx > 0 && colonIdx < value.length() - 1) {
+            try {
+                int port = Integer.parseInt(value.substring(colonIdx + 1));
+                return port >= 1 && port <= 65535;
+            } catch (NumberFormatException ex) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isCidr(String value) {
+        int slash = value.indexOf('/');
+        if (slash <= 0 || slash >= value.length() - 1) {
+            return false;
+        }
+        String ip = value.substring(0, slash);
+        String mask = value.substring(slash + 1);
+        if (!isIpv4(ip)) {
+            return false;
+        }
+        try {
+            int m = Integer.parseInt(mask);
+            return m >= 0 && m <= 32;
+        } catch (NumberFormatException ex) {
+            return false;
+        }
+    }
+
+    private boolean isIpv4(String value) {
+        String[] parts = value.split("\\.");
+        if (parts.length != 4) {
+            return false;
+        }
+        for (String part : parts) {
+            if (part.isEmpty() || part.length() > 3) {
+                return false;
+            }
+            for (int i = 0; i < part.length(); i++) {
+                if (!Character.isDigit(part.charAt(i))) {
+                    return false;
+                }
+            }
+            int n = Integer.parseInt(part);
+            if (n < 0 || n > 255) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private ScanTaskResponse toResponse(ScanTask task) {
@@ -130,7 +269,6 @@ public class ScanService {
         List<Asset> assets = mappings.stream().map(ScanAssetMapping::getAsset)
                 .distinct().collect(Collectors.toList());
 
-        // Task-scoped port count and web service count
         int taskPortCount = 0;
         int webCount = 0;
         Map<Integer, Long> portDist = new HashMap<>();
@@ -145,7 +283,7 @@ public class ScanService {
         List<ScanSummary.PortStat> topPorts = portDist.entrySet().stream()
                 .sorted(Map.Entry.<Integer, Long>comparingByValue().reversed())
                 .limit(10).map(e -> ScanSummary.PortStat.builder()
-                    .port(e.getKey()).count(e.getValue()).build())
+                        .port(e.getKey()).count(e.getValue()).build())
                 .collect(Collectors.toList());
 
         long crit = assets.stream().mapToLong(a ->
@@ -175,3 +313,4 @@ public class ScanService {
                 .summary(summary).build();
     }
 }
+

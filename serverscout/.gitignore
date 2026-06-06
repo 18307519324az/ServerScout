@@ -40,8 +40,10 @@ coverage/
 CLAUDE.md
 .mcp.json
 
-# Screenshots and temp test output
-*.png
-*.jpg
+# Temp test output and screenshots (keep docs images and submission screenshots)
+screenshots/
+test-results/
+_tmp_browser_test/
 *.txt
+!serverscout-init.sql
 .playwright-mcp/

@@ -37,11 +37,17 @@ public class AssetController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long taskId,
             Authentication auth) {
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
+        if (taskId != null) {
+            // Task-scoped asset query is backed by ScanAssetMapping query root.
+            // Avoid applying Asset.updatedAt sort here, otherwise JPQL sort path can be invalid.
+            pageable = PageRequest.of(page, size);
+        }
         String username = getUsername(auth);
         boolean admin = isAdmin(auth);
-        var result = assetService.listAssets(keyword, status, pageable, username, admin);
+        var result = assetService.listAssets(keyword, status, taskId, pageable, username, admin);
         return ApiResponse.success(result);
     }
 

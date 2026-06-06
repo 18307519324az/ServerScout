@@ -15,6 +15,43 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
 
     List<Asset> findByTaskId(Long taskId);
 
+    @Query(
+            value = "SELECT DISTINCT m.asset FROM ScanAssetMapping m " +
+                    "WHERE m.scanTask.id = :taskId " +
+                    "AND (:keyword IS NULL OR LOWER(m.asset.ipAddress) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                    "OR LOWER(COALESCE(m.asset.hostname, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                    "AND (:status IS NULL OR m.asset.status = :status)",
+            countQuery = "SELECT COUNT(DISTINCT m.asset.id) FROM ScanAssetMapping m " +
+                    "WHERE m.scanTask.id = :taskId " +
+                    "AND (:keyword IS NULL OR LOWER(m.asset.ipAddress) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                    "OR LOWER(COALESCE(m.asset.hostname, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                    "AND (:status IS NULL OR m.asset.status = :status)"
+    )
+    Page<Asset> searchByScanTask(@Param("taskId") Long taskId,
+                                 @Param("keyword") String keyword,
+                                 @Param("status") String status,
+                                 Pageable pageable);
+
+    @Query(
+            value = "SELECT DISTINCT m.asset FROM ScanAssetMapping m " +
+                    "WHERE m.scanTask.id = :taskId " +
+                    "AND m.scanTask.createdBy = :createdBy " +
+                    "AND (:keyword IS NULL OR LOWER(m.asset.ipAddress) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                    "OR LOWER(COALESCE(m.asset.hostname, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                    "AND (:status IS NULL OR m.asset.status = :status)",
+            countQuery = "SELECT COUNT(DISTINCT m.asset.id) FROM ScanAssetMapping m " +
+                    "WHERE m.scanTask.id = :taskId " +
+                    "AND m.scanTask.createdBy = :createdBy " +
+                    "AND (:keyword IS NULL OR LOWER(m.asset.ipAddress) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                    "OR LOWER(COALESCE(m.asset.hostname, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                    "AND (:status IS NULL OR m.asset.status = :status)"
+    )
+    Page<Asset> searchByScanTaskAndCreatedBy(@Param("taskId") Long taskId,
+                                             @Param("keyword") String keyword,
+                                             @Param("status") String status,
+                                             @Param("createdBy") String createdBy,
+                                             Pageable pageable);
+
     @Query("SELECT a FROM Asset a WHERE " +
            "(:keyword IS NULL OR LOWER(a.ipAddress) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
            "OR LOWER(a.hostname) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +

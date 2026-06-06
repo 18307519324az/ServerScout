@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { Shield, LayoutDashboard, Server, ScanLine, Bug, Network, FileText, Settings, Globe, Moon, Sun, Map, Menu, X, Languages, BookOpen } from 'lucide-react'
+import { Shield, LayoutDashboard, Server, ScanLine, Bug, Network, FileText, Settings, Globe, Moon, Sun, Map, Menu, X, Languages, BookOpen, Bot } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import useDarkMode from '../hooks/useDarkMode'
 
@@ -12,6 +12,7 @@ const navKeys = [
   { path: '/topology', key: 'topology', icon: Network },
   { path: '/attack-surface', key: 'attackSurface', icon: Map },
   { path: '/intel', key: 'intel', icon: Globe },
+  { path: '/ai-briefing', key: 'aiBriefing', icon: Bot },
   { path: '/reports', key: 'reports', icon: FileText },
   { path: '/settings', key: 'settings', icon: Settings },
 ]
@@ -31,7 +32,8 @@ export default function MainLayout() {
 
   const handleLogout = () => {
     localStorage.removeItem('token')
-    navigate('/login')
+    localStorage.removeItem('role')
+    navigate('/')
   }
 
   const closeSidebar = () => setSidebarOpen(false)

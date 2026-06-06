@@ -36,13 +36,16 @@ public class CrawlerService {
     @Value("${app.crawler.max-depth:3}")
     private int maxDepth;
 
-    @Value("${app.crawler.request-delay-ms:500}")
+    @Value("${app.crawler.request-delay-ms:120}")
     private int requestDelayMs;
+
+    @Value("${app.crawler.request-jitter-ms:80}")
+    private int requestJitterMs;
 
     @Value("${app.crawler.timeout-seconds:10}")
     private int timeoutSeconds;
 
-    @Value("${app.crawler.max-concurrent:3}")
+    @Value("${app.crawler.max-concurrent:6}")
     private int maxConcurrent;
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
@@ -119,7 +122,8 @@ public class CrawlerService {
         if (!bloomFilter.add(urlKey)) return; // Already crawled
 
         try {
-            Thread.sleep(requestDelayMs + random.nextInt(300));
+            int jitter = requestJitterMs > 0 ? random.nextInt(requestJitterMs + 1) : 0;
+            Thread.sleep(Math.max(0, requestDelayMs) + jitter);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return;

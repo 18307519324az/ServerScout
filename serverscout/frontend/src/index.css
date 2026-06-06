@@ -84,3 +84,13 @@ body {
   to { transform: translateX(0); opacity: 1; }
 }
 .toast-enter { animation: slideIn 0.3s ease-out; }
+
+@keyframes floatSlow {
+  0% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-8px) scale(1.01); }
+  100% { transform: translateY(0px) scale(1); }
+}
+
+.floating-image {
+  animation: floatSlow 8s ease-in-out infinite;
+}

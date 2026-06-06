@@ -1,4 +1,4 @@
-# 测试环境 — H2 内存数据库
+# test profile with in-memory H2
 spring:
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=MySQL

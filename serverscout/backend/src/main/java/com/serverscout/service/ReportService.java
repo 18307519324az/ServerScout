@@ -113,7 +113,7 @@ public class ReportService {
 
     private PdfFont loadChineseFont() {
         // Try configured path first
-        String[] candidatePaths = {
+        String[] configuredFontPaths = {
             fontPath,
             "C:/Windows/Fonts/msyh.ttc",
             "C:/Windows/Fonts/msyhbd.ttf",
@@ -126,7 +126,7 @@ public class ReportService {
             "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
         };
 
-        for (String path : candidatePaths) {
+        for (String path : configuredFontPaths) {
             try {
                 Path p = Paths.get(path);
                 if (Files.exists(p)) {

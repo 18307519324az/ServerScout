@@ -13,6 +13,7 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -47,8 +48,10 @@ public class NmapScannerImpl implements ScannerStrategy {
             List<String> command = buildCommand(task);
             return executeCommand(command, task.getId());
 
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            throw new ScanException("Nmap execution failed", e);
+        } catch (IOException e) {
             throw new ScanException("Nmap execution failed", e);
         }
     }
@@ -57,20 +60,23 @@ public class NmapScannerImpl implements ScannerStrategy {
         log.info("Executing Nmap: {}", String.join(" ", command));
 
         ProcessBuilder pb = new ProcessBuilder(command);
-        pb.redirectErrorStream(true);
+        pb.redirectErrorStream(false);
         Process process = pb.start();
         processRegistry.register(taskId, process);
 
-        StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-        }
+        CompletableFuture<String> stdoutFuture = CompletableFuture.supplyAsync(() ->
+                readStream(process.getInputStream()));
+        CompletableFuture<String> stderrFuture = CompletableFuture.supplyAsync(() ->
+                readStream(process.getErrorStream()));
 
         int exitCode = process.waitFor();
+        String stdout = stdoutFuture.join();
+        String stderr = stderrFuture.join();
+
+        if (stderr != null && !stderr.isBlank()) {
+            String compact = stderr.length() > 800 ? stderr.substring(0, 800) + "..." : stderr;
+            log.debug("Nmap stderr: {}", compact.replace("\r", " ").replace("\n", " | "));
+        }
 
         if (exitCode != 0) {
             // SYN scan (-sS) and OS detection (-O) both require root/cap_net_raw.
@@ -87,10 +93,11 @@ public class NmapScannerImpl implements ScannerStrategy {
                 retryCmd.removeIf(arg -> "-O".equals(arg));
                 return executeCommand(retryCmd, taskId);
             }
-            throw new ScanException("Nmap exited with code: " + exitCode);
+            throw new ScanException("Nmap exited with code: " + exitCode
+                    + (stderr != null && !stderr.isBlank() ? ", stderr: " + stderr : ""));
         }
 
-        return parseXmlOutput(output.toString());
+        return parseXmlOutput(stdout);
     }
 
     private List<String> buildCommand(ScanTask task) {
@@ -103,7 +110,9 @@ public class NmapScannerImpl implements ScannerStrategy {
             case "quick" -> {
                 cmd.add("-sS");
                 cmd.add("-sV");
-                cmd.add("--top-ports"); cmd.add("100");
+                if (task.getPortRange() == null || task.getPortRange().isBlank()) {
+                    cmd.add("--top-ports"); cmd.add("100");
+                }
                 cmd.add("--version-intensity"); cmd.add("3");
                 cmd.add("--script"); cmd.add("banner");
                 cmd.add("--script-timeout"); cmd.add("30s");
@@ -122,7 +131,7 @@ public class NmapScannerImpl implements ScannerStrategy {
             }
         }
 
-        if (task.getPortRange() != null) {
+        if (task.getPortRange() != null && !task.getPortRange().isBlank()) {
             cmd.add("-p"); cmd.add(task.getPortRange());
         } else if ("full".equals(task.getScanType())) {
             cmd.add("-p"); cmd.add("1-65535");
@@ -134,9 +143,10 @@ public class NmapScannerImpl implements ScannerStrategy {
 
     private ScanResult parseXmlOutput(String xml) {
         try {
+            String xmlBody = extractXmlBody(xml);
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
-            Document doc = builder.parse(new org.xml.sax.InputSource(new StringReader(xml)));
+            Document doc = builder.parse(new org.xml.sax.InputSource(new StringReader(xmlBody)));
 
             NodeList hostNodes = doc.getElementsByTagName("host");
             List<ScanResult.AssetEntry> assets = new ArrayList<>();
@@ -218,6 +228,33 @@ public class NmapScannerImpl implements ScannerStrategy {
         } catch (Exception e) {
             throw new ScanException("Failed to parse Nmap XML output", e);
         }
+    }
+
+    private String extractXmlBody(String raw) {
+        if (raw == null) return "";
+        String text = raw.trim();
+
+        int start = text.indexOf("<?xml");
+        if (start < 0) start = text.indexOf("<nmaprun");
+
+        int end = text.lastIndexOf("</nmaprun>");
+        if (start >= 0 && end >= 0 && end > start) {
+            return text.substring(start, end + "</nmaprun>".length());
+        }
+        return text;
+    }
+
+    private String readStream(InputStream stream) {
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append('\n');
+            }
+        } catch (IOException e) {
+            log.debug("Failed reading process stream: {}", e.getMessage());
+        }
+        return sb.toString();
     }
 
     private String getChildText(Element parent, String tag, String attr) {

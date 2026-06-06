@@ -18,6 +18,22 @@ export interface ApiResponse<T> {
   timestamp: string
 }
 
+export interface AiBriefSection {
+  key: string
+  title: string
+  body: string
+  items: string[]
+}
+
+export interface AiBriefingResult {
+  mode: 'llm' | 'local-analysis'
+  language: string
+  inputSummary: string
+  detectedSignals: Record<string, string[]>
+  sections: AiBriefSection[]
+  warnings: string[]
+}
+
 export interface PageData<T> {
   content: T[]
   page: {

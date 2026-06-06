@@ -3,9 +3,9 @@ package com.serverscout.service.scan;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
 @Component
@@ -14,7 +14,7 @@ public class ProcessRegistry {
     private final ConcurrentHashMap<Long, List<Process>> taskProcesses = new ConcurrentHashMap<>();
 
     public void register(Long taskId, Process process) {
-        taskProcesses.computeIfAbsent(taskId, k -> new ArrayList<>()).add(process);
+        taskProcesses.computeIfAbsent(taskId, k -> new CopyOnWriteArrayList<>()).add(process);
     }
 
     public void destroyAll(Long taskId) {

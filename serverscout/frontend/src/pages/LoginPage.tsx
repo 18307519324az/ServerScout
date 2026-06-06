@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  AlertTriangle,
   ArrowRight,
   ChevronDown,
   Eye,
@@ -10,7 +9,6 @@ import {
   ScanSearch,
   Shield,
   Sparkles,
-  X,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { fetchCaptcha, fetchPublicKey, login, register } from '../services/api'
@@ -35,8 +33,6 @@ export default function LoginPage() {
   const [captchaImage, setCaptchaImage] = useState('')
   const [captchaAnswer, setCaptchaAnswer] = useState('')
   const [captchaLoading, setCaptchaLoading] = useState(false)
-
-  const [showDisclaimer, setShowDisclaimer] = useState(false)
 
   const genderOptions = [
     { value: 'MALE', label: t('login.male') },
@@ -243,23 +239,6 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              <div className="mb-6 rounded-2xl border border-amber-300/15 bg-amber-300/8 px-4 py-3 text-sm text-amber-100">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-300" />
-                  <div className="min-w-0">
-                    <p className="font-medium">{t('login.disclaimerTitle')}</p>
-                    <p className="mt-1 text-amber-100/80">{t('login.disclaimerSummary')}</p>
-                    <button
-                      type="button"
-                      onClick={() => setShowDisclaimer(true)}
-                      className="mt-2 text-xs font-medium text-amber-200 underline underline-offset-4"
-                    >
-                      {t('login.disclaimerRead')}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
               <div className="mb-6">
                 <p className="text-sm uppercase tracking-[0.18em] text-sky-300/80">
                   {isRegister ? t('login.registrationPortal') : t('login.secureAccess')}
@@ -414,48 +393,6 @@ export default function LoginPage() {
           </section>
         </div>
       </div>
-
-      {showDisclaimer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
-          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-[28px] border border-white/10 bg-[#09111d] shadow-2xl shadow-black/50">
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
-              <div>
-                <h2 className="text-lg font-semibold text-white">{t('login.disclaimerTitle')}</h2>
-                <p className="mt-1 text-sm text-slate-400">{t('login.authorizedUseOnly')}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowDisclaimer(false)}
-                className="rounded-full border border-white/10 p-2 text-slate-300 transition hover:bg-white/10"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3 overflow-y-auto px-6 py-5 text-sm leading-7 text-slate-300">
-              <p><strong>1.</strong> {t('login.disclaimerItem1')}</p>
-              <p><strong>2.</strong> {t('login.disclaimerItem2')}</p>
-              <p><strong>3.</strong> {t('login.disclaimerItem3')}</p>
-              <p><strong>4.</strong> {t('login.disclaimerItem4')}</p>
-              <p><strong>5.</strong> {t('login.disclaimerItem5')}</p>
-              <p><strong>6.</strong> {t('login.disclaimerItem6')}</p>
-              <p><strong>7.</strong> {t('login.disclaimerItem7')}</p>
-              <p><strong>8.</strong> {t('login.disclaimerItem8')}</p>
-              <p className="pt-2 text-xs italic text-slate-500">{t('login.disclaimerFinal')}</p>
-            </div>
-
-            <div className="border-t border-white/10 bg-white/[0.02] px-6 py-5">
-              <button
-                type="button"
-                onClick={() => setShowDisclaimer(false)}
-                className="inline-flex w-full items-center justify-center rounded-2xl border border-sky-300/30 bg-sky-500/25 px-4 py-3 text-sm font-semibold text-sky-100 transition hover:bg-sky-500/35"
-              >
-                {t('login.disclaimerAgree')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

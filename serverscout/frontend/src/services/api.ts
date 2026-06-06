@@ -4,6 +4,7 @@ import type {
   DashboardStats, TopologyData, CreateScanTaskRequest,
   Subdomain, SubdomainStats, User,
   HoneypotStats, HoneypotDetectionInfo,
+  AiBriefingResult,
 } from '../types'
 
 function isTokenExpired(token: string): boolean {
@@ -97,7 +98,7 @@ export const updateSystemConfigs = (configs: Record<string, string>) =>
   http.put<ApiResponse<void>>('/v1/config', configs)
 
 // Assets
-export const fetchAssets = (params: { page?: number; size?: number; keyword?: string; status?: string }) =>
+export const fetchAssets = (params: { page?: number; size?: number; keyword?: string; status?: string; taskId?: number }) =>
   http.get<ApiResponse<PageData<Asset>>>('/v1/assets', { params })
 
 export const fetchAssetDetail = (id: number) =>
@@ -206,6 +207,9 @@ export const lookupIpReputation = (ip: string) =>
 export const getCombinedReport = (target: string) =>
   http.get<ApiResponse<any>>('/v1/intel/report', { params: { target } })
 
+export const syncIntel = () =>
+  http.post<ApiResponse<any>>('/v1/intel/sync')
+
 // Scan Strategy Plugins (L2)
 export const fetchPlugins = () =>
   http.get<ApiResponse<any[]>>('/v1/plugins')
@@ -281,3 +285,9 @@ export const exportOperationLogs = (params: {
 
 export const fetchOperationLogStats = () =>
   http.get<ApiResponse<any>>('/v1/operation-logs/stats')
+
+export const recalculateVulnerabilityRisk = () =>
+  http.post<ApiResponse<{ recalculated: number }>>('/v1/vulnerabilities/recalculate-risk')
+
+export const generateAiBriefing = (evidence: string, locale: string) =>
+  http.post<ApiResponse<AiBriefingResult>>('/v1/ai-briefing/generate', { evidence, locale })

@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface PortRepository extends JpaRepository<Port, Long> {
     List<Port> findByAssetId(Long assetId);
 
+    List<Port> findByAssetIdIn(List<Long> assetIds);
+
     long countByIsWebServiceTrue();
 
     @Query("SELECT p.portNumber, COUNT(p) FROM Port p " +

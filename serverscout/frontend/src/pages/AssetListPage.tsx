@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchAssets, mergeAssets, deleteAsset } from '../services/api'
 import { useToast } from '../hooks/useToast'
@@ -8,12 +8,13 @@ import { useDebounce } from '../hooks/useDebounce'
 import StatusBadge from '../components/StatusBadge'
 import Pagination from '../components/Pagination'
 import ConfirmDialog from '../components/ConfirmDialog'
-import { Search, GitMerge, CheckSquare, Square, Trash2, AlertTriangle } from 'lucide-react'
+import { Search, GitMerge, CheckSquare, Square, Trash2, AlertTriangle, Network } from 'lucide-react'
 import dayjs from 'dayjs'
 
 export default function AssetListPage() {
   const { t } = useTranslation()
   const toast = useToast()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [page, setPage] = useState(0)
   const [pageSize, setPageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
@@ -21,10 +22,22 @@ export default function AssetListPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [deleteId, setDeleteId] = useState<number | null>(null)
   const queryClient = useQueryClient()
+  const taskIdParam = searchParams.get('taskId')
+  const taskIdFilter = taskIdParam && /^\d+$/.test(taskIdParam) ? Number(taskIdParam) : undefined
+
+  useEffect(() => {
+    setPage(0)
+    setSelected(new Set())
+  }, [taskIdFilter])
 
   const { data, isLoading } = useQuery({
-    queryKey: ['assets', page, pageSize, debouncedKeyword],
-    queryFn: () => fetchAssets({ page, size: pageSize, keyword: debouncedKeyword || undefined }),
+    queryKey: ['assets', page, pageSize, debouncedKeyword, taskIdFilter],
+    queryFn: () => fetchAssets({
+      page,
+      size: pageSize,
+      keyword: debouncedKeyword || undefined,
+      taskId: taskIdFilter,
+    }),
   })
 
   const mergeMutation = useMutation({
@@ -40,7 +53,7 @@ export default function AssetListPage() {
   const deleteMutation = useMutation({
     mutationFn: deleteAsset,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['assets'] }); setDeleteId(null); toast.success(t('assets.deleteSuccess')) },
-    onError: (err: any) => { toast.error(err?.response?.data?.message || t('common.delete') + '失败') },
+    onError: (err: any) => { toast.error(err?.response?.data?.message || t('assets.deleteFailed')) },
   })
 
   const assets = data?.data?.data?.content ?? []
@@ -77,8 +90,33 @@ export default function AssetListPage() {
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold dark:text-white">{t('assets.title')}</h1>
           <span className="text-sm text-gray-500 dark:text-gray-400">{t('assets.total').replace('{count}', String(totalElements))}</span>
+          {taskIdFilter && (
+            <span className="inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
+              {t('assets.taskFilterLabel', { id: taskIdFilter })}
+              <button
+                type="button"
+                onClick={() => {
+                  const next = new URLSearchParams(searchParams)
+                  next.delete('taskId')
+                  setSearchParams(next)
+                }}
+                className="font-bold hover:opacity-70"
+                aria-label={t('assets.clearFilter')}
+                title={t('assets.clearFilter')}
+              >
+                x
+              </button>
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            to="/topology"
+            className="flex items-center gap-1.5 px-3 py-2 border dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            <Network className="w-4 h-4" />
+            {t('nav.topology')}
+          </Link>
           {selected.size >= 2 && (
             <button
               onClick={handleMerge}
@@ -120,11 +158,27 @@ export default function AssetListPage() {
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
                   <div className="flex justify-between"><span>{t('common.hostname')}</span><span className="dark:text-gray-300">{a.hostname || '-'}</span></div>
-                  <div className="flex justify-between"><span>{t('common.openPorts')}</span><span className="font-mono">{a.openPortCount}</span></div>
+                  <div className="flex justify-between">
+                    <span>{t('common.openPorts')}</span>
+                    {a.openPortCount > 0 ? (
+                      <Link to={`/assets/${a.id}?section=ports`} className="font-mono text-blue-600 dark:text-blue-400 hover:underline">
+                        {a.openPortCount}
+                      </Link>
+                    ) : (
+                      <span className="font-mono">{a.openPortCount}</span>
+                    )}
+                  </div>
                   <div className="flex justify-between"><span>{t('common.criticalVulns')}</span><span className={a.criticalVulnCount > 0 ? 'text-red-600 font-bold' : ''}>{a.criticalVulnCount}</span></div>
                   <div className="flex justify-between"><span>{t('common.lastScan')}</span><span>{a.lastScanTime ? dayjs(a.lastScanTime).format('MM-DD HH:mm') : '-'}</span></div>
                 </div>
-                <div className="flex justify-end mt-2">
+                <div className="flex justify-end mt-2 gap-2">
+                  <Link
+                    to={`/topology?assetId=${a.id}`}
+                    className="p-1 text-gray-400 hover:text-blue-600"
+                    title={t('nav.topology')}
+                  >
+                    <Network className="w-4 h-4" />
+                  </Link>
                   <button onClick={() => setDeleteId(a.id)}
                     className="p-1 text-gray-400 hover:text-red-600">
                     <Trash2 className="w-4 h-4" />
@@ -181,7 +235,15 @@ export default function AssetListPage() {
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{a.hostname || '-'}</td>
                     <td className="px-4 py-3 text-xs text-gray-700 dark:text-gray-200">{a.osFingerprint || '-'}</td>
                     <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
-                    <td className="px-4 py-3 text-center font-mono text-gray-800 dark:text-gray-200">{a.openPortCount}</td>
+                    <td className="px-4 py-3 text-center font-mono">
+                      {a.openPortCount > 0 ? (
+                        <Link to={`/assets/${a.id}?section=ports`} className="text-blue-600 dark:text-blue-400 hover:underline">
+                          {a.openPortCount}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-800 dark:text-gray-200">{a.openPortCount}</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-center">
                       <span className={a.criticalVulnCount > 0 ? 'text-red-600 font-bold' : 'text-gray-500 dark:text-gray-400'}>
                         {a.criticalVulnCount}
@@ -191,10 +253,19 @@ export default function AssetListPage() {
                       {a.lastScanTime ? dayjs(a.lastScanTime).format('MM-DD HH:mm') : '-'}
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => setDeleteId(a.id)}
-                        className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600 transition">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={`/topology?assetId=${a.id}`}
+                          className="p-1 text-gray-400 dark:text-gray-500 hover:text-blue-600 transition"
+                          title={t('nav.topology')}
+                        >
+                          <Network className="w-4 h-4" />
+                        </Link>
+                        <button onClick={() => setDeleteId(a.id)}
+                          className="p-1 text-gray-400 dark:text-gray-500 hover:text-red-600 transition">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -225,3 +296,4 @@ export default function AssetListPage() {
     </div>
   )
 }
+

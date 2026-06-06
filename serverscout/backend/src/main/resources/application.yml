@@ -46,6 +46,12 @@ logging:
     org.springframework: WARN
 
 app:
+  ai:
+    base-url: ${AI_BASE_URL:}
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:}
+    timeout-seconds: ${AI_TIMEOUT_SECONDS:45}
+    max-attempts: ${AI_MAX_ATTEMPTS:2}
   jwt:
     secret: ${JWT_SECRET:ServerScout2026SecretKeyForJWTTokenGenerationMustBeLongEnough}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
@@ -64,6 +70,7 @@ app:
       use-redis: ${SCAN_TARGET_CONCURRENCY_USE_REDIS:true}
       max-per-target: ${SCAN_TARGET_MAX_CONCURRENT:1}
       acquire-wait-ms: ${SCAN_TARGET_ACQUIRE_WAIT_MS:1500}
+      max-wait-seconds: ${SCAN_TARGET_MAX_WAIT_SECONDS:300}
       redis-ttl-seconds: ${SCAN_TARGET_REDIS_TTL_SECONDS:7200}
   crawler:
     max-pages: ${CRAWLER_MAX_PAGES:50}

@@ -6,12 +6,16 @@ import com.serverscout.service.scan.*;
 import com.serverscout.util.ScanException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -38,22 +42,79 @@ public class ScanExecutionService {
     private final ScreenshotService screenshotService;
     private final HoneypotDetectionService honeypotDetectionService;
     private final ProcessRegistry processRegistry;
+    private final TargetConcurrencyLimiter targetConcurrencyLimiter;
+
+    @Value("${app.scan.http-probe-workers:8}")
+    private int httpProbeWorkers;
+
+    @Value("${app.scan.ssl-collect-workers:6}")
+    private int sslCollectWorkers;
+
+    @Value("${app.scan.auto-screenshot-limit:6}")
+    private int autoScreenshotLimit;
+
+    @Value("${app.scan.target-concurrency.max-wait-seconds:300}")
+    private long targetAcquireMaxWaitSeconds;
 
     @Async("scanExecutor")
     public void executeScan(Long taskId) {
         ScanTask task = scanTaskRepository.findById(taskId).orElse(null);
         if (task == null) { log.error("Scan task {} not found", taskId); return; }
+        TargetConcurrencyLimiter.Lease targetLease = null;
+        long targetWaitStartedAt = System.nanoTime();
 
         try {
+            while (targetLease == null) {
+                if ("cancelled".equals(task.getStatus())) {
+                    log.info("Scan task {} is already cancelled before execution", taskId);
+                    return;
+                }
+                targetLease = targetConcurrencyLimiter.tryAcquire(task.getTargetRange());
+                if (targetLease != null) {
+                    break;
+                }
+                if (TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - targetWaitStartedAt)
+                        >= Math.max(1L, targetAcquireMaxWaitSeconds)) {
+                    throw new ScanException("Timed out waiting for another scan of the same target to finish");
+                }
+
+                if (!"pending".equals(task.getStatus())
+                        || task.getProgress() == null
+                        || task.getProgress() < 1) {
+                    task.setStatus("pending");
+                    task.setProgress(1);
+                    scanTaskRepository.save(task);
+                }
+                progressEmitter.sendProgress(taskId,
+                        task.getProgress() != null ? task.getProgress() : 1,
+                        "Waiting for target scan slot...",
+                        task.getTotalAssets() != null ? task.getTotalAssets() : 0);
+
+                try {
+                    Thread.sleep(targetConcurrencyLimiter.getAcquireWaitMs());
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+
+                task = scanTaskRepository.findById(taskId).orElse(null);
+                if (task == null) {
+                    log.info("Scan task {} removed while waiting for target slot", taskId);
+                    return;
+                }
+            }
+
             task.setStatus("running");
             task.setStartedAt(Instant.now());
+            task.setProgress(5);
             scanTaskRepository.save(task);
-            progressEmitter.sendProgress(taskId, 5, "正在启动端口扫描...", 0);
+            progressEmitter.sendProgress(taskId, 5, "Starting port scan...", 0);
 
+            final String scanType = task.getScanType();
             ScannerStrategy strategy = scannerStrategies.stream()
-                    .filter(s -> s.supports(task.getScanType()))
+                    .filter(s -> s.supports(scanType))
                     .findFirst()
-                    .orElseThrow(() -> new ScanException("No scanner for type: " + task.getScanType()));
+                    .orElseThrow(() -> new ScanException("No scanner for type: " + scanType));
 
             ScanResult result = strategy.execute(task);
 
@@ -80,7 +141,8 @@ public class ScanExecutionService {
 
             if (isCancelled(taskId)) return;
             progressEmitter.sendProgress(taskId, 30,
-                    "端口扫描完成，发现 " + result.getAssets().size() + " 个主机", result.getAssets().size());
+                    "Port scan completed, found " + result.getAssets().size() + " hosts",
+                    result.getAssets().size());
 
             // Phase 1: Save/merge assets and ports with real-time discovery events
             int assetCount = saveScanResults(task, result);
@@ -89,16 +151,17 @@ public class ScanExecutionService {
             task.setProgress(40);
             scanTaskRepository.save(task);
             progressEmitter.sendProgress(taskId, 40,
-                    "资产数据已入库，新增 " + assetCount + " 个", assetCount);
+                    "Asset data saved, " + assetCount + " new hosts", assetCount);
 
             // Phase 1.5: Subdomain enumeration (if target is a domain)
             if (isDomainName(task.getTargetRange())) {
                 try {
-                    progressEmitter.sendProgress(taskId, 42, "正在枚举子域名...", assetCount);
+                    progressEmitter.sendProgress(taskId, 42, "Enumerating subdomains...", assetCount);
                     SubdomainService.SubdomainResult subResult = subdomainService.enumerate(task.getTargetRange());
                     if (isCancelled(taskId)) return;
                     progressEmitter.sendProgress(taskId, 44,
-                            "子域名枚举完成，发现 " + subResult.total() + " 个", assetCount);
+                            "Subdomain enumeration completed, found " + subResult.total() + " subdomains",
+                            assetCount);
                     log.info("Task {}: subdomain enum found {} subdomains", taskId, subResult.total());
                 } catch (Exception e) {
                     log.warn("Subdomain enumeration failed: {}", e.getMessage());
@@ -107,19 +170,19 @@ public class ScanExecutionService {
 
             // Phase 2: HTTP probe for web services
             if (Boolean.TRUE.equals(task.getEnableFingerprint())) {
-                progressEmitter.sendProgress(taskId, 45, "正在探测 Web 服务指纹...", assetCount);
+                progressEmitter.sendProgress(taskId, 45, "Probing web services and fingerprints...", assetCount);
                 probeWebServices(task);
                 if (isCancelled(taskId)) return;
                 task.setProgress(55);
                 scanTaskRepository.save(task);
-                progressEmitter.sendProgress(taskId, 55, "Web 指纹识别完成", assetCount);
+                progressEmitter.sendProgress(taskId, 55, "Web fingerprinting completed", assetCount);
             } else {
                 task.setProgress(55);
             }
 
             // Phase 2.3: Web Crawler + Auto Screenshot (Goby-like)
             if (task.getEnableCrawler() != null && task.getEnableCrawler()) {
-                progressEmitter.sendProgress(taskId, 50, "正在启动爬虫发现...", assetCount);
+                progressEmitter.sendProgress(taskId, 50, "Running crawler discovery...", assetCount);
                 List<ScanAssetMapping> crawlMappings = scanAssetMappingRepository
                         .findByScanTaskIdWithAsset(task.getId());
                 List<Asset> webAssets = crawlMappings.stream()
@@ -130,7 +193,7 @@ public class ScanExecutionService {
                     task.setProgress(57);
                     scanTaskRepository.save(task);
                     progressEmitter.sendProgress(taskId, 57,
-                            "爬虫完成，发现 " + crawled + " 个页面", assetCount);
+                            "Crawler completed, found " + crawled + " pages", assetCount);
                     log.info("Task {}: crawler found {} pages", taskId, crawled);
                 } catch (Exception e) {
                     log.warn("Crawler failed: {}", e.getMessage());
@@ -139,27 +202,27 @@ public class ScanExecutionService {
 
             // Phase 2.5: Vulnerability scanning (Nuclei + CVE matching)
             if (Boolean.TRUE.equals(task.getEnableVulnScan())) {
-                progressEmitter.sendProgress(taskId, 57, "正在执行漏洞扫描...", assetCount);
+                progressEmitter.sendProgress(taskId, 57, "Running vulnerability scan...", assetCount);
                 runVulnScan(task);
                 if (isCancelled(taskId)) return;
                 task.setProgress(65);
                 scanTaskRepository.save(task);
-                progressEmitter.sendProgress(taskId, 65, "漏洞扫描完成", assetCount);
+                progressEmitter.sendProgress(taskId, 65, "Vulnerability scan completed", assetCount);
 
-                progressEmitter.sendProgress(taskId, 67, "正在进行 CVE 匹配...", assetCount);
+                progressEmitter.sendProgress(taskId, 67, "Matching CVEs...", assetCount);
                 int matched = matchCves(task);
                 if (isCancelled(taskId)) return;
                 task.setProgress(70);
                 scanTaskRepository.save(task);
                 progressEmitter.sendProgress(taskId, 70,
-                        "CVE 匹配完成，发现 " + matched + " 个漏洞", assetCount);
+                        "CVE matching completed, found " + matched + " vulnerabilities", assetCount);
             } else {
                 task.setProgress(70);
             }
 
             // Phase 2.7: Web vulnerability detection (SQLi/XSS/CSRF)
             if (Boolean.TRUE.equals(task.getEnableVulnScan())) {
-                progressEmitter.sendProgress(taskId, 72, "正在进行Web漏洞专项检测...", assetCount);
+                progressEmitter.sendProgress(taskId, 72, "Running web vulnerability checks...", assetCount);
                 List<ScanAssetMapping> allMappings = scanAssetMappingRepository
                         .findByScanTaskIdWithAsset(task.getId());
                 List<Asset> detectedAssets = allMappings.stream()
@@ -170,24 +233,25 @@ public class ScanExecutionService {
                 task.setProgress(75);
                 scanTaskRepository.save(task);
                 progressEmitter.sendProgress(taskId, 75,
-                        "Web漏洞检测完成，发现 " + webVulnCount + " 个风险", assetCount);
+                        "Web vulnerability detection completed, found " + webVulnCount + " findings", assetCount);
             }
 
             // Phase 3: SSL cert collection
-            progressEmitter.sendProgress(taskId, 78, "正在采集 SSL 证书...", assetCount);
+            progressEmitter.sendProgress(taskId, 78, "Collecting SSL certificates...", assetCount);
             collectSslCerts(task);
             if (isCancelled(taskId)) return;
             task.setProgress(85);
             scanTaskRepository.save(task);
-            progressEmitter.sendProgress(taskId, 85, "SSL 证书采集完成", task.getTotalPorts());
+            progressEmitter.sendProgress(taskId, 85, "SSL certificate collection completed", task.getTotalPorts());
 
             // Phase 3.5: Certificate transparency analysis
             try {
-                progressEmitter.sendProgress(taskId, 87, "正在分析证书透明度...", assetCount);
+                progressEmitter.sendProgress(taskId, 87, "Analyzing certificate transparency...", assetCount);
                 var ctResult = certTransparencyService.analyzeCertificates(task);
                 if (isCancelled(taskId)) return;
                 progressEmitter.sendProgress(taskId, 88,
-                        "证书透明度分析完成，发现 " + ctResult.get("uniqueDomains") + " 个域名", assetCount);
+                        "Certificate transparency completed, found " + ctResult.get("uniqueDomains") + " unique domains",
+                        assetCount);
                 log.info("Task {}: CT analysis found {} domains", taskId, ctResult.get("uniqueDomains"));
             } catch (Exception e) {
                 log.warn("Certificate transparency analysis failed: {}", e.getMessage());
@@ -195,7 +259,7 @@ public class ScanExecutionService {
 
             // Phase 3.7: Honeypot detection (fingerprint-based, offline)
             try {
-                progressEmitter.sendProgress(taskId, 89, "正在执行蜜罐检测...", assetCount);
+                progressEmitter.sendProgress(taskId, 89, "Running honeypot detection...", assetCount);
                 List<ScanAssetMapping> hpMappings = scanAssetMappingRepository
                         .findByScanTaskIdWithAsset(task.getId());
                 List<Asset> hpAssets = hpMappings.stream()
@@ -206,7 +270,7 @@ public class ScanExecutionService {
                     if (!detections.isEmpty()) honeypotCount++;
                 }
                 progressEmitter.sendProgress(taskId, 90,
-                        "蜜罐检测完成，发现 " + honeypotCount + " 个疑似蜜罐资产", assetCount);
+                        "Honeypot detection completed, found " + honeypotCount + " suspicious assets", assetCount);
                 log.info("Task {}: honeypot detection found {} suspicious assets", taskId, honeypotCount);
             } catch (Exception e) {
                 log.warn("Honeypot detection failed: {}", e.getMessage());
@@ -226,21 +290,32 @@ public class ScanExecutionService {
                 processRegistry.cleanup(taskId);
                 return;
             }
-            log.error("Scan failed for task {} (attempt {}/{})", taskId,
-                    task.getRetryCount() + 1, task.getMaxRetries() + 1, e);
+
+            ScanTask latest = scanTaskRepository.findById(taskId).orElse(null);
+            if (latest == null) {
+                log.info("Scan task {} was deleted after failure, stop retry", taskId);
+                return;
+            }
+            task = latest;
 
             int currentRetry = task.getRetryCount() != null ? task.getRetryCount() : 0;
             int maxRetries = task.getMaxRetries() != null ? task.getMaxRetries() : 3;
+            log.error("Scan failed for task {} (attempt {}/{})", taskId,
+                    currentRetry + 1, maxRetries + 1, e);
 
             if (currentRetry < maxRetries) {
                 task.setRetryCount(currentRetry + 1);
                 task.setErrorMessage("Retry " + task.getRetryCount() + "/" + maxRetries
-                        + ": " + (e.getMessage() != null ? e.getMessage() : "扫描执行异常"));
+                        + ": " + (e.getMessage() != null ? e.getMessage() : "scan execution error"));
                 task.setStatus("pending");
-                task.setProgress(0);
+                task.setProgress(1);
                 scanTaskRepository.save(task);
-                progressEmitter.sendProgress(taskId, 0,
-                        "扫描失败，正在自动重试 (" + task.getRetryCount() + "/" + maxRetries + ")...", 0);
+                progressEmitter.sendProgress(taskId, 1,
+                        "Scan failed, retrying (" + task.getRetryCount() + "/" + maxRetries + ")...", 0);
+
+                // Release slot before retry to avoid self-deadlock on the same target.
+                targetConcurrencyLimiter.release(targetLease);
+                targetLease = null;
 
                 long backoffMs = Math.min(60000L, 5000L * (long) Math.pow(2, currentRetry));
                 try { Thread.sleep(backoffMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); return; }
@@ -250,11 +325,12 @@ public class ScanExecutionService {
             }
 
             task.setStatus("failed");
-            task.setErrorMessage(e.getMessage() != null ? e.getMessage() : "扫描执行异常");
+            task.setErrorMessage(e.getMessage() != null ? e.getMessage() : "scan execution error");
             try { scanTaskRepository.save(task); } catch (Exception ex) { log.error("Failed to save task", ex); }
             progressEmitter.sendError(taskId, task.getErrorMessage());
             webhookService.sendScanCompletedNotification(taskId);
         } finally {
+            targetConcurrencyLimiter.release(targetLease);
             processRegistry.cleanup(taskId);
         }
     }
@@ -266,10 +342,17 @@ public class ScanExecutionService {
 
     private boolean isCancelled(Long taskId) {
         ScanTask task = scanTaskRepository.findById(taskId).orElse(null);
-        if (task != null && "cancelled".equals(task.getStatus())) {
+        if (task == null) {
+            log.info("Scan task {} no longer exists, stopping execution", taskId);
+            return true;
+        }
+        if ("cancelled".equals(task.getStatus())) {
             log.info("Scan task {} was cancelled, stopping execution", taskId);
-            progressEmitter.sendProgress(taskId, task.getProgress(), "扫描已取消", task.getTotalAssets());
-            progressEmitter.sendError(taskId, "扫描已被用户取消");
+            progressEmitter.sendProgress(taskId,
+                    task.getProgress() != null ? task.getProgress() : 0,
+                    "Scan has been cancelled",
+                    task.getTotalAssets() != null ? task.getTotalAssets() : 0);
+            progressEmitter.sendError(taskId, "Scan cancelled by user");
             return true;
         }
         return false;
@@ -280,13 +363,19 @@ public class ScanExecutionService {
         int newAssets = 0;
         int totalPorts = 0;
 
+        List<String> ips = result.getAssets().stream()
+                .map(ScanResult.AssetEntry::getIpAddress)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<String, Asset> existingByIp = assetRepository.findByIpAddressIn(ips).stream()
+                .collect(Collectors.toMap(Asset::getIpAddress, a -> a, (a, b) -> a));
+
         for (ScanResult.AssetEntry ae : result.getAssets()) {
-            Optional<Asset> existingOpt = assetRepository.findByIpAddress(ae.getIpAddress());
-            Asset asset;
+            Asset asset = existingByIp.get(ae.getIpAddress());
             boolean isNew = false;
 
-            if (existingOpt.isPresent()) {
-                asset = existingOpt.get();
+            if (asset != null) {
                 if (ae.getHostname() != null) {
                     appendHostname(asset, ae.getHostname());
                 }
@@ -307,9 +396,10 @@ public class ScanExecutionService {
             }
 
             asset = assetRepository.save(asset);
-            int portCount = syncPorts(asset, ae.getPorts());
-            long actualPortCount = portRepository.countByAssetId(asset.getId());
-            asset.setOpenPortCount((int) actualPortCount);
+            existingByIp.put(asset.getIpAddress(), asset);
+
+            PortSyncSummary syncSummary = syncPorts(asset, ae.getPorts());
+            asset.setOpenPortCount(syncSummary.openPortCount());
             assetRepository.save(asset);
 
             ScanAssetMapping mapping = scanAssetMappingRepository
@@ -317,10 +407,9 @@ public class ScanExecutionService {
                     .orElse(ScanAssetMapping.builder().scanTask(task).asset(asset).build());
             mapping.setScanTime(Instant.now());
             mapping.setIsNew(isNew);
-            mapping.setPortsFound(portCount);
+            mapping.setPortsFound(syncSummary.detectedCount());
             scanAssetMappingRepository.save(mapping);
 
-            // Emit real-time discovery of this asset and its ports
             List<Map<String, Object>> portInfoList = ae.getPorts().stream()
                     .map(p -> {
                         Map<String, Object> pi = new HashMap<>();
@@ -334,12 +423,13 @@ public class ScanExecutionService {
                     .collect(Collectors.toList());
 
             progressEmitter.sendDiscoveredAsset(task.getId(), ae.getIpAddress(),
-                    ae.getHostname(), ae.getOsFingerprint(), portCount, portInfoList);
-            progressEmitter.sendProgress(task.getId(), 30 + (int)((double)(newAssets + totalPorts) / Math.max(result.getAssets().size(), 1) * 10),
-                    "发现主机: " + ae.getIpAddress() + " (" + portCount + " 端口)",
+                    ae.getHostname(), ae.getOsFingerprint(), syncSummary.detectedCount(), portInfoList);
+            progressEmitter.sendProgress(task.getId(),
+                    30 + (int) ((double) (newAssets + totalPorts) / Math.max(result.getAssets().size(), 1) * 10),
+                    "Discovered host: " + ae.getIpAddress() + " (" + syncSummary.detectedCount() + " ports)",
                     newAssets + totalPorts);
 
-            totalPorts += portCount;
+            totalPorts += syncSummary.detectedCount();
         }
 
         task.setTotalAssets(result.getAssets().size());
@@ -349,105 +439,187 @@ public class ScanExecutionService {
         return newAssets;
     }
 
-    private int syncPorts(Asset asset, List<ScanResult.PortEntry> portEntries) {
-        int count = 0;
-        for (ScanResult.PortEntry pe : portEntries) {
-            Optional<Port> existingPort = portRepository
-                    .findByAssetIdAndPortNumberAndProtocol(asset.getId(), pe.getPortNumber(), pe.getProtocol());
+    private record PortSyncSummary(int detectedCount, int openPortCount) {}
 
-            if (existingPort.isPresent()) {
-                Port port = existingPort.get();
-                if (pe.getServiceName() != null) port.setServiceName(pe.getServiceName());
-                if (pe.getServiceVersion() != null) port.setServiceVersion(pe.getServiceVersion());
-                if (pe.getServiceProduct() != null) port.setServiceProduct(pe.getServiceProduct());
-                if (pe.getState() != null) port.setState(pe.getState());
-                if (pe.getBanner() != null) port.setBanner(pe.getBanner());
-                port.setIsWebService(isWebPort(pe.getPortNumber(), pe.getServiceName()));
-                portRepository.save(port);
-            } else {
-                Port port = Port.builder()
-                        .asset(asset).portNumber(pe.getPortNumber())
-                        .protocol(pe.getProtocol() != null ? pe.getProtocol() : "tcp")
-                        .serviceName(pe.getServiceName()).serviceVersion(pe.getServiceVersion())
-                        .serviceProduct(pe.getServiceProduct())
-                        .state(pe.getState() != null ? pe.getState() : "open")
-                        .banner(pe.getBanner())
-                        .isWebService(isWebPort(pe.getPortNumber(), pe.getServiceName()))
-                        .build();
-                portRepository.save(port);
-            }
-            count++;
+    private PortSyncSummary syncPorts(Asset asset, List<ScanResult.PortEntry> portEntries) {
+        List<Port> existingPorts = portRepository.findByAssetId(asset.getId());
+        Map<String, Port> existingByKey = new HashMap<>();
+        for (Port existing : existingPorts) {
+            String key = existing.getPortNumber() + "/" + (existing.getProtocol() != null ? existing.getProtocol() : "tcp");
+            existingByKey.put(key, existing);
         }
-        return count;
+
+        List<Port> toSave = new ArrayList<>();
+        int detectedCount = 0;
+
+        for (ScanResult.PortEntry pe : portEntries) {
+            String protocol = pe.getProtocol() != null ? pe.getProtocol() : "tcp";
+            String key = pe.getPortNumber() + "/" + protocol;
+            Port port = existingByKey.get(key);
+
+            if (port == null) {
+                port = Port.builder()
+                        .asset(asset)
+                        .portNumber(pe.getPortNumber())
+                        .protocol(protocol)
+                        .build();
+                existingByKey.put(key, port);
+            }
+
+            if (pe.getServiceName() != null) port.setServiceName(pe.getServiceName());
+            if (pe.getServiceVersion() != null) port.setServiceVersion(pe.getServiceVersion());
+            if (pe.getServiceProduct() != null) port.setServiceProduct(pe.getServiceProduct());
+            if (pe.getState() != null) port.setState(pe.getState());
+            if (pe.getBanner() != null) port.setBanner(pe.getBanner());
+            if (port.getState() == null) port.setState("open");
+            port.setIsWebService(isWebPort(pe.getPortNumber(), pe.getServiceName()));
+
+            toSave.add(port);
+            detectedCount++;
+        }
+
+        if (!toSave.isEmpty()) {
+            portRepository.saveAll(toSave);
+        }
+
+        return new PortSyncSummary(detectedCount, existingByKey.size());
     }
 
     private void probeWebServices(ScanTask task) {
         List<ScanAssetMapping> mappings = scanAssetMappingRepository.findByScanTaskIdWithAsset(task.getId());
         List<Asset> assets = mappings.stream().map(ScanAssetMapping::getAsset).distinct().collect(Collectors.toList());
-        log.info("Task {}: probeWebServices found {} mappings → {} assets", task.getId(), mappings.size(), assets.size());
-        if (assets.size() > 50) { assets = assets.subList(0, 50); }
+        if (assets.isEmpty()) {
+            log.info("Task {}: no assets for HTTP probing", task.getId());
+            return;
+        }
 
-        int probed = 0;
-        int webPortCount = 0;
+        List<Long> assetIds = assets.stream().map(Asset::getId).toList();
+        Map<Long, List<Port>> portsByAsset = portRepository.findByAssetIdIn(assetIds).stream()
+                .collect(Collectors.groupingBy(p -> p.getAsset().getId()));
+
+        record WebProbeTarget(String ip, Port port) {}
+        List<WebProbeTarget> targets = new ArrayList<>();
         for (Asset asset : assets) {
-            String ip = asset.getIpAddress();
-            List<Port> ports = portRepository.findByAssetId(asset.getId());
-            log.info("Task {}: asset {} (id={}) has {} ports", task.getId(), ip, asset.getId(), ports.size());
-            for (Port port : ports) {
+            for (Port port : portsByAsset.getOrDefault(asset.getId(), Collections.emptyList())) {
                 if (Boolean.TRUE.equals(port.getIsWebService())) {
-                    webPortCount++;
-                    try {
-                        HttpProbeService.ProbeResult pr = httpProbeService.probePort(ip, port);
-                        if (pr != null) {
-                            httpProbeService.saveProbeResult(port, pr);
-                            probed++;
-                            progressEmitter.sendDiscoveredFingerprint(task.getId(), ip,
-                                    port.getPortNumber(), pr.serverHeader(), pr.frameworkName(),
-                                    pr.cmsName(), pr.title());
-                            progressEmitter.sendProgress(task.getId(), 45 + (int)((double)probed / Math.max(assets.size(), 1) * 10),
-                                    "发现 Web 服务: " + ip + ":" + port.getPortNumber()
-                                            + (pr.cmsName() != null ? " [" + pr.cmsName() + "]" : ""),
-                                    task.getTotalAssets());
-
-                            // Auto-capture Goby-like screenshot of discovered web service
-                            try {
-                                String scheme = port.getPortNumber() == 443 || port.getPortNumber() == 8443
-                                        ? "https" : "http";
-                                String url = scheme + "://" + ip + ":" + port.getPortNumber();
-                                screenshotService.captureAndSave(url, 1280, 800);
-                            } catch (Exception e) {
-                                log.debug("Auto-screenshot failed for {}:{}: {}", ip, port.getPortNumber(), e.getMessage());
-                            }
-                        }
-                    } catch (Exception e) { log.warn("HTTP probe error: {}", e.getMessage()); }
+                    targets.add(new WebProbeTarget(asset.getIpAddress(), port));
                 }
             }
         }
-        log.info("Task {}: HTTP probed {} web services ({} web ports flagged out of {} total)",
-                task.getId(), probed, webPortCount, mappings.size());
+
+        if (targets.isEmpty()) {
+            log.info("Task {}: no web-service ports for HTTP probing", task.getId());
+            return;
+        }
+
+        int workers = Math.min(Math.max(2, httpProbeWorkers), Math.max(2, targets.size()));
+        ExecutorService executor = Executors.newFixedThreadPool(workers);
+        List<Future<?>> futures = new ArrayList<>();
+        AtomicInteger probed = new AtomicInteger(0);
+        AtomicInteger screenshots = new AtomicInteger(0);
+
+        for (WebProbeTarget target : targets) {
+            futures.add(executor.submit(() -> {
+                String ip = target.ip();
+                Port port = target.port();
+                try {
+                    HttpProbeService.ProbeResult pr = httpProbeService.probePort(ip, port);
+                    if (pr == null) return;
+
+                    httpProbeService.saveProbeResult(port, pr);
+                    int done = probed.incrementAndGet();
+
+                    progressEmitter.sendDiscoveredFingerprint(task.getId(), ip,
+                            port.getPortNumber(), pr.serverHeader(), pr.frameworkName(),
+                            pr.cmsName(), pr.title());
+
+                    progressEmitter.sendProgress(task.getId(),
+                            45 + (int) ((double) done / Math.max(targets.size(), 1) * 10),
+                            "Discovered web service: " + ip + ":" + port.getPortNumber()
+                                    + (pr.cmsName() != null ? " [" + pr.cmsName() + "]" : ""),
+                            task.getTotalAssets());
+
+                    if (screenshots.incrementAndGet() <= Math.max(0, autoScreenshotLimit)) {
+                        try {
+                            String scheme = port.getPortNumber() == 443 || port.getPortNumber() == 8443 ? "https" : "http";
+                            screenshotService.captureAndSave(scheme + "://" + ip + ":" + port.getPortNumber(), 1280, 800);
+                        } catch (Exception e) {
+                            log.debug("Auto-screenshot failed for {}:{}: {}", ip, port.getPortNumber(), e.getMessage());
+                        }
+                    }
+                } catch (Exception e) {
+                    log.debug("HTTP probe error on {}:{} - {}", ip, port.getPortNumber(), e.getMessage());
+                }
+            }));
+        }
+
+        for (Future<?> future : futures) {
+            try {
+                future.get(45, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.debug("HTTP probe worker failed: {}", e.getMessage());
+            }
+        }
+        executor.shutdownNow();
+
+        log.info("Task {}: HTTP probed {} services out of {} web targets",
+                task.getId(), probed.get(), targets.size());
     }
 
     private void collectSslCerts(ScanTask task) {
         List<ScanAssetMapping> mappings = scanAssetMappingRepository.findByScanTaskIdWithAsset(task.getId());
         List<Asset> assets = mappings.stream().map(ScanAssetMapping::getAsset).distinct().collect(Collectors.toList());
-        int certs = 0;
+        if (assets.isEmpty()) return;
 
+        List<Long> assetIds = assets.stream().map(Asset::getId).toList();
+        Map<Long, List<Port>> portsByAsset = portRepository.findByAssetIdIn(assetIds).stream()
+                .collect(Collectors.groupingBy(p -> p.getAsset().getId()));
+
+        record SslTarget(String ip, Port port) {}
+        List<SslTarget> targets = new ArrayList<>();
         for (Asset asset : assets) {
-            String ip = asset.getIpAddress();
-            for (Port port : portRepository.findByAssetId(asset.getId())) {
+            for (Port port : portsByAsset.getOrDefault(asset.getId(), Collections.emptyList())) {
                 if (port.getPortNumber() == 443 || port.getPortNumber() == 8443 ||
                         port.getPortNumber() == 636 || port.getPortNumber() == 993 ||
                         port.getPortNumber() == 995 ||
-                        (port.getServiceName() != null &&
-                         port.getServiceName().toLowerCase().contains("https"))) {
-                    try {
-                        SslCertService.SslCertResult cr = sslCertService.fetchCertificate(ip, port);
-                        if (cr != null) { sslCertService.saveCertResult(port, cr); certs++; }
-                    } catch (Exception e) { log.debug("SSL cert error: {}", e.getMessage()); }
+                        (port.getServiceName() != null && port.getServiceName().toLowerCase().contains("https"))) {
+                    targets.add(new SslTarget(asset.getIpAddress(), port));
                 }
             }
         }
-        log.info("Task {}: collected {} SSL certificates", task.getId(), certs);
+
+        if (targets.isEmpty()) return;
+
+        int workers = Math.min(Math.max(2, sslCollectWorkers), Math.max(2, targets.size()));
+        ExecutorService executor = Executors.newFixedThreadPool(workers);
+        AtomicInteger certs = new AtomicInteger(0);
+        List<Future<?>> futures = new ArrayList<>();
+
+        for (SslTarget target : targets) {
+            futures.add(executor.submit(() -> {
+                try {
+                    SslCertService.SslCertResult cr = sslCertService.fetchCertificate(target.ip(), target.port());
+                    if (cr != null) {
+                        sslCertService.saveCertResult(target.port(), cr);
+                        certs.incrementAndGet();
+                    }
+                } catch (Exception e) {
+                    log.debug("SSL cert error on {}:{} - {}",
+                            target.ip(), target.port().getPortNumber(), e.getMessage());
+                }
+            }));
+        }
+
+        for (Future<?> future : futures) {
+            try {
+                future.get(45, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.debug("SSL worker failed: {}", e.getMessage());
+            }
+        }
+        executor.shutdownNow();
+
+        log.info("Task {}: collected {} SSL certificates", task.getId(), certs.get());
     }
 
     private void runVulnScan(ScanTask task) {
@@ -460,46 +632,80 @@ public class ScanExecutionService {
                 log.warn("No nuclei scanner found");
                 return;
             }
+
             ScanResult vulnResult = vulnStrategy.execute(task);
-            if (vulnResult.getVulnerabilities() != null && !vulnResult.getVulnerabilities().isEmpty()) {
-                List<ScanAssetMapping> mappings = scanAssetMappingRepository.findByScanTaskIdWithAsset(task.getId());
-                List<Asset> assets = mappings.stream().map(ScanAssetMapping::getAsset).distinct().collect(Collectors.toList());
+            List<ScanResult.VulnEntry> findings = vulnResult.getVulnerabilities();
+            if (findings == null || findings.isEmpty()) {
+                log.info("Task {}: nuclei found 0 vulns", task.getId());
+                return;
+            }
 
-                for (ScanResult.VulnEntry vuln : vulnResult.getVulnerabilities()) {
-                    CveDatabase cve = cveDatabaseRepository.findByCveId(vuln.getTemplate())
-                            .orElse(null);
-                    if (cve == null && vuln.getTemplate() != null && vuln.getTemplate().startsWith("CVE-")) {
-                        cve = CveDatabase.builder()
-                                .cveId(vuln.getTemplate())
-                                .description(vuln.getName())
-                                .severity(vuln.getSeverity())
-                                .affectedSoftware(vuln.getMatched())
-                                .build();
+            List<ScanAssetMapping> mappings = scanAssetMappingRepository.findByScanTaskIdWithAsset(task.getId());
+            List<Asset> assets = mappings.stream().map(ScanAssetMapping::getAsset).distinct().collect(Collectors.toList());
+            if (assets.isEmpty()) {
+                log.info("Task {}: nuclei found {} vulns but no assets mapped", task.getId(), findings.size());
+                return;
+            }
+
+            Map<String, Asset> assetByIp = assets.stream()
+                    .collect(Collectors.toMap(Asset::getIpAddress, a -> a, (a, b) -> a));
+            Map<Long, Set<String>> existingCvesByAsset = loadExistingCveIdsByAsset(
+                    assets.stream().map(Asset::getId).toList());
+
+            for (ScanResult.VulnEntry vuln : findings) {
+                CveDatabase cve = cveDatabaseRepository.findByCveId(vuln.getTemplate()).orElse(null);
+                if (cve == null && vuln.getTemplate() != null && vuln.getTemplate().startsWith("CVE-")) {
+                    cve = CveDatabase.builder()
+                            .cveId(vuln.getTemplate())
+                            .description(vuln.getName())
+                            .severity(vuln.getSeverity())
+                            .affectedSoftware(vuln.getMatched())
+                            .build();
+                    try {
                         cve = cveDatabaseRepository.save(cve);
+                    } catch (DataIntegrityViolationException duplicate) {
+                        cve = cveDatabaseRepository.findByCveId(vuln.getTemplate()).orElse(cve);
                     }
+                }
 
-                    // Emit vuln discovery in real time
-                    progressEmitter.sendDiscoveredVuln(task.getId(), vuln.getSeverity(),
-                            vuln.getTemplate(), vuln.getName(), vuln.getUrl(), vuln.getMatched());
+                progressEmitter.sendDiscoveredVuln(task.getId(), vuln.getSeverity(),
+                        vuln.getTemplate(), vuln.getName(), vuln.getUrl(), vuln.getMatched());
 
-                    for (Asset asset : assets) {
-                        if (vuln.getUrl() != null && vuln.getUrl().contains(asset.getIpAddress())) {
-                            boolean exists = assetVulnerabilityRepository.findByAssetId(asset.getId())
-                                    .stream().anyMatch(av -> av.getCveDatabase() != null
-                                            && av.getCveDatabase().getCveId() != null
-                                            && av.getCveDatabase().getCveId().equals(vuln.getTemplate()));
-                            if (!exists && cve != null) {
-                                AssetVulnerability av = AssetVulnerability.builder()
-                                        .asset(asset).cveDatabase(cve)
-                                        .status("open").build();
-                                assetVulnerabilityRepository.save(av);
-                            }
+                if (cve == null || vuln.getTemplate() == null) continue;
+
+                Set<Asset> matchedAssets = new LinkedHashSet<>();
+                String host = extractHostFromUrl(vuln.getUrl());
+                if (host != null) {
+                    Asset hostAsset = assetByIp.get(host);
+                    if (hostAsset != null) matchedAssets.add(hostAsset);
+                }
+                if (matchedAssets.isEmpty() && vuln.getUrl() != null) {
+                    for (Map.Entry<String, Asset> entry : assetByIp.entrySet()) {
+                        if (vuln.getUrl().contains(entry.getKey())) {
+                            matchedAssets.add(entry.getValue());
                         }
                     }
                 }
+
+                for (Asset asset : matchedAssets) {
+                    Set<String> existing = existingCvesByAsset.computeIfAbsent(asset.getId(), k -> new HashSet<>());
+                    if (existing.contains(vuln.getTemplate())) continue;
+
+                    AssetVulnerability av = AssetVulnerability.builder()
+                            .asset(asset)
+                            .cveDatabase(cve)
+                            .status("open")
+                            .build();
+                    try {
+                        assetVulnerabilityRepository.save(av);
+                        existing.add(vuln.getTemplate());
+                    } catch (DataIntegrityViolationException duplicate) {
+                        existing.add(vuln.getTemplate());
+                    }
+                }
             }
-            log.info("Task {}: nuclei found {} vulns", task.getId(),
-                    vulnResult.getVulnerabilities() != null ? vulnResult.getVulnerabilities().size() : 0);
+
+            log.info("Task {}: nuclei found {} vulns", task.getId(), findings.size());
         } catch (Exception e) {
             log.warn("Vulnerability scan failed: {}", e.getMessage());
         }
@@ -549,17 +755,29 @@ public class ScanExecutionService {
         try {
             List<ScanAssetMapping> mappings = scanAssetMappingRepository.findByScanTaskIdWithAsset(task.getId());
             List<Asset> assets = mappings.stream().map(ScanAssetMapping::getAsset).distinct().collect(Collectors.toList());
+            if (assets.isEmpty()) return 0;
+
+            List<Long> assetIds = assets.stream().map(Asset::getId).toList();
+            List<Port> allPorts = portRepository.findByAssetIdIn(assetIds);
+            Map<Long, List<Port>> portsByAsset = allPorts.stream()
+                    .collect(Collectors.groupingBy(p -> p.getAsset().getId()));
+
+            List<Long> portIds = allPorts.stream().map(Port::getId).toList();
+            Map<Long, WebFingerprint> wfByPortId = portIds.isEmpty()
+                    ? Collections.emptyMap()
+                    : webFingerprintRepository.findByPortIdIn(portIds).stream()
+                        .collect(Collectors.toMap(wf -> wf.getPort().getId(), wf -> wf, (a, b) -> a));
+
+            Map<Long, Set<Long>> existingCveDbIdsByAsset = loadExistingCveDbIdsByAsset(assetIds);
+            Map<String, List<CveDatabase>> cveCache = new HashMap<>();
 
             for (Asset asset : assets) {
-                List<Port> ports = portRepository.findByAssetId(asset.getId());
+                List<Port> ports = portsByAsset.getOrDefault(asset.getId(), Collections.emptyList());
                 Set<String> matchedProducts = new HashSet<>();
 
-                // Only match CVEs against web-service ports or those with fingerprint data
                 for (Port port : ports) {
-                    // Collect product names from web fingerprint first (most accurate)
-                    java.util.Optional<WebFingerprint> wfOpt = webFingerprintRepository.findByPortId(port.getId());
-                    if (wfOpt.isPresent()) {
-                        WebFingerprint wf = wfOpt.get();
+                    WebFingerprint wf = wfByPortId.get(port.getId());
+                    if (wf != null) {
                         if (wf.getCmsName() != null && wf.getCmsName().length() >= 3) {
                             matchedProducts.add(wf.getCmsName().toLowerCase());
                         }
@@ -574,51 +792,55 @@ public class ScanExecutionService {
                         }
                     }
 
-                    // Collect product names from port service detection (web ports only)
                     if (Boolean.TRUE.equals(port.getIsWebService())) {
                         String product = port.getServiceProduct() != null ? port.getServiceProduct().toLowerCase().trim() : "";
                         String svcName = port.getServiceName() != null ? port.getServiceName().toLowerCase().trim() : "";
-                        if (product.length() >= 3 && !GENERIC_SERVICES.contains(product)
-                                && isWebAppProduct(product)) {
+                        if (product.length() >= 3 && !GENERIC_SERVICES.contains(product) && isWebAppProduct(product)) {
                             matchedProducts.add(product);
                         }
-                        // Also check service name if it's a known web-app product
-                        if (!svcName.isEmpty() && !GENERIC_SERVICES.contains(svcName)
-                                && isWebAppProduct(svcName)) {
+                        if (!svcName.isEmpty() && !GENERIC_SERVICES.contains(svcName) && isWebAppProduct(svcName)) {
                             matchedProducts.add(svcName);
                         }
                     }
                 }
 
-                // Match CVEs for each detected web product
+                Set<Long> existing = existingCveDbIdsByAsset.computeIfAbsent(asset.getId(), k -> new HashSet<>());
+                int criticalAdded = 0;
+
                 for (String product : matchedProducts) {
-                    List<CveDatabase> cves = cveDatabaseRepository.findByAffectedSoftwareContaining(product);
+                    List<CveDatabase> cves = cveCache.computeIfAbsent(product,
+                            p -> cveDatabaseRepository.findByAffectedSoftwareContaining(p));
+
                     for (CveDatabase cve : cves) {
                         if (cve.getAffectedSoftware() != null
                                 && SKIP_CVE_AFFECTED.contains(cve.getAffectedSoftware().toLowerCase())) {
                             continue;
                         }
-                        boolean alreadyLinked = assetVulnerabilityRepository.findByAssetId(asset.getId())
-                                .stream().anyMatch(av -> av.getCveDatabase() != null
-                                        && av.getCveDatabase().getId().equals(cve.getId()));
-                        if (!alreadyLinked) {
-                            AssetVulnerability av = AssetVulnerability.builder()
-                                    .asset(asset).cveDatabase(cve)
-                                    .status("open").build();
+                        if (existing.contains(cve.getId())) continue;
+
+                        AssetVulnerability av = AssetVulnerability.builder()
+                                .asset(asset).cveDatabase(cve)
+                                .status("open").build();
+                        try {
                             assetVulnerabilityRepository.save(av);
                             matched++;
+                            existing.add(cve.getId());
                             if ("critical".equalsIgnoreCase(cve.getSeverity())) {
-                                asset.setCriticalVulnCount(
-                                        (asset.getCriticalVulnCount() == null ? 0 : asset.getCriticalVulnCount()) + 1);
+                                criticalAdded++;
                             }
-                            // Emit CVE match discovery
                             progressEmitter.sendDiscoveredVuln(task.getId(),
                                     cve.getSeverity(), cve.getCveId(), cve.getDescription(),
                                     asset.getIpAddress(), cve.getAffectedSoftware());
+                        } catch (DataIntegrityViolationException duplicate) {
+                            existing.add(cve.getId());
                         }
                     }
                 }
-                assetRepository.save(asset);
+
+                if (criticalAdded > 0) {
+                    asset.setCriticalVulnCount((asset.getCriticalVulnCount() == null ? 0 : asset.getCriticalVulnCount()) + criticalAdded);
+                    assetRepository.save(asset);
+                }
             }
         } catch (Exception e) {
             log.warn("CVE matching failed: {}", e.getMessage());
@@ -638,6 +860,40 @@ public class ScanExecutionService {
                 || product.contains("cms") || product.contains("blog")
                 || product.contains("shop") || product.contains("forum")
                 || product.contains("wiki") || product.contains("portal");
+    }
+
+    private Map<Long, Set<String>> loadExistingCveIdsByAsset(List<Long> assetIds) {
+        Map<Long, Set<String>> result = new HashMap<>();
+        if (assetIds == null || assetIds.isEmpty()) return result;
+        for (Object[] row : assetVulnerabilityRepository.findAssetCvePairsByAssetIds(assetIds)) {
+            Long assetId = row[0] instanceof Long ? (Long) row[0] : null;
+            String cveId = row[1] instanceof String ? (String) row[1] : null;
+            if (assetId == null || cveId == null) continue;
+            result.computeIfAbsent(assetId, k -> new HashSet<>()).add(cveId);
+        }
+        return result;
+    }
+
+    private Map<Long, Set<Long>> loadExistingCveDbIdsByAsset(List<Long> assetIds) {
+        Map<Long, Set<Long>> result = new HashMap<>();
+        if (assetIds == null || assetIds.isEmpty()) return result;
+        for (Object[] row : assetVulnerabilityRepository.findAssetCveDbPairsByAssetIds(assetIds)) {
+            Long assetId = row[0] instanceof Long ? (Long) row[0] : null;
+            Long cveDbId = row[1] instanceof Long ? (Long) row[1] : null;
+            if (assetId == null || cveDbId == null) continue;
+            result.computeIfAbsent(assetId, k -> new HashSet<>()).add(cveDbId);
+        }
+        return result;
+    }
+
+    private String extractHostFromUrl(String url) {
+        if (url == null || url.isBlank()) return null;
+        try {
+            String normalized = url.startsWith("http://") || url.startsWith("https://") ? url : "http://" + url;
+            return java.net.URI.create(normalized).getHost();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private boolean isDomainName(String target) {
@@ -704,3 +960,8 @@ public class ScanExecutionService {
         return false;
     }
 }
+
+
+
+
+

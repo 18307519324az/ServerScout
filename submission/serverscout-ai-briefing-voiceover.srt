@@ -1,0 +1,72 @@
+﻿1
+00:00:00,000 --> 00:00:05,952
+ServerScout AI Risk Briefing Assistant is an AI-assisted security reporting workflow.
+
+2
+00:00:06,232 --> 00:00:10,240
+It helps small teams understand scan results quickly.
+
+3
+00:00:10,520 --> 00:00:15,368
+This demo uses the verified local build and the packaged prototype.
+
+4
+00:00:15,648 --> 00:00:19,416
+Small teams often receive technical scan data.
+
+5
+00:00:19,696 --> 00:00:23,872
+They still need a clear answer about what should be fixed first.
+
+6
+00:00:24,152 --> 00:00:28,640
+They also need to explain why the risk matters to stakeholders.
+
+7
+00:00:28,920 --> 00:00:43,344
+ServerScout includes dashboard, asset management, scan tasks, vulnerability management, topology, attack surface visualization, external intelligence, report export, and the new AI Briefing page.
+
+8
+00:00:43,624 --> 00:00:49,864
+The integrated AI Briefing page takes scan evidence and generates a readable risk brief.
+
+9
+00:00:50,144 --> 00:00:52,808
+Click Generate AI Brief.
+
+10
+00:00:53,088 --> 00:00:56,448
+The output provides an executive summary.
+
+11
+00:00:56,728 --> 00:01:01,576
+It also provides remediation priorities and report-ready language.
+
+12
+00:01:01,856 --> 00:01:05,144
+The AI layer does not replace scanning.
+
+13
+00:01:05,424 --> 00:01:09,600
+It helps users translate scan data into decisions.
+
+14
+00:01:09,880 --> 00:01:16,144
+Those decisions include what is urgent, why it matters, and what should be written in the report.
+
+15
+00:01:16,424 --> 00:01:25,040
+This is useful for small businesses, internal IT teams, freelance security testers, and junior security engineers.
+
+16
+00:01:25,320 --> 00:01:34,200
+The business model starts with free local use, then grows into team subscriptions, per-report pricing, and consultant packages.
+
+17
+00:01:34,480 --> 00:01:44,656
+Next steps are connecting the assistant to live scan task data, adding a secure model gateway, and generating PDF report sections from scan evidence.
+
+18
+00:01:44,936 --> 00:01:51,824
+For HackOnVibe, this AI assistant helps small teams move from scan output to remediation action.
+

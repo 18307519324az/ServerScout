@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ToastProvider } from './hooks/useToast'
 import MainLayout from './components/Layout'
 import LoginPage from './pages/LoginPage'
+import ShowcasePage from './pages/ShowcasePage'
 import DashboardPage from './pages/DashboardPage'
 import AssetListPage from './pages/AssetListPage'
 import AssetDetailPage from './pages/AssetDetailPage'
@@ -16,6 +17,7 @@ import SettingsPage from './pages/SettingsPage'
 import ExternalIntelPage from './pages/ExternalIntelPage'
 import AttackSurfacePage from './pages/AttackSurfacePage'
 import ManualPage from './pages/ManualPage'
+import AiBriefingPage from './pages/AiBriefingPage'
 
 function reportToBackend(message: string, stack?: string) {
   try {
@@ -99,7 +101,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     window.addEventListener('storage', check)
     return () => window.removeEventListener('storage', check)
   }, [])
-  if (!isAuth) return <Navigate to="/login" />
+  if (!isAuth) return <Navigate to="/" />
   return <>{children}</>
 }
 
@@ -109,23 +111,25 @@ export default function App() {
       <ToastProvider>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<ShowcasePage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<AuthGuard><MainLayout /></AuthGuard>}>
-            <Route index element={<Navigate to="/dashboard" />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="assets" element={<AssetListPage />} />
-            <Route path="assets/:id" element={<AssetDetailPage />} />
-            <Route path="scan-tasks" element={<ScanTaskListPage />} />
-            <Route path="scan-tasks/:id" element={<ScanTaskDetailPage />} />
-            <Route path="vulnerabilities" element={<VulnerabilityListPage />} />
-            <Route path="vulnerabilities/:id" element={<VulnerabilityDetailPage />} />
-            <Route path="reports" element={<ReportCenterPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="topology" element={<TopologyPage />} />
-            <Route path="attack-surface" element={<AttackSurfacePage />} />
-            <Route path="intel" element={<ExternalIntelPage />} />
-            <Route path="manual" element={<ManualPage />} />
+          <Route element={<AuthGuard><MainLayout /></AuthGuard>}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/assets" element={<AssetListPage />} />
+            <Route path="/assets/:id" element={<AssetDetailPage />} />
+            <Route path="/scan-tasks" element={<ScanTaskListPage />} />
+            <Route path="/scan-tasks/:id" element={<ScanTaskDetailPage />} />
+            <Route path="/vulnerabilities" element={<VulnerabilityListPage />} />
+            <Route path="/vulnerabilities/:id" element={<VulnerabilityDetailPage />} />
+            <Route path="/reports" element={<ReportCenterPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/topology" element={<TopologyPage />} />
+            <Route path="/attack-surface" element={<AttackSurfacePage />} />
+            <Route path="/intel" element={<ExternalIntelPage />} />
+            <Route path="/ai-briefing" element={<AiBriefingPage />} />
+            <Route path="/manual" element={<ManualPage />} />
           </Route>
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>
       </ToastProvider>

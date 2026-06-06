@@ -59,8 +59,8 @@ JAVA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC"
 # 环境变量 (生产环境请修改)
 export SERVER_PORT=8080
 export DB_URL="jdbc:mysql://localhost:3306/serverscout?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai"
-export DB_USERNAME="root"
-export DB_PASSWORD="your_db_password"
+export DB_USERNAME="serverscout"
+export DB_PASSWORD="1A5089879282"
 export JWT_SECRET="change-me-to-a-random-string-at-least-32-chars"
 export LOG_LEVEL="INFO"
 
@@ -100,8 +100,8 @@ StandardError=journal
 # 环境变量 (请根据实际修改)
 Environment="SERVER_PORT=8080"
 Environment="DB_URL=jdbc:mysql://localhost:3306/serverscout?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai"
-Environment="DB_USERNAME=root"
-Environment="DB_PASSWORD=your_db_password"
+Environment="DB_USERNAME=serverscout"
+Environment="DB_PASSWORD=1A5089879282"
 Environment="JWT_SECRET=change-me-to-a-random-string-at-least-32-chars"
 Environment="LOG_LEVEL=INFO"
 Environment="PDF_FONT_PATH=/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"

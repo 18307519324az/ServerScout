@@ -5,6 +5,8 @@ import com.serverscout.repository.*;
 import com.serverscout.service.ProgressEmitter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -13,10 +15,12 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.*;
 
 /**
- * OWASP Top 10 web vulnerability detection — SQL Injection, XSS, CSRF.
+ * OWASP Top 10 web vulnerability detection: SQL Injection, XSS, CSRF.
  * Runs after HTTP probing to analyze web forms and parameters for common weaknesses.
  */
 @Slf4j
@@ -27,6 +31,9 @@ public class WebVulnDetectorService {
     private final CveDatabaseRepository cveRepository;
     private final AssetVulnerabilityRepository avRepository;
     private final ProgressEmitter progressEmitter;
+
+    @Value("${app.scan.web-vuln-workers:6}")
+    private int webVulnWorkers;
 
     private static final int FETCH_TIMEOUT_MS = 8000;
     private static final String UA = "Mozilla/5.0 ServerScout/2.0";
@@ -50,7 +57,7 @@ public class WebVulnDetectorService {
             "<script\\b[^>]*>",
             Pattern.CASE_INSENSITIVE);
 
-    // CSRF detection — check for missing CSRF token in forms
+    // CSRF detection: check for missing CSRF token in forms
     private static final Pattern CSRF_TOKEN_PATTERN = Pattern.compile(
             "(csrf|_token|authenticity_token|xsrf|__RequestVerificationToken)",
             Pattern.CASE_INSENSITIVE);
@@ -73,41 +80,66 @@ public class WebVulnDetectorService {
     public int detect(ScanTask task, List<Asset> assets,
                        PortRepository portRepository,
                        WebFingerprintRepository webFingerprintRepository) {
-        int totalFindings = 0;
+        record WebTarget(Asset asset, Port port, String baseUrl) {}
+        List<WebTarget> targets = new ArrayList<>();
 
         for (Asset asset : assets) {
             String ip = asset.getIpAddress();
             List<Port> ports = portRepository.findByAssetId(asset.getId());
             for (Port port : ports) {
                 if (!Boolean.TRUE.equals(port.getIsWebService())) continue;
-
                 String scheme = port.getPortNumber() == 443 || port.getPortNumber() == 8443 ? "https" : "http";
-                String baseUrl = scheme + "://" + ip + ":" + port.getPortNumber();
+                targets.add(new WebTarget(asset, port, scheme + "://" + ip + ":" + port.getPortNumber()));
+            }
+        }
+
+        if (targets.isEmpty()) return 0;
+
+        int workers = Math.min(Math.max(2, webVulnWorkers), Math.max(2, targets.size()));
+        ExecutorService executor = Executors.newFixedThreadPool(workers);
+        List<Future<?>> futures = new ArrayList<>();
+        AtomicInteger totalFindings = new AtomicInteger(0);
+
+        for (WebTarget target : targets) {
+            futures.add(executor.submit(() -> {
+                Asset asset = target.asset();
+                Port port = target.port();
+                String baseUrl = target.baseUrl();
+                String ip = asset.getIpAddress();
 
                 try {
                     String html = fetchPage(baseUrl + "/", 1);
-                    if (html == null || html.length() < 50) continue;
+                    if (html == null || html.length() < 50) return;
 
                     int findings = 0;
                     findings += detectSqli(asset, port, baseUrl, html);
                     findings += detectXss(asset, port, baseUrl, html);
                     findings += detectCsrf(asset, port, baseUrl, html);
-                    totalFindings += findings;
+                    totalFindings.addAndGet(findings);
 
                     if (findings > 0) {
                         progressEmitter.sendProgress(task.getId(), task.getProgress(),
-                                "Web漏洞检测: " + ip + ":" + port.getPortNumber()
-                                        + " 发现 " + findings + " 个风险点",
+                                "Web vulnerability check " + ip + ":" + port.getPortNumber()
+                                        + " found " + findings + " issues",
                                 task.getTotalAssets());
                     }
                 } catch (Exception e) {
                     log.debug("Web vuln detection failed for {}:{}: {}", ip, port.getPortNumber(), e.getMessage());
                 }
-            }
+            }));
         }
 
-        log.info("Task {}: web vuln detection found {} findings", task.getId(), totalFindings);
-        return totalFindings;
+        for (Future<?> future : futures) {
+            try {
+                future.get(45, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.debug("Web vuln worker failed: {}", e.getMessage());
+            }
+        }
+        executor.shutdownNow();
+
+        log.info("Task {}: web vuln detection found {} findings", task.getId(), totalFindings.get());
+        return totalFindings.get();
     }
 
     /**
@@ -154,9 +186,9 @@ public class WebVulnDetectorService {
                 String testUrl = baseUrl + "/?" + paramName + "='";
                 if (testSqliErrorResponse(testUrl)) {
                     createVulnFinding(asset, port, "CVE-WEB-SQLI-001",
-                            "SQL注入漏洞 (SQL Injection)", "critical", 9.0f,
-                            "参数 " + paramName + " 疑似存在SQL注入漏洞",
-                            "1) 使用参数化查询(PreparedStatement)替代字符串拼接SQL; 2) 对所有用户输入进行严格的类型校验和白名单过滤; 3) 部署WAF规则拦截SQL注入特征");
+                            "SQL Injection", "critical", 9.0f,
+                            "Parameter " + paramName + " appears vulnerable to SQL injection",
+                            "Use parameterized queries, validate inputs strictly, and add WAF rules.");
                     found++;
                 }
             }
@@ -192,9 +224,9 @@ public class WebVulnDetectorService {
                 String reflected = fetchPage(testUrl, 1);
                 if (reflected != null && reflected.contains("<i>xsstest</i>")) {
                     createVulnFinding(asset, port, "CVE-WEB-XSS-001",
-                            "跨站脚本漏洞 (Cross-Site Scripting)", "high", 7.5f,
-                            "参数 " + paramName + " 存在反射型XSS漏洞，用户输入被原样回显到页面",
-                            "1) 对所有输出到HTML的变量进行HTML实体编码(如&lt;&gt;&quot;); 2) 使用Content-Security-Policy头限制内联脚本; 3) 设置HttpOnly和Secure Cookie标记; 4) 使用X-XSS-Protection响应头");
+                            "Cross-Site Scripting (Reflected XSS)", "high", 7.5f,
+                            "Parameter " + paramName + " is reflected without proper output encoding",
+                            "Apply output encoding, enforce CSP, and sanitize untrusted inputs.");
                     found++;
                 }
             }
@@ -215,9 +247,9 @@ public class WebVulnDetectorService {
                 // Only flag if we have textarea + no CSP header detected
                 if (hasTextarea && html.contains("<textarea")) {
                     createVulnFinding(asset, port, "CVE-WEB-XSS-002",
-                            "潜在存储型XSS入口 (Stored XSS Entry Point)", "medium", 5.4f,
-                            "页面存在富文本输入区域，可能成为存储型XSS攻击入口",
-                            "1) 对富文本内容使用DOMPurify等服务端/客户端HTML清洗库; 2) 实施严格的标签白名单(a,p,img等); 3) 禁止事件处理器(onerror,onload等)和javascript:协议");
+                            "Potential Stored XSS Entry Point", "medium", 5.4f,
+                            "Rich text input area may allow stored XSS payloads",
+                            "Sanitize rich text with allow-lists and block event-handler attributes.");
                     found++;
                     break;
                 }
@@ -280,9 +312,9 @@ public class WebVulnDetectorService {
 
             if (!hasCsrfHeader) {
                 createVulnFinding(asset, port, "CVE-WEB-CSRF-001",
-                        "跨站请求伪造漏洞 (CSRF)", "high", 8.0f,
-                        "页面共 " + formCount + " 个表单缺少CSRF防护令牌，可能遭受CSRF攻击",
-                        "1) 为所有状态变更请求(POST/PUT/DELETE)添加CSRF Token; 2) 验证Referer/Origin请求头; 3) 使用SameSite Cookie属性(Strict/Lax); 4) 关键操作要求二次认证(密码/验证码)");
+                        "Cross-Site Request Forgery (CSRF)", "high", 8.0f,
+                        "Detected " + formCount + " state-changing forms without CSRF protection",
+                        "Add CSRF tokens, validate Origin/Referer, and use SameSite cookies.");
                 found++;
             }
         }
@@ -310,9 +342,9 @@ public class WebVulnDetectorService {
             for (Pattern errorPattern : SQLI_ERROR_PATTERNS) {
                 if (errorPattern.matcher(response).find()) {
                     createVulnFinding(asset, port, "CVE-WEB-SQLI-002",
-                            "SQL注入漏洞 (Error-Based SQL Injection)", "critical", 9.5f,
-                            "端点 " + actionUrl + " 返回SQL错误信息，确认存在SQL注入漏洞",
-                            "1) 立即下线该接口或临时限制访问; 2) 使用参数化查询重写SQL逻辑; 3) 禁止将数据库错误信息返回给客户端; 4) 部署WAF规则防护");
+                            "Error-Based SQL Injection", "critical", 9.5f,
+                            "Endpoint " + actionUrl + " returned SQL error patterns",
+                            "Use prepared statements and avoid exposing DB errors to clients.");
                     return true;
                 }
             }
@@ -414,7 +446,11 @@ public class WebVulnDetectorService {
                     .affectedSoftware("Web Application")
                     .fixSuggestion(fix)
                     .build();
-            cve = cveRepository.save(cve);
+            try {
+                cve = cveRepository.save(cve);
+            } catch (DataIntegrityViolationException duplicate) {
+                cve = cveRepository.findByCveId(cveId).orElse(cve);
+            }
         }
 
         // Check if vulnerability already exists for this asset
@@ -427,10 +463,13 @@ public class WebVulnDetectorService {
                     .status("open")
                     .reproductionSteps(detail)
                     .build();
-            avRepository.save(av);
-
-            if ("critical".equalsIgnoreCase(severity)) {
-                asset.setCriticalVulnCount((asset.getCriticalVulnCount() == null ? 0 : asset.getCriticalVulnCount()) + 1);
+            try {
+                avRepository.save(av);
+                if ("critical".equalsIgnoreCase(severity)) {
+                    asset.setCriticalVulnCount((asset.getCriticalVulnCount() == null ? 0 : asset.getCriticalVulnCount()) + 1);
+                }
+            } catch (DataIntegrityViolationException duplicate) {
+                log.debug("Duplicate web vuln ignored for asset {} and cve {}", asset.getId(), cveId);
             }
         }
 
@@ -470,3 +509,4 @@ public class WebVulnDetectorService {
                 .replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#x27;");
     }
 }
+

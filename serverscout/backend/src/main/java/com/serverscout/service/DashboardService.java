@@ -35,9 +35,10 @@ public class DashboardService {
         long low = sevMap.getOrDefault("low", 0L);
 
         long totalVulns = crit + high + medium + low;
+        List<String> activeStatuses = List.of("pending", "running");
         long activeTasks = isAdmin
-                ? scanTaskRepository.countByStatus("running")
-                : scanTaskRepository.countByCreatedByAndStatus(username, "running");
+                ? scanTaskRepository.countByStatusIn(activeStatuses)
+                : scanTaskRepository.countByCreatedByAndStatusIn(username, activeStatuses);
         long recentScans = isAdmin
                 ? scanTaskRepository.count()
                 : scanTaskRepository.findIdsByCreatedBy(username).size();

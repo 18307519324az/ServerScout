@@ -30,7 +30,14 @@ public class AssetService {
     private final HoneypotDetectionService honeypotDetectionService;
     private final ObjectMapper objectMapper;
 
-    public Page<Asset> listAssets(String keyword, String status, Pageable pageable, String username, boolean isAdmin) {
+    public Page<Asset> listAssets(String keyword, String status, Long taskId, Pageable pageable, String username, boolean isAdmin) {
+        if (taskId != null) {
+            if (isAdmin) {
+                return assetRepository.searchByScanTask(taskId, keyword, status, pageable);
+            }
+            return assetRepository.searchByScanTaskAndCreatedBy(taskId, keyword, status, username, pageable);
+        }
+
         if (isAdmin) {
             if (keyword != null || status != null) {
                 return assetRepository.search(keyword, status, pageable);

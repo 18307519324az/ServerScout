@@ -5,7 +5,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -22,6 +21,8 @@ public class ProgressEmitter {
     private static class TimedEmitter {
         final SseEmitter emitter;
         final long createdAt;
+        final Object lock = new Object();
+        volatile boolean closed = false;
 
         TimedEmitter(SseEmitter emitter) {
             this.emitter = emitter;
@@ -122,7 +123,7 @@ public class ProgressEmitter {
         sendEvent(taskId, emitters, "completed", Map.of("taskId", taskId));
         // Complete all emitters and remove the entry
         for (TimedEmitter te : emitters) {
-            try { te.emitter.complete(); } catch (Exception ignored) {}
+            safeComplete(te);
         }
         taskEmitters.remove(taskId);
     }
@@ -131,7 +132,7 @@ public class ProgressEmitter {
         List<TimedEmitter> emitters = getActiveEmitters(taskId);
         sendEvent(taskId, emitters, "error", Map.of("message", message));
         for (TimedEmitter te : emitters) {
-            try { te.emitter.completeWithError(new RuntimeException(message)); } catch (Exception ignored) {}
+            safeComplete(te);
         }
         taskEmitters.remove(taskId);
     }
@@ -141,7 +142,7 @@ public class ProgressEmitter {
         List<TimedEmitter> emitters = taskEmitters.remove(taskId);
         if (emitters != null) {
             for (TimedEmitter te : emitters) {
-                try { te.emitter.complete(); } catch (Exception ignored) {}
+                safeComplete(te);
             }
             log.debug("Cleaned up {} emitters for task {}", emitters.size(), taskId);
         }
@@ -164,7 +165,7 @@ public class ProgressEmitter {
                 removed++;
             } else if (list.stream().allMatch(te -> te.isOlderThan(STALE_TASK_MS))) {
                 for (TimedEmitter te : list) {
-                    try { te.emitter.complete(); } catch (Exception ignored) {}
+                    safeComplete(te);
                 }
                 iter.remove();
                 removed++;
@@ -184,9 +185,13 @@ public class ProgressEmitter {
     private void sendEvent(Long taskId, List<TimedEmitter> emitters, String name, Object data) {
         for (TimedEmitter te : emitters) {
             try {
-                te.emitter.send(SseEmitter.event().name(name).data(data));
-            } catch (IOException e) {
-                te.emitter.completeWithError(e);
+                if (te.closed) continue;
+                synchronized (te.lock) {
+                    if (te.closed) continue;
+                    te.emitter.send(SseEmitter.event().name(name).data(data));
+                }
+            } catch (Exception e) {
+                safeComplete(te);
                 removeEmitter(taskId, te.emitter);
             }
         }
@@ -201,5 +206,10 @@ public class ProgressEmitter {
                 taskEmitters.remove(taskId);
             }
         }
+    }
+
+    private void safeComplete(TimedEmitter te) {
+        te.closed = true;
+        try { te.emitter.complete(); } catch (Exception ignored) {}
     }
 }
