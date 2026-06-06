@@ -48,4 +48,3 @@ _tmp_browser_test/
 !serverscout-init.sql
 .playwright-mcp/
 serverscout/release/*.zip
-*.zip
