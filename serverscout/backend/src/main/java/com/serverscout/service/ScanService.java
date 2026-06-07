@@ -9,7 +9,10 @@ import com.serverscout.entity.ScanAssetMapping;
 import com.serverscout.entity.ScanTask;
 import com.serverscout.repository.*;
 import com.serverscout.service.scan.TargetConcurrencyLimiter;
-import com.serverscout.util.ResourceNotFoundException;
+import com.serverscout.common.ErrorCode;
+import com.serverscout.exception.BadRequestException;
+import com.serverscout.exception.ConflictException;
+import com.serverscout.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -98,14 +101,14 @@ public class ScanService {
     @Transactional(readOnly = true)
     public ScanTaskResponse getTaskDetail(Long id) {
         ScanTask task = scanTaskRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("ScanTask", id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SCAN_TASK_NOT_FOUND, "ScanTask", id));
         return toFullResponse(task);
     }
 
     @Transactional
     public void deleteTask(Long id) {
         ScanTask task = scanTaskRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("ScanTask", id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SCAN_TASK_NOT_FOUND, "ScanTask", id));
 
         boolean wasRunning = "running".equals(task.getStatus());
         if ("running".equals(task.getStatus()) || "pending".equals(task.getStatus())) {
@@ -138,10 +141,10 @@ public class ScanService {
 
     public void cancelTask(Long id) {
         ScanTask task = scanTaskRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("ScanTask", id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SCAN_TASK_NOT_FOUND, "ScanTask", id));
 
         if ("completed".equals(task.getStatus()) || "failed".equals(task.getStatus()) || "cancelled".equals(task.getStatus())) {
-            throw new IllegalStateException("Task already finished");
+            throw new ConflictException("任务已结束，无法取消");
         }
 
         boolean wasRunning = "running".equals(task.getStatus());
@@ -156,7 +159,7 @@ public class ScanService {
 
     private void validateTargetRange(String targetRange) {
         if (targetRange == null || targetRange.isBlank()) {
-            throw new IllegalArgumentException("Scan target cannot be empty");
+            throw new BadRequestException("扫描目标不能为空");
         }
         String[] targets = targetRange.split(",");
         boolean hasAny = false;
@@ -169,27 +172,27 @@ public class ScanService {
             if (isIpv4(target) || isCidr(target) || isHostOrHostPort(target)) {
                 continue;
             }
-            throw new IllegalArgumentException("Invalid target format: " + target);
+            throw new BadRequestException("无效的目标格式: " + target);
         }
         if (!hasAny) {
-            throw new IllegalArgumentException("Scan target cannot be empty");
+            throw new BadRequestException("扫描目标不能为空");
         }
     }
 
     private void validatePortRange(String portRange) {
         if (portRange == null || portRange.isBlank()) {
-            throw new IllegalArgumentException("Port range cannot be empty");
+            throw new BadRequestException("端口范围不能为空");
         }
         for (String raw : portRange.split(",")) {
             String token = raw.trim();
             if (!PORT_TOKEN.matcher(token).matches()) {
-                throw new IllegalArgumentException("Invalid port range: " + token);
+                throw new BadRequestException("无效的端口范围: " + token);
             }
             String[] bounds = token.split("-");
             int start = Integer.parseInt(bounds[0]);
             int end = bounds.length == 2 ? Integer.parseInt(bounds[1]) : start;
             if (start < 1 || end > 65535 || start > end) {
-                throw new IllegalArgumentException("Invalid port range: " + token);
+                throw new BadRequestException("无效的端口范围: " + token);
             }
         }
     }

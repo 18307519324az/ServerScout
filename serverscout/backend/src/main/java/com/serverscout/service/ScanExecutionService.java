@@ -3,7 +3,7 @@ package com.serverscout.service;
 import com.serverscout.entity.*;
 import com.serverscout.repository.*;
 import com.serverscout.service.scan.*;
-import com.serverscout.util.ScanException;
+import com.serverscout.exception.ScanException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

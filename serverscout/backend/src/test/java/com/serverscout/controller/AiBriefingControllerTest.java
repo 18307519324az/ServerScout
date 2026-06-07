@@ -1,6 +1,7 @@
 package com.serverscout.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.serverscout.exception.GlobalExceptionHandler;
 import com.serverscout.service.AiBriefingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,9 @@ class AiBriefingControllerTest {
     @BeforeEach
     void setUp() {
         AiBriefingService service = new AiBriefingService(new ObjectMapper());
-        mockMvc = standaloneSetup(new AiBriefingController(service)).build();
+        mockMvc = standaloneSetup(new AiBriefingController(service))
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @Test

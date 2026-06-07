@@ -2,7 +2,10 @@ package com.serverscout.service;
 
 import com.serverscout.entity.User;
 import com.serverscout.repository.UserRepository;
-import com.serverscout.util.ResourceNotFoundException;
+import com.serverscout.common.ErrorCode;
+import com.serverscout.exception.BadRequestException;
+import com.serverscout.exception.ConflictException;
+import com.serverscout.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,27 +27,27 @@ public class UserService {
 
     public User getUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User", id));
     }
 
     public User getUserByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("User", username));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.USER_NOT_FOUND, "User", username));
     }
 
     @Transactional
     public User createUser(String username, String password, String role, String name, String gender, String email) {
         if (userRepository.existsByUsername(username)) {
-            throw new IllegalArgumentException("Username already exists: " + username);
+            throw new ConflictException("用户名已存在: " + username);
         }
         if (email == null || email.isBlank()) {
             email = username + "@placeholder.local";
         } else {
             if (!email.matches("^[\\w.%+-]+@[\\w.-]+\\.[A-Za-z]{2,}$")) {
-                throw new IllegalArgumentException("Invalid email: " + email);
+                throw new BadRequestException("邮箱格式无效: " + email);
             }
             if (userRepository.existsByEmail(email)) {
-                throw new IllegalArgumentException("Email already exists: " + email);
+                throw new ConflictException("邮箱已存在: " + email);
             }
         }
         User user = User.builder()
@@ -83,10 +86,10 @@ public class UserService {
     public void changeCurrentUserPassword(String username, String oldPassword, String newPassword) {
         User user = getUserByUsername(username);
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            throw new IllegalArgumentException("原密码错误");
+            throw new BadRequestException("原密码错误");
         }
         if (newPassword == null || newPassword.length() < 6) {
-            throw new IllegalArgumentException("新密码至少需要6个字符");
+            throw new BadRequestException("新密码至少需要6个字符");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
@@ -96,7 +99,7 @@ public class UserService {
     public void changePassword(Long id, String oldPassword, String newPassword) {
         User user = getUserById(id);
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
-            throw new IllegalArgumentException("Old password is incorrect");
+            throw new BadRequestException("旧密码错误");
         }
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
@@ -116,7 +119,7 @@ public class UserService {
             long adminCount = userRepository.findAll().stream()
                     .filter(u -> "ADMIN".equals(u.getRole())).count();
             if (adminCount <= 1) {
-                throw new IllegalArgumentException("Cannot delete the last admin user");
+                throw new BadRequestException("不能删除最后一个管理员账户");
             }
         }
         userRepository.delete(user);

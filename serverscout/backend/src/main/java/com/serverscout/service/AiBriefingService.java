@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.serverscout.dto.AiBriefingRequest;
 import com.serverscout.dto.AiBriefingResponse;
+import com.serverscout.exception.BadRequestException;
+import com.serverscout.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -72,7 +74,7 @@ public class AiBriefingService {
         EvidenceAnalysis analysis = analyze(evidence);
 
         if (!analysis.relevant()) {
-            throw new IllegalArgumentException(chinese
+            throw new BadRequestException(chinese
                     ? "输入内容与安全扫描、资产、服务或漏洞分析无关，请提供相关证据。"
                     : "The input is unrelated to security scans, assets, services, or vulnerabilities.");
         }
@@ -161,13 +163,13 @@ public class AiBriefingService {
         HttpResponse<String> response = HttpClient.newHttpClient().send(
                 httpRequest, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IllegalStateException("Model returned HTTP " + response.statusCode());
+            throw new ServiceException("Model returned HTTP " + response.statusCode());
         }
 
         JsonNode root = objectMapper.readTree(response.body());
         String content = root.path("choices").path(0).path("message").path("content").asText();
         if (content.isBlank()) {
-            throw new IllegalStateException("Model returned empty content");
+            throw new ServiceException("Model returned empty content");
         }
         JsonNode parsed = objectMapper.readTree(stripJsonFence(content));
         List<AiBriefingResponse.Section> sections = new ArrayList<>();
@@ -181,7 +183,7 @@ public class AiBriefingService {
                     items));
         }
         if (sections.isEmpty()) {
-            throw new IllegalStateException("Model returned no sections");
+            throw new ServiceException("Model returned no sections");
         }
         List<String> warnings = new ArrayList<>();
         parsed.path("warnings").forEach(item -> warnings.add(item.asText()));
@@ -451,7 +453,7 @@ public class AiBriefingService {
 
     private String normalize(String input) {
         if (input == null || input.isBlank()) {
-            throw new IllegalArgumentException("Evidence is required");
+            throw new BadRequestException("Evidence is required");
         }
         return input.replace("\r\n", "\n").trim();
     }

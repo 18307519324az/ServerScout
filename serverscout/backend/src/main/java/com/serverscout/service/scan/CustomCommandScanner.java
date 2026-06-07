@@ -3,7 +3,7 @@ package com.serverscout.service.scan;
 import com.serverscout.entity.ScanStrategyPlugin;
 import com.serverscout.entity.ScanTask;
 import com.serverscout.repository.ScanStrategyPluginRepository;
-import com.serverscout.util.ScanException;
+import com.serverscout.exception.ScanException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

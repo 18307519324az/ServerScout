@@ -4,7 +4,8 @@ import com.serverscout.dto.AssetResponse;
 import com.serverscout.dto.TopologyResponse;
 import com.serverscout.entity.*;
 import com.serverscout.repository.*;
-import com.serverscout.util.ResourceNotFoundException;
+import com.serverscout.common.ErrorCode;
+import com.serverscout.exception.ResourceNotFoundException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +51,7 @@ public class AssetService {
     @Transactional(readOnly = true)
     public AssetResponse getAssetDetail(Long id) {
         Asset asset = assetRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Asset", id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSET_NOT_FOUND, "Asset", id));
 
         List<Port> ports = portRepository.findByAssetId(id);
         List<AssetResponse.PortDetail> portDetails = ports.stream().map(this::toPortDetail).collect(Collectors.toList());
@@ -151,7 +152,7 @@ public class AssetService {
     @Transactional
     public void updateTags(Long id, List<String> tags) {
         Asset asset = assetRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Asset", id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSET_NOT_FOUND, "Asset", id));
         try { asset.setTags(objectMapper.writeValueAsString(tags)); }
         catch (Exception e) { asset.setTags("[]"); }
         assetRepository.save(asset);
@@ -160,7 +161,7 @@ public class AssetService {
     @Transactional
     public void deleteAsset(Long id) {
         Asset asset = assetRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Asset", id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSET_NOT_FOUND, "Asset", id));
 
         List<Port> ports = portRepository.findByAssetId(id);
         for (Port port : ports) {
@@ -178,7 +179,7 @@ public class AssetService {
     @Transactional
     public Asset mergeAssets(List<Long> sourceIds, Long targetId) {
         Asset target = assetRepository.findById(targetId)
-                .orElseThrow(() -> new ResourceNotFoundException("Asset", targetId));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ASSET_NOT_FOUND, "Asset", targetId));
 
         if (sourceIds.contains(targetId)) {
             sourceIds = sourceIds.stream().filter(id -> !id.equals(targetId)).collect(Collectors.toList());

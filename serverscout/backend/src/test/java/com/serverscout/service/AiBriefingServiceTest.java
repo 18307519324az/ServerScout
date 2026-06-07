@@ -3,6 +3,7 @@ package com.serverscout.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.serverscout.dto.AiBriefingRequest;
 import com.serverscout.dto.AiBriefingResponse;
+import com.serverscout.exception.BadRequestException;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,11 +55,11 @@ class AiBriefingServiceTest {
 
     @Test
     void rejectsEmptyAndUnrelatedInput() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BadRequestException.class,
                 () -> service.generate(new AiBriefingRequest(" ", "en")));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BadRequestException.class,
                 () -> service.generate(new AiBriefingRequest("Please write a recipe for chocolate cake.", "en")));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BadRequestException.class,
                 () -> service.generate(new AiBriefingRequest("Write a travel story about Java and Docker.", "en")));
     }
 

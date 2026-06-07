@@ -2,7 +2,7 @@ package com.serverscout.service.scan;
 
 import com.serverscout.entity.ScanTask;
 import com.serverscout.service.SystemConfigService;
-import com.serverscout.util.ScanException;
+import com.serverscout.exception.ScanException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -93,8 +93,9 @@ public class NmapScannerImpl implements ScannerStrategy {
                 retryCmd.removeIf(arg -> "-O".equals(arg));
                 return executeCommand(retryCmd, taskId);
             }
-            throw new ScanException("Nmap exited with code: " + exitCode
-                    + (stderr != null && !stderr.isBlank() ? ", stderr: " + stderr : ""));
+            log.error("Nmap exited with code {} for task {}: {}",
+                    exitCode, taskId, stderr != null ? stderr : "(no stderr)");
+            throw new ScanException("Nmap execution failed (exit code " + exitCode + ")");
         }
 
         return parseXmlOutput(stdout);

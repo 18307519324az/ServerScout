@@ -2,7 +2,7 @@ package com.serverscout.service.scan;
 
 import com.serverscout.entity.ScanTask;
 import com.serverscout.service.SystemConfigService;
-import com.serverscout.util.ScanException;
+import com.serverscout.exception.ScanException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

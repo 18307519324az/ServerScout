@@ -2,7 +2,9 @@ package com.serverscout.service;
 
 import com.serverscout.entity.User;
 import com.serverscout.repository.UserRepository;
-import com.serverscout.util.ResourceNotFoundException;
+import com.serverscout.exception.BadRequestException;
+import com.serverscout.exception.ConflictException;
+import com.serverscout.exception.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -77,13 +79,13 @@ class UserServiceTest {
     void shouldRejectDuplicateUsername() {
         when(userRepository.existsByUsername("exists")).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(ConflictException.class,
                 () -> userService.createUser("exists", "pass", "USER", "X", "MALE", "x@test.com"));
     }
 
     @Test
     void shouldRejectInvalidEmail() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BadRequestException.class,
                 () -> userService.createUser("u", "pass", "USER", "X", "MALE", "bad-email"));
     }
 
@@ -117,7 +119,7 @@ class UserServiceTest {
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
         when(passwordEncoder.matches("wrong", "encoded_pass")).thenReturn(false);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BadRequestException.class,
                 () -> userService.changeCurrentUserPassword("testuser", "wrong", "newpass"));
     }
 
@@ -143,7 +145,7 @@ class UserServiceTest {
         when(userRepository.findAll()).thenReturn(List.of(admin));
         when(userRepository.findById(99L)).thenReturn(Optional.of(admin));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(BadRequestException.class,
                 () -> userService.deleteUser(99L));
     }
 }

@@ -2,7 +2,9 @@ package com.serverscout.service;
 
 import com.serverscout.entity.*;
 import com.serverscout.repository.*;
-import com.serverscout.util.ResourceNotFoundException;
+import com.serverscout.common.ErrorCode;
+import com.serverscout.exception.ResourceNotFoundException;
+import com.serverscout.exception.ServiceException;
 import com.itextpdf.io.font.PdfEncodings;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.events.Event;
@@ -167,7 +169,7 @@ public class ReportService {
             this.chineseFont = loadChineseFont();
 
             ScanTask task = scanTaskRepository.findById(taskId)
-                    .orElseThrow(() -> new ResourceNotFoundException("ScanTask", taskId));
+                    .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SCAN_TASK_NOT_FOUND, "ScanTask", taskId));
             List<Asset> assets = getTaskAssets(taskId);
 
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -507,7 +509,7 @@ public class ReportService {
             doc.close();
             return baos.toByteArray();
         } catch (Exception e) {
-            throw new RuntimeException("PDF报告生成失败: " + e.getMessage(), e);
+            throw new ServiceException("PDF报告生成失败: " + e.getMessage(), e);
         }
     }
 
@@ -517,7 +519,7 @@ public class ReportService {
     public byte[] generateExcelReport(Long taskId) {
         try {
             ScanTask task = scanTaskRepository.findById(taskId)
-                    .orElseThrow(() -> new ResourceNotFoundException("ScanTask", taskId));
+                    .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SCAN_TASK_NOT_FOUND, "ScanTask", taskId));
             List<Asset> assets = getTaskAssets(taskId);
 
             Workbook wb = new XSSFWorkbook();
@@ -783,7 +785,7 @@ public class ReportService {
             wb.close();
             return baos.toByteArray();
         } catch (Exception e) {
-            throw new RuntimeException("Excel报告生成失败: " + e.getMessage(), e);
+            throw new ServiceException("Excel报告生成失败: " + e.getMessage(), e);
         }
     }
 
