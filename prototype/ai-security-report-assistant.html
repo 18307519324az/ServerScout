@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ServerScout AI 风险简报原型页</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d8dee9;
+      --blue: #2563eb;
+      --red: #dc2626;
+      --amber: #d97706;
+      --green: #059669;
+      --slate: #334155;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: var(--blue);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+    }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: 20px; line-height: 1.2; }
+    .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 0.8fr) minmax(420px, 1.2fr);
+      gap: 18px;
+      padding: 18px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+    }
+    .panel-head h2 { font-size: 16px; }
+    .panel-body { padding: 16px; }
+    .stack { display: grid; gap: 12px; }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 72px;
+      background: #fbfcff;
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .metric strong {
+      font-size: 22px;
+      line-height: 1;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .badge.red { color: #991b1b; background: #fee2e2; border-color: #fecaca; }
+    .badge.amber { color: #92400e; background: #fef3c7; border-color: #fde68a; }
+    .badge.blue { color: #1d4ed8; background: #dbeafe; border-color: #bfdbfe; }
+    .badge.green { color: #047857; background: #d1fae5; border-color: #a7f3d0; }
+    textarea {
+      width: 100%;
+      min-height: 184px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      font: 13px/1.55 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      color: var(--ink);
+      background: #fbfcff;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      min-height: 42px;
+      padding: 0 14px;
+      font-weight: 800;
+      color: white;
+      background: var(--blue);
+      cursor: pointer;
+    }
+    button.secondary {
+      color: var(--slate);
+      background: #e2e8f0;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .brief {
+      display: grid;
+      gap: 12px;
+    }
+    .brief-section {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcff;
+    }
+    .brief-section h3 {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .brief-section p, .brief-section li {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+    ol, ul { margin: 8px 0 0; padding-left: 22px; }
+    .screens {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .screens img {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #e5e7eb;
+    }
+    .note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      header { align-items: flex-start; flex-direction: column; }
+      .metric-grid, .screens { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">SS</div>
+      <div>
+        <h1>ServerScout AI 风险简报原型页</h1>
+        <p class="subtitle">基于扫描证据生成可直接用于处置沟通的风险简报</p>
+      </div>
+    </div>
+    <span class="badge blue">Verified local build</span>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>ServerScout Evidence Input</h2>
+        <span class="badge amber">Demo dataset</span>
+      </div>
+      <div class="panel-body stack">
+        <div class="metric-grid">
+          <div class="metric"><span>Target</span><strong>Demo asset group</strong></div>
+          <div class="metric"><span>Audience</span><strong>Small IT team</strong></div>
+          <div class="metric"><span>Risk posture</span><strong style="color: var(--amber)">Elevated</strong></div>
+          <div class="metric"><span>Output</span><strong>Risk brief</strong></div>
+        </div>
+        <textarea id="evidence">Asset context:
+- Public-facing ServerScout web service in the verified demo environment.
+- Security workflow includes asset discovery, scan tasks, vulnerability management, topology, external intelligence, and report export.
+- Target user is a small team that needs readable remediation guidance after scanning.
+
+Risk signals:
+- Internet-facing service exposure should be reviewed before public release.
+- Vulnerability findings need priority based on severity, CVSS, EPSS, exploit likelihood, and business impact.
+- Report consumers need a summary that explains what to fix first and why.
+
+Requested assistant output:
+- Executive summary.
+- Top remediation priorities.
+- Report-ready wording.
+- Next actions for a small team.</textarea>
+        <div class="actions">
+          <button id="generate">生成风险简报</button>
+          <button class="secondary" id="reset">Reset Demo Data</button>
+        </div>
+        <p class="note">
+          该原型用于演示 AI 风险简报交互流程。生产环境中应接入真实的 ServerScout 扫描任务数据与受控模型网关。
+        </p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Generated Brief</h2>
+        <span id="status" class="badge green">Ready</span>
+      </div>
+      <div class="panel-body">
+        <div id="brief" class="brief">
+          <div class="brief-section">
+            <h3>Before Generation</h3>
+            <p>点击“生成风险简报”后，可基于输入证据生成管理摘要、修复优先级与可直接用于报告的安全描述。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>ServerScout Screens</h2>
+        <span class="badge blue">Copied from project docs</span>
+      </div>
+      <div class="panel-body">
+        <div class="screens">
+          <img src="../screenshots/ch1-dashboard.png" alt="ServerScout dashboard">
+          <img src="../screenshots/ch2-assets.png" alt="ServerScout assets">
+          <img src="../screenshots/ch3-scan-task-detail.png" alt="ServerScout scan task detail">
+          <img src="../screenshots/ch4-reports.png" alt="ServerScout reports">
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>功能价值说明</h2>
+        <span class="badge red">AI 工作流</span>
+      </div>
+      <div class="panel-body brief">
+        <div class="brief-section">
+          <h3>Usefulness</h3>
+          <p>Small teams can understand scan results without reading every raw finding.</p>
+        </div>
+        <div class="brief-section">
+          <h3>Functionality</h3>
+          <p>The base platform scans and organizes evidence. The assistant turns that evidence into remediation decisions.</p>
+        </div>
+        <div class="brief-section">
+          <h3>Business Potential</h3>
+          <p>Initial users include small businesses, internal IT teams, security students, and freelance security testers.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const originalEvidence = document.getElementById('evidence').value;
+    const brief = document.getElementById('brief');
+    const status = document.getElementById('status');
+
+    function renderBrief() {
+      const evidence = document.getElementById('evidence').value.trim();
+      status.textContent = 'Generated';
+      brief.innerHTML = `
+        <div class="brief-section">
+          <h3>Executive Summary</h3>
+          <p>The scanned environment contains a public-facing service that should be treated as a priority review target. The main business risk is not only whether a vulnerability exists, but whether exposed services and unresolved findings can be converted into unauthorized access, data leakage, or operational downtime.</p>
+        </div>
+        <div class="brief-section">
+          <h3>Priority Order</h3>
+          <ol>
+            <li>Review internet-facing services and remove exposure that is not required for the demo or business workflow.</li>
+            <li>Prioritize vulnerability findings with high severity, known exploitation signals, or strong business impact.</li>
+            <li>对外提供系统前，应确认认证、授权、限流与操作日志能力均已配置完成。</li>
+            <li>Export the remediation plan into PDF or Excel so owners can track fixes.</li>
+          </ol>
+        </div>
+        <div class="brief-section">
+          <h3>Report-Ready Wording</h3>
+          <p>ServerScout identified externally reachable services and vulnerability-related signals that require prioritized remediation. The recommended first step is to reduce unnecessary exposure, then address high-impact vulnerabilities, verify access controls, and document remediation status for follow-up review.</p>
+        </div>
+        <div class="brief-section">
+          <h3>Small Team Next Actions</h3>
+          <ul>
+            <li>Assign one owner for exposure review.</li>
+            <li>Assign one owner for vulnerability remediation.</li>
+            <li>Set a short review cycle for public service changes.</li>
+            <li>Use report export to communicate progress to stakeholders.</li>
+          </ul>
+        </div>
+        <div class="brief-section">
+          <h3>Input Used</h3>
+          <p>${evidence.replace(/[<>&]/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])).slice(0, 900)}</p>
+        </div>
+      `;
+    }
+
+    document.getElementById('generate').addEventListener('click', renderBrief);
+    document.getElementById('reset').addEventListener('click', () => {
+      document.getElementById('evidence').value = originalEvidence;
+      status.textContent = 'Ready';
+      brief.innerHTML = '<div class="brief-section"><h3>生成前</h3><p>点击“生成风险简报”后，可基于输入证据生成管理摘要、修复优先级与可直接用于报告的安全描述。</p></div>';
+    });
+  </script>
+</body>
+</html>
