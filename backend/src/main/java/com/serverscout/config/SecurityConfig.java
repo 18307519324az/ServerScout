@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/screenshot/file/**").permitAll()
                 .requestMatchers("/api/v1/scan-tasks/*/progress").permitAll()
+                .requestMatchers("/api/v1/config/demo-mode").permitAll()
                 .requestMatchers("/api/v1/users/me/**").authenticated()
                 .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/**").authenticated()

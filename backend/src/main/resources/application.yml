@@ -56,6 +56,7 @@ app:
     secret: ${JWT_SECRET:please_change_me_at_least_32_chars}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   scan:
+    demo-mode: ${SCANNER_DEMO_MODE:true}
     nmap-path: ${NMAP_PATH:nmap}
     nuclei-path: ${NUCLEI_PATH:nuclei}
     max-concurrent-tasks: ${SCAN_MAX_CONCURRENT:5}

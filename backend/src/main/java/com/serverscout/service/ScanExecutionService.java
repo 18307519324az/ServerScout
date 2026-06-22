@@ -56,6 +56,9 @@ public class ScanExecutionService {
     @Value("${app.scan.target-concurrency.max-wait-seconds:300}")
     private long targetAcquireMaxWaitSeconds;
 
+    @Value("${app.scan.demo-mode:false}")
+    private boolean demoMode;
+
     @Async("scanExecutor")
     public void executeScan(Long taskId) {
         ScanTask task = scanTaskRepository.findById(taskId).orElse(null);
@@ -152,6 +155,12 @@ public class ScanExecutionService {
             scanTaskRepository.save(task);
             progressEmitter.sendProgress(taskId, 40,
                     "Asset data saved, " + assetCount + " new hosts", assetCount);
+
+            // Demo mode: skip network-dependent phases, complete with mock vulnerabilities
+            if (demoMode) {
+                completeDemoScanTask(task, taskId, assetCount);
+                return;
+            }
 
             // Phase 1.5: Subdomain enumeration (if target is a domain)
             if (isDomainName(task.getTargetRange())) {
@@ -338,6 +347,51 @@ public class ScanExecutionService {
     public void forceCancel(Long taskId) {
         processRegistry.destroyAll(taskId);
         log.info("Force-cancelled all running processes for task {}", taskId);
+    }
+
+    /**
+     * Demo mode completion: runs mock vulnerability scan, skips all network-dependent phases.
+     * Only called when app.scan.demo-mode=true.
+     */
+    private void completeDemoScanTask(ScanTask task, Long taskId, int assetCount) {
+        try {
+            // For full scans, ensure vulnerabilities are generated even if frontend omitted the flag
+            if (!Boolean.TRUE.equals(task.getEnableVulnScan()) && "full".equals(task.getScanType())) {
+                task.setEnableVulnScan(true);
+            }
+
+            // Run vulnerability scan using DemoScannerStrategy (selected for "nuclei" type)
+            if (Boolean.TRUE.equals(task.getEnableVulnScan())) {
+                progressEmitter.sendProgress(taskId, 57, "Running vulnerability scan...", assetCount);
+                runVulnScan(task);
+                if (isCancelled(taskId)) return;
+            }
+
+            task.setProgress(90);
+            scanTaskRepository.save(task);
+            progressEmitter.sendProgress(taskId, 90, "Finalizing results...", assetCount);
+
+            task.setStatus("completed");
+            task.setProgress(100);
+            task.setCompletedAt(Instant.now());
+            scanTaskRepository.save(task);
+            progressEmitter.sendCompleted(taskId);
+            log.info("Scan task {} completed (demo mode)", taskId);
+        } catch (Exception e) {
+            log.warn("Demo completion error for task {}: {}", taskId, e.getMessage());
+            task.setStatus("completed");
+            task.setProgress(100);
+            task.setCompletedAt(Instant.now());
+            try { scanTaskRepository.save(task); } catch (Exception ignored) {}
+            progressEmitter.sendCompleted(taskId);
+        }
+
+        // Webhook notification failure must not break completion
+        try {
+            webhookService.sendScanCompletedNotification(taskId);
+        } catch (Exception e) {
+            log.warn("Webhook notification failed for demo task {}: {}", taskId, e.getMessage());
+        }
     }
 
     private boolean isCancelled(Long taskId) {

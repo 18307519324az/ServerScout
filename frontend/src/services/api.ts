@@ -97,6 +97,9 @@ export const detectSingleTool = (toolName: string) =>
 export const updateSystemConfigs = (configs: Record<string, string>) =>
   http.put<ApiResponse<void>>('/v1/config', configs)
 
+export const fetchDemoMode = () =>
+  http.get<ApiResponse<{ demoMode: boolean; message?: string }>>('/v1/config/demo-mode')
+
 // Assets
 export const fetchAssets = (params: { page?: number; size?: number; keyword?: string; status?: string; taskId?: number }) =>
   http.get<ApiResponse<PageData<Asset>>>('/v1/assets', { params })

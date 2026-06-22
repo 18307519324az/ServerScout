@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { Shield, LayoutDashboard, Server, ScanLine, Bug, Network, FileText, Settings, Globe, Moon, Sun, Map, Menu, X, Languages, BookOpen, Bot } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import useDarkMode from '../hooks/useDarkMode'
+import { fetchDemoMode } from '../services/api'
 
 const navKeys = [
   { path: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
@@ -23,6 +24,13 @@ export default function MainLayout() {
   const { dark, toggle } = useDarkMode()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { t, i18n } = useTranslation()
+  const [demoMode, setDemoMode] = useState(false)
+
+  useEffect(() => {
+    fetchDemoMode()
+      .then(res => setDemoMode(res.data.data?.demoMode ?? false))
+      .catch(() => { /* demo mode check failure should not break the page */ })
+  }, [])
 
   const toggleLang = () => {
     const next = i18n.language === 'zh' ? 'en' : 'zh'
@@ -67,6 +75,16 @@ export default function MainLayout() {
         })}
       </nav>
       <div className="p-3 border-t dark:border-gray-700 space-y-2">
+        {demoMode && (
+          <div className="px-3 py-1.5 mb-1">
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700"
+              title="系统使用演示数据模拟扫描流程，不会执行真实 Nmap / Nuclei。"
+            >
+              演示模式
+            </span>
+          </div>
+        )}
         <Link
           to="/manual"
           onClick={closeSidebar}

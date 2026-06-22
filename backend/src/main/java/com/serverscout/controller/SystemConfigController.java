@@ -5,6 +5,7 @@ import com.serverscout.service.ScheduledScanService;
 import com.serverscout.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,9 @@ public class SystemConfigController {
 
     private final SystemConfigService configService;
     private final ScheduledScanService scheduledScanService;
+
+    @Value("${app.scan.demo-mode:false}")
+    private boolean demoMode;
 
     @GetMapping
     public ApiResponse<Map<String, String>> getAllConfigs() {
@@ -46,6 +50,14 @@ public class SystemConfigController {
         result.put(toolName + "-path", path.isEmpty() ? "" : path);
         log.info("Single tool detection for {}: {}", toolName, path.isEmpty() ? "not found" : path);
         return ApiResponse.success(result);
+    }
+
+    @GetMapping("/demo-mode")
+    public ApiResponse<Map<String, Object>> getDemoMode() {
+        return ApiResponse.success(Map.of(
+                "demoMode", demoMode,
+                "message", "当前处于 Demo Mode，系统使用演示数据模拟扫描流程，不会执行真实 Nmap / Nuclei。"
+        ));
     }
 
     private String detectTool(String toolName) {
