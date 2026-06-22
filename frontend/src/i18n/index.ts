@@ -4,7 +4,8 @@ import zh from './locales/zh.json'
 import en from './locales/en.json'
 
 const saved = localStorage.getItem('lang')
-const initialLang = saved || 'en'
+const browserLang = typeof navigator !== 'undefined' && navigator.language.startsWith('zh') ? 'zh' : 'en'
+const initialLang = saved || browserLang
 
 i18n.use(initReactI18next).init({
   resources: { zh: { translation: zh }, en: { translation: en } },

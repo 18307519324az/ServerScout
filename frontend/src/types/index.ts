@@ -135,6 +135,23 @@ export interface VulnBrief {
   status: string
 }
 
+// ========== Scan Task Stage ==========
+export interface ScanTaskStage {
+  id: number
+  taskId: number
+  stageCode: string
+  stageName: string
+  status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'SKIPPED'
+  progress: number
+  startedAt: string | null
+  finishedAt: string | null
+  durationMs: number | null
+  summary: string | null
+  errorMessage: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 // ========== Scan Task ==========
 export interface ScanTask {
   id: number

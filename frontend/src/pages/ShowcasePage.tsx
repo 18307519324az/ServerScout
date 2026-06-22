@@ -14,7 +14,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 
@@ -32,7 +32,8 @@ function hasValidToken() {
 }
 
 function detectSystemLang(): Lang {
-  return 'en'
+  if (typeof navigator === 'undefined') return 'en'
+  return navigator.language.startsWith('zh') ? 'zh' : 'en'
 }
 
 const snapshotDefs = [
@@ -216,8 +217,15 @@ function ShotButton({
 
 export default function ShowcasePage() {
   const navigate = useNavigate()
-  const loggedIn = useMemo(() => hasValidToken(), [])
-  const lang = useMemo(() => detectSystemLang(), [])
+  const loggedIn = (() => {
+    const token = localStorage.getItem('token')
+    if (!token) return false
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      return !!payload.exp && Date.now() < payload.exp * 1000
+    } catch { return false }
+  })()
+  const [lang, setLang] = useState<Lang>(detectSystemLang)
   const text = copy[lang]
   const [preview, setPreview] = useState<Snapshot | null>(null)
   const [liveIdx, setLiveIdx] = useState(0)
@@ -246,6 +254,12 @@ export default function ShowcasePage() {
     { id: 'evidence', label: text.nav.evidence },
     { id: 'architecture', label: text.nav.architecture },
   ]
+
+  const toggleLang = useCallback(() => {
+    const next = lang === 'zh' ? 'en' : 'zh'
+    setLang(next)
+    localStorage.setItem('lang', next)
+  }, [lang])
 
   const modules = text.modules.map((module, idx) => ({ ...module, icon: moduleIcons[idx] }))
   const snapshots = snapshotDefs.map((item) => ({ ...item, ...text.snapshotMeta[item.key] }))
@@ -315,7 +329,14 @@ export default function ShowcasePage() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleLang}
+              className="rounded-lg border border-white/10 px-3 py-2 text-xs text-slate-400 transition hover:border-white/30 hover:text-white"
+              title={lang === 'zh' ? 'Switch to English' : '切换到中文'}
+            >
+              {lang === 'zh' ? 'EN' : '中'}
+            </button>
             <button
               onClick={() => navigate('/login')}
               className="rounded-lg border border-white/20 px-4 py-2 text-sm text-slate-200 transition hover:bg-white/10"

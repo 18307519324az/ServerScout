@@ -3,9 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Bug, CheckCircle2, Circle, Download, Globe, Layers, Loader2, Server, Shield, Square } from 'lucide-react'
-import { cancelScanTask, downloadExcelReport, downloadPdfReport, fetchScanTaskDetail } from '../services/api'
+import { cancelScanTask, downloadExcelReport, downloadPdfReport, fetchScanTaskDetail, fetchScanTaskStages } from '../services/api'
 import ProgressBar from '../components/ProgressBar'
 import StatusBadge from '../components/StatusBadge'
+import type { ScanTaskStage } from '../types'
 
 interface DiscoveryEvent {
   type: string
@@ -82,6 +83,14 @@ export default function ScanTaskDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
+
+  const { data: stagesData } = useQuery({
+    queryKey: ['scan-task-stages', id],
+    queryFn: () => fetchScanTaskStages(Number(id)),
+    enabled: !!id && task?.status !== 'pending',
+    refetchInterval: task?.status === 'running' ? 5000 : false,
+  })
+  const stages = stagesData?.data?.data
 
   const handleDownload = async (format: 'pdf' | 'excel', taskId: number) => {
     try {
@@ -272,13 +281,21 @@ export default function ScanTaskDetailPage() {
         </div>
       )}
 
-      {isRunning && (
+      {(isRunning || stages) && (
         <div className="bg-white dark:bg-gray-800 rounded-xl border dark:border-gray-700 shadow-sm p-5 mb-6">
           <h3 className="font-semibold mb-4 dark:text-white flex items-center gap-2">
             <Layers className="w-4 h-4 text-purple-600" />
             {t('scanTasks.pipelinePhase')}
           </h3>
-          <PipelineProgress progress={task.progress} t={t} />
+          {stages && stages.length > 0 ? (
+            <div className="space-y-2">
+              {stages.map((stage) => (
+                <StageRow key={stage.stageCode} stage={stage} />
+              ))}
+            </div>
+          ) : isRunning ? (
+            <PipelineProgress progress={task.progress} t={t} />
+          ) : null}
         </div>
       )}
 
@@ -432,6 +449,57 @@ function PipelineProgress({ progress, t }: { progress: number; t: (key: string) 
           </div>
         )
       })}
+    </div>
+  )
+}
+
+const stageStatusBadge: Record<string, string> = {
+  PENDING: 'pending',
+  RUNNING: 'running',
+  SUCCESS: 'completed',
+  FAILED: 'failed',
+  SKIPPED: 'cancelled',
+}
+
+function StageRow({ stage }: { stage: ScanTaskStage }) {
+  const config: Record<string, { icon: any; className: string }> = {
+    PENDING: { icon: Circle, className: 'text-gray-300 dark:text-gray-600' },
+    RUNNING: { icon: Loader2, className: 'text-blue-500 animate-spin' },
+    SUCCESS: { icon: CheckCircle2, className: 'text-green-500' },
+    FAILED: { icon: Bug, className: 'text-red-500' },
+    SKIPPED: { icon: Circle, className: 'text-yellow-400' },
+  }
+  const c = config[stage.status] || config.PENDING
+  const Icon = c.icon
+
+  return (
+    <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900/50 border dark:border-gray-700">
+      <Icon className={`w-4 h-4 flex-shrink-0 ${c.className}`} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-medium dark:text-white truncate">{stage.stageName}</span>
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+            {stage.status === 'RUNNING' && <span>{stage.progress}%</span>}
+            {stage.status === 'SUCCESS' && stage.durationMs != null && (
+              <span>{(stage.durationMs / 1000).toFixed(1)}s</span>
+            )}
+            <StatusBadge status={stageStatusBadge[stage.status] || 'pending'} />
+          </div>
+        </div>
+        {stage.status === 'RUNNING' && (
+          <div className="mt-1.5">
+            <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 rounded-full transition-all duration-500" style={{ width: `${stage.progress}%` }} />
+            </div>
+          </div>
+        )}
+        {stage.summary && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{stage.summary}</p>
+        )}
+        {stage.errorMessage && (
+          <p className="text-xs text-red-500 mt-0.5 truncate">{stage.errorMessage}</p>
+        )}
+      </div>
     </div>
   )
 }

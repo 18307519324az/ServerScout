@@ -3,8 +3,10 @@ package com.serverscout.controller;
 import com.serverscout.dto.ApiResponse;
 import com.serverscout.dto.CreateScanTaskRequest;
 import com.serverscout.dto.ScanTaskResponse;
+import com.serverscout.entity.ScanTaskStage;
 import com.serverscout.service.ProgressEmitter;
 import com.serverscout.service.ScanService;
+import com.serverscout.service.ScanTaskStageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -13,6 +15,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/scan-tasks")
 @RequiredArgsConstructor
@@ -20,6 +24,7 @@ public class ScanTaskController {
 
     private final ScanService scanService;
     private final ProgressEmitter progressEmitter;
+    private final ScanTaskStageService scanTaskStageService;
 
     private String getUsername(Authentication auth) {
         return auth != null ? auth.getName() : null;
@@ -63,6 +68,13 @@ public class ScanTaskController {
     public ApiResponse<Void> deleteTask(@PathVariable Long id) {
         scanService.deleteTask(id);
         return ApiResponse.success(null);
+    }
+
+    @GetMapping("/{id}/stages")
+    public ApiResponse<List<ScanTaskStage>> getTaskStages(@PathVariable Long id) {
+        // Verify task exists
+        scanService.getTaskDetail(id);
+        return ApiResponse.success(scanTaskStageService.listByTaskId(id));
     }
 
     @GetMapping("/{id}/progress")

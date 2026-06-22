@@ -1,6 +1,7 @@
 package com.serverscout.service;
 
 import com.serverscout.entity.*;
+import com.serverscout.entity.enums.ScanStageCode;
 import com.serverscout.repository.*;
 import com.serverscout.service.scan.*;
 import com.serverscout.exception.ScanException;
@@ -43,6 +44,7 @@ public class ScanExecutionService {
     private final HoneypotDetectionService honeypotDetectionService;
     private final ProcessRegistry processRegistry;
     private final TargetConcurrencyLimiter targetConcurrencyLimiter;
+    private final ScanTaskStageService scanTaskStageService;
 
     @Value("${app.scan.http-probe-workers:8}")
     private int httpProbeWorkers;
@@ -113,6 +115,10 @@ public class ScanExecutionService {
             scanTaskRepository.save(task);
             progressEmitter.sendProgress(taskId, 5, "Starting port scan...", 0);
 
+            scanTaskStageService.initStages(taskId);
+            scanTaskStageService.markSuccess(taskId, ScanStageCode.TARGET_VALIDATION, "目标校验通过");
+            scanTaskStageService.markRunning(taskId, ScanStageCode.PORT_SCAN, "正在执行端口扫描...");
+
             final String scanType = task.getScanType();
             ScannerStrategy strategy = scannerStrategies.stream()
                     .filter(s -> s.supports(scanType))
@@ -146,8 +152,12 @@ public class ScanExecutionService {
             progressEmitter.sendProgress(taskId, 30,
                     "Port scan completed, found " + result.getAssets().size() + " hosts",
                     result.getAssets().size());
+            scanTaskStageService.markSuccess(taskId, ScanStageCode.PORT_SCAN,
+                    "端口扫描完成，发现 " + result.getAssets().size() + " 个主机");
 
             // Phase 1: Save/merge assets and ports with real-time discovery events
+            scanTaskStageService.markRunning(taskId, ScanStageCode.SERVICE_FINGERPRINT, "正在识别服务...");
+            scanTaskStageService.markRunning(taskId, ScanStageCode.RESULT_SAVE, "正在保存扫描结果...");
             int assetCount = saveScanResults(task, result);
             if (isCancelled(taskId)) return;
 
@@ -155,6 +165,8 @@ public class ScanExecutionService {
             scanTaskRepository.save(task);
             progressEmitter.sendProgress(taskId, 40,
                     "Asset data saved, " + assetCount + " new hosts", assetCount);
+            scanTaskStageService.markSuccess(taskId, ScanStageCode.SERVICE_FINGERPRINT, "服务识别完成，共 " + assetCount + " 个资产");
+            scanTaskStageService.markSuccess(taskId, ScanStageCode.RESULT_SAVE, "结果保存完成");
 
             // Demo mode: skip network-dependent phases, complete with mock vulnerabilities
             if (demoMode) {
@@ -355,21 +367,37 @@ public class ScanExecutionService {
      */
     private void completeDemoScanTask(ScanTask task, Long taskId, int assetCount) {
         try {
+            // Web Probe is skipped in demo mode
+            scanTaskStageService.markSkipped(taskId, ScanStageCode.WEB_PROBE, "Demo 模式跳过 Web 探测");
+
             // For full scans, ensure vulnerabilities are generated even if frontend omitted the flag
             if (!Boolean.TRUE.equals(task.getEnableVulnScan()) && "full".equals(task.getScanType())) {
                 task.setEnableVulnScan(true);
             }
 
-            // Run vulnerability scan using DemoScannerStrategy (selected for "nuclei" type)
+            // Run vulnerability scan (DemoScannerStrategy handles mock vulns)
             if (Boolean.TRUE.equals(task.getEnableVulnScan())) {
+                scanTaskStageService.markRunning(taskId, ScanStageCode.VULNERABILITY_SCAN,
+                        "正在执行漏洞检测...");
                 progressEmitter.sendProgress(taskId, 57, "Running vulnerability scan...", assetCount);
                 runVulnScan(task);
                 if (isCancelled(taskId)) return;
+                scanTaskStageService.markSuccess(taskId, ScanStageCode.VULNERABILITY_SCAN,
+                        "漏洞检测完成");
+            } else {
+                scanTaskStageService.markSkipped(taskId, ScanStageCode.VULNERABILITY_SCAN,
+                        "未启用漏洞扫描");
             }
 
+            // CVE matching — DemoScannerStrategy generates CVE-tagged vulns directly
+            scanTaskStageService.markSuccess(taskId, ScanStageCode.CVE_MATCH, "CVE 匹配完成（Demo 模式使用预设数据）");
+
+            // Risk analysis
+            scanTaskStageService.markRunning(taskId, ScanStageCode.RISK_ANALYSIS, "正在执行风险分析...");
             task.setProgress(90);
             scanTaskRepository.save(task);
             progressEmitter.sendProgress(taskId, 90, "Finalizing results...", assetCount);
+            scanTaskStageService.markSuccess(taskId, ScanStageCode.RISK_ANALYSIS, "风险分析完成");
 
             task.setStatus("completed");
             task.setProgress(100);
@@ -379,6 +407,8 @@ public class ScanExecutionService {
             log.info("Scan task {} completed (demo mode)", taskId);
         } catch (Exception e) {
             log.warn("Demo completion error for task {}: {}", taskId, e.getMessage());
+            scanTaskStageService.markFailed(taskId, ScanStageCode.RISK_ANALYSIS,
+                    "Demo 完成阶段出错: " + e.getMessage());
             task.setStatus("completed");
             task.setProgress(100);
             task.setCompletedAt(Instant.now());
@@ -386,11 +416,15 @@ public class ScanExecutionService {
             progressEmitter.sendCompleted(taskId);
         }
 
-        // Webhook notification failure must not break completion
+        // Webhook notification — mark stage regardless of outcome
         try {
+            scanTaskStageService.markRunning(taskId, ScanStageCode.NOTIFICATION, "正在发送通知...");
             webhookService.sendScanCompletedNotification(taskId);
+            scanTaskStageService.markSuccess(taskId, ScanStageCode.NOTIFICATION, "通知发送完成");
         } catch (Exception e) {
             log.warn("Webhook notification failed for demo task {}: {}", taskId, e.getMessage());
+            scanTaskStageService.markFailed(taskId, ScanStageCode.NOTIFICATION,
+                    "通知发送失败: " + e.getMessage());
         }
     }
 

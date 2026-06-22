@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type {
-  ApiResponse, PageData, Asset, ScanTask, Vulnerability,
+  ApiResponse, PageData, Asset, ScanTask, ScanTaskStage, Vulnerability,
   DashboardStats, TopologyData, CreateScanTaskRequest,
   Subdomain, SubdomainStats, User,
   HoneypotStats, HoneypotDetectionInfo,
@@ -137,6 +137,9 @@ export const cancelScanTask = (id: number) =>
 
 export const deleteScanTask = (id: number) =>
   http.delete(`/v1/scan-tasks/${id}`)
+
+export const fetchScanTaskStages = (taskId: number | string) =>
+  http.get<ApiResponse<ScanTaskStage[]>>(`/v1/scan-tasks/${taskId}/stages`)
 
 // Vulnerabilities
 export const fetchVulnerabilities = (params: { page?: number; size?: number; severity?: string; status?: string; assetId?: number }) =>
