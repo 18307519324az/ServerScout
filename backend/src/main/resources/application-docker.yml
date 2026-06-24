@@ -1,0 +1,36 @@
+# Docker 容器环境配置
+# 通过 docker-compose.yml 的环境变量注入所有敏感值
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:redis}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+logging:
+  level:
+    com.serverscout: ${LOG_LEVEL:INFO}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:8080,http://localhost:3000}
+  scan:
+    nmap-path: ${NMAP_PATH:/usr/bin/nmap}
+    nuclei-path: ${NUCLEI_PATH:/usr/bin/nuclei}
+    max-concurrent-tasks: ${SCANNER_MAX_CONCURRENT_TASKS:2}
+    default-timeout-seconds: ${SCANNER_PROCESS_TIMEOUT_SECONDS:300}
+    demo-mode: ${SCANNER_DEMO_MODE:true}
+    allow-public-targets: ${SCANNER_ALLOW_PUBLIC_TARGETS:false}
+    allowed-cidrs: ${SCANNER_ALLOWED_CIDRS:127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+  pdf:
+    font-path: ${PDF_FONT_PATH:/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc}

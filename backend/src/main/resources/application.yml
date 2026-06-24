@@ -1,0 +1,126 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: server-scout
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/serverscout?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+    username: ${SPRING_DATASOURCE_USERNAME:serverscout}
+    password: ${SPRING_DATASOURCE_PASSWORD:please_change_me}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 50
+          order_inserts: true
+          order_updates: true
+    open-in-view: false
+
+  flyway:
+    enabled: false
+
+  jackson:
+    date-format: yyyy-MM-dd'T'HH:mm:ss'Z'
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:127.0.0.1}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: ${SPRING_DATA_REDIS_TIMEOUT:3s}
+
+logging:
+  level:
+    com.serverscout: ${LOG_LEVEL:INFO}
+    org.springframework: WARN
+
+app:
+  ai:
+    base-url: ${AI_BASE_URL:}
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:}
+    timeout-seconds: ${AI_TIMEOUT_SECONDS:45}
+    max-attempts: ${AI_MAX_ATTEMPTS:2}
+  jwt:
+    secret: ${JWT_SECRET:please_change_me_at_least_32_chars}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  scan:
+    demo-mode: ${SCANNER_DEMO_MODE:true}
+    nmap-path: ${NMAP_PATH:nmap}
+    nuclei-path: ${NUCLEI_PATH:nuclei}
+    max-concurrent-tasks: ${SCAN_MAX_CONCURRENT:5}
+    default-timeout-seconds: ${SCAN_TIMEOUT:300}
+    http-probe-timeout: ${HTTP_PROBE_TIMEOUT:3000}
+    http-probe-workers: ${HTTP_PROBE_WORKERS:8}
+    ssl-collect-workers: ${SSL_COLLECT_WORKERS:6}
+    web-vuln-workers: ${WEB_VULN_WORKERS:6}
+    auto-screenshot-limit: ${AUTO_SCREENSHOT_LIMIT:6}
+    target-concurrency:
+      enabled: ${SCAN_TARGET_CONCURRENCY_ENABLED:true}
+      use-redis: ${SCAN_TARGET_CONCURRENCY_USE_REDIS:true}
+      max-per-target: ${SCAN_TARGET_MAX_CONCURRENT:1}
+      acquire-wait-ms: ${SCAN_TARGET_ACQUIRE_WAIT_MS:1500}
+      max-wait-seconds: ${SCAN_TARGET_MAX_WAIT_SECONDS:300}
+      redis-ttl-seconds: ${SCAN_TARGET_REDIS_TTL_SECONDS:7200}
+  crawler:
+    max-pages: ${CRAWLER_MAX_PAGES:50}
+    max-depth: ${CRAWLER_MAX_DEPTH:3}
+    request-delay-ms: ${CRAWLER_REQUEST_DELAY_MS:120}
+    request-jitter-ms: ${CRAWLER_REQUEST_JITTER_MS:80}
+    timeout-seconds: ${CRAWLER_TIMEOUT_SECONDS:10}
+    max-concurrent: ${CRAWLER_MAX_CONCURRENT:6}
+  pdf:
+    font-path: ${PDF_FONT_PATH:/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:8080,http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:8080}
+  webhook:
+    dingtalk: ${WEBHOOK_DINGTALK:}
+    feishu: ${WEBHOOK_FEISHU:}
+    wecom: ${WEBHOOK_WECOM:}
+  security:
+    rate-limit:
+      enabled: ${RATE_LIMIT_ENABLED:true}
+      window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
+      login-limit: ${RATE_LIMIT_LOGIN_LIMIT:30}
+      register-limit: ${RATE_LIMIT_REGISTER_LIMIT:10}
+      scan-create-limit: ${RATE_LIMIT_SCAN_CREATE_LIMIT:120}
+
+management:
+  health:
+    redis:
+      enabled: ${MANAGEMENT_HEALTH_REDIS_ENABLED:false}
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ServerScout
+    version: 1.0.0
+    description: 服务器资产攻击面管理与风险分析平台
+
+springdoc:
+  swagger-ui:
+    path: /docs
+    tags-sorter: alpha
+    operations-sorter: method
+  api-docs:
+    path: /api-docs

@@ -1,0 +1,4558 @@
+[
+  {
+    "name": "WordPress",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "wp-content/themes/",
+      "wp-content/plugins/",
+      "wp-includes/js/wp-embed",
+      "<meta name=\"generator\" content=\"WordPress"
+    ],
+    "urlKeywords": [
+      "wp-login.php",
+      "wp-admin",
+      "wp-json",
+      "xmlrpc.php",
+      "wp-cron.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Drupal",
+    "category": "cms",
+    "headers": {
+      "X-Generator": "Drupal"
+    },
+    "htmlPatterns": [
+      "<meta name=\"Generator\" content=\"Drupal",
+      "sites/default/files/",
+      "misc/drupal.js",
+      "drupalSettings"
+    ],
+    "urlKeywords": [
+      "user/login",
+      "node/1",
+      "sites/default"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Joomla",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "<meta name=\"generator\" content=\"Joomla",
+      "media/jui/js/",
+      "templates/protostar",
+      "joomla-site"
+    ],
+    "urlKeywords": [
+      "administrator/index.php",
+      "index.php?option=com_"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "DedeCMS",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "Powered by DedeCMS",
+      "dedecms",
+      "/templets/default/",
+      "/plus/mytag_js.php"
+    ],
+    "urlKeywords": [
+      "/dede/login.php",
+      "/plus/search.php",
+      "/data/admin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "EmpireCMS",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "Powered by EmpireCMS",
+      "empirecms",
+      "/e/member/",
+      "/e/public/"
+    ],
+    "urlKeywords": [
+      "/e/admin/",
+      "/e/action/",
+      "/e/member/login/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "PHPCMS",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "Powered by PHPCMS",
+      "phpcms",
+      "/statics/js/",
+      "/phpcms/"
+    ],
+    "urlKeywords": [
+      "/index.php?m=content",
+      "/admin.php",
+      "/api.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Discuz",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "Powered by Discuz!",
+      "discuz_uid",
+      "discuz_fastpost",
+      "<meta name=\"generator\" content=\"Discuz"
+    ],
+    "urlKeywords": [
+      "forum.php",
+      "home.php",
+      "member.php",
+      "misc.php",
+      "/source/plugin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Z-Blog",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "Powered by Z-Blog",
+      "zb_users/",
+      "zblogphp"
+    ],
+    "urlKeywords": [
+      "zb_system/",
+      "zb_install/",
+      "zb_users/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Typecho",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "Powered by Typecho",
+      "typecho",
+      "/usr/themes/",
+      "/usr/plugins/"
+    ],
+    "urlKeywords": [
+      "/admin/login.php",
+      "/usr/uploads/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Magento",
+    "category": "cms",
+    "headers": {
+      "X-Magento-Cache-Debug": "HIT"
+    },
+    "htmlPatterns": [
+      "<meta name=\"generator\" content=\"Magento",
+      "magento",
+      "/skin/frontend/",
+      "/media/catalog/"
+    ],
+    "urlKeywords": [
+      "/customer/account/login/",
+      "/checkout/cart/",
+      "/catalogsearch/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "PrestaShop",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "Powered by PrestaShop",
+      "prestashop",
+      "/themes/default-bootstrap/"
+    ],
+    "urlKeywords": [
+      "/index.php?controller=authentication",
+      "/modules/",
+      "/themes/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Shopify",
+    "category": "cms",
+    "headers": {
+      "X-Shopify-Storefront": "*"
+    },
+    "htmlPatterns": [
+      "Shopify.shop",
+      "shopify",
+      "cdn.shopify.com"
+    ],
+    "urlKeywords": [
+      "/cart",
+      "/collections/all",
+      "/products/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Ghost",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "<meta name=\"generator\" content=\"Ghost",
+      "ghost",
+      "/ghost/"
+    ],
+    "urlKeywords": [
+      "/ghost/",
+      "/content/themes/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Hexo",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "<meta name=\"generator\" content=\"Hexo",
+      "hexo"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Hugo",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "<meta name=\"generator\" content=\"Hugo",
+      "hugo"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Jekyll",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "<meta name=\"generator\" content=\"Jekyll",
+      "jekyll"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "WeCenter",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "WeCenter",
+      "wecenter",
+      "/static/css/default/"
+    ],
+    "urlKeywords": [
+      "/?/account/login/",
+      "/?/question/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "ThinkCMF",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "ThinkCMF",
+      "thinkcmf",
+      "/themes/simpleboot3/"
+    ],
+    "urlKeywords": [
+      "/admin/",
+      "/portal/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "EyouCMS",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "eyoucms",
+      "/template/pc/",
+      "/public/static/common/"
+    ],
+    "urlKeywords": [
+      "/login.php",
+      "/index.php?m=home"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "PbootCMS",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "pbootcms",
+      "pboot",
+      "/template/default/"
+    ],
+    "urlKeywords": [
+      "/admin.php",
+      "/index.php/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Yii",
+    "category": "framework",
+    "headers": {
+      "X-Powered-By": "Yii Framework"
+    },
+    "htmlPatterns": [
+      "yii",
+      "YII_DEBUG",
+      "yiiCaptcha"
+    ],
+    "urlKeywords": [
+      "/index.php?r=",
+      "/site/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Laravel",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "data-laravel",
+      "laravel_session",
+      "XSRF-TOKEN",
+      "laravel"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "ThinkPHP",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "thinkphp",
+      "ThinkPHP",
+      "think_template",
+      "think_var"
+    ],
+    "urlKeywords": [
+      "index.php?s=",
+      "index.php?m="
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Spring Boot",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "Whitelabel Error Page",
+      "spring-boot-starter",
+      "springframework",
+      "/actuator"
+    ],
+    "urlKeywords": [
+      "/actuator/health",
+      "/swagger-ui.html",
+      "/actuator/env"
+    ],
+    "faviconHash": "116323821"
+  },
+  {
+    "name": "Spring MVC",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "org.springframework.web.servlet.DispatcherServlet",
+      "springmvc",
+      "spring-webmvc"
+    ],
+    "urlKeywords": [
+      "/swagger-resources",
+      "/v2/api-docs"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Struts2",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "struts.action",
+      "struts2",
+      "org.apache.struts2"
+    ],
+    "urlKeywords": [
+      ".action",
+      ".do;jsessionid",
+      "/struts/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Apache Shiro",
+    "category": "framework",
+    "headers": {
+      "Set-Cookie": "rememberMe=deleteMe"
+    },
+    "htmlPatterns": [
+      "shiro",
+      "rememberMe"
+    ],
+    "urlKeywords": [
+      "/login;jsessionid="
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Flask",
+    "category": "framework",
+    "headers": {
+      "Server": "Werkzeug"
+    },
+    "htmlPatterns": [
+      "flask",
+      "werkzeug"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Django",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "django",
+      "__csrf_token",
+      "csrftoken",
+      "django-admin"
+    ],
+    "urlKeywords": [
+      "/admin/login/",
+      "/accounts/login/",
+      "/admin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Ruby on Rails",
+    "category": "framework",
+    "headers": {
+      "X-Powered-By": "Phusion Passenger"
+    },
+    "htmlPatterns": [
+      "rails",
+      "csrf-token",
+      "data-remote=\"true\""
+    ],
+    "urlKeywords": [
+      "/assets/application",
+      "/rails/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Express.js",
+    "category": "framework",
+    "headers": {
+      "X-Powered-By": "Express"
+    },
+    "htmlPatterns": [],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "PHP",
+    "category": "framework",
+    "headers": {
+      "X-Powered-By": "PHP"
+    },
+    "htmlPatterns": [],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "ASP.NET",
+    "category": "framework",
+    "headers": {
+      "X-Powered-By": "ASP.NET"
+    },
+    "htmlPatterns": [
+      "__VIEWSTATE",
+      "__EVENTVALIDATION",
+      "asp.net"
+    ],
+    "urlKeywords": [
+      "/WebResource.axd",
+      "/ScriptResource.axd"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Tomcat",
+    "category": "server",
+    "headers": {
+      "Server": "Apache-Coyote"
+    },
+    "htmlPatterns": [
+      "Apache Tomcat",
+      "/manager/html",
+      "tomcat"
+    ],
+    "urlKeywords": [
+      "manager/html",
+      "docs/config",
+      "examples/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Jetty",
+    "category": "server",
+    "headers": {
+      "Server": "Jetty"
+    },
+    "htmlPatterns": [
+      "jetty",
+      "Powered by Jetty"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "WebLogic",
+    "category": "server",
+    "headers": {
+      "Server": "WebLogic"
+    },
+    "htmlPatterns": [
+      "weblogic",
+      "WebLogic",
+      "BEA WebLogic"
+    ],
+    "urlKeywords": [
+      "/console/login/",
+      "/console/",
+      "/_async/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "WebSphere",
+    "category": "server",
+    "headers": {
+      "Server": "WebSphere"
+    },
+    "htmlPatterns": [
+      "websphere",
+      "IBM WebSphere"
+    ],
+    "urlKeywords": [
+      "/ibm/console/",
+      "/admin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "JBoss",
+    "category": "server",
+    "headers": {
+      "X-Powered-By": "JBoss"
+    },
+    "htmlPatterns": [
+      "jboss",
+      "JBoss",
+      "jboss-web"
+    ],
+    "urlKeywords": [
+      "/jmx-console/",
+      "/web-console/",
+      "/admin-console/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "WildFly",
+    "category": "server",
+    "headers": {},
+    "htmlPatterns": [
+      "wildfly",
+      "WildFly"
+    ],
+    "urlKeywords": [
+      "/console/",
+      "/management/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Resin",
+    "category": "server",
+    "headers": {
+      "Server": "Resin"
+    },
+    "htmlPatterns": [
+      "resin",
+      "Resin"
+    ],
+    "urlKeywords": [
+      "/resin-admin/",
+      "/resin-doc/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "GlassFish",
+    "category": "server",
+    "headers": {
+      "Server": "GlassFish"
+    },
+    "htmlPatterns": [
+      "glassfish",
+      "GlassFish"
+    ],
+    "urlKeywords": [
+      "/common/index.jsf",
+      "/theme/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Netty",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "netty",
+      "io.netty"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Dubbo",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "dubbo",
+      "DubboService"
+    ],
+    "urlKeywords": [
+      "/dubbo/",
+      "/services/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Fastjson",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "com.alibaba.fastjson",
+      "fastjson"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "泛微 e-cology",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "泛微",
+      "weaver",
+      "/wui/common/",
+      "e-cology",
+      "ecology"
+    ],
+    "urlKeywords": [
+      "/login/Login.jsp",
+      "/wui/index.html",
+      "/services/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "泛微 e-office",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "e-office",
+      "泛微OA",
+      "/images/eoffice/"
+    ],
+    "urlKeywords": [
+      "/eoffice/",
+      "/login.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "泛微 e-bridge",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "e-bridge",
+      "泛微云桥",
+      "ebridge"
+    ],
+    "urlKeywords": [
+      "/ebridge/",
+      "/wx/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "致远 A8",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "seeyon",
+      "致远",
+      "A8-M",
+      "/seeyon/"
+    ],
+    "urlKeywords": [
+      "/seeyon/main.do",
+      "/seeyon/login/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "致远 A6",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "seeyon",
+      "致远",
+      "A6-M"
+    ],
+    "urlKeywords": [
+      "/seeyon/index.jsp"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "通达 OA",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "tongda",
+      "通达OA",
+      "tongda.oa",
+      "/static/templates/"
+    ],
+    "urlKeywords": [
+      "/ispirit/login.php",
+      "/general/",
+      "/module/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "用友 NC",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "yonyou",
+      "用友",
+      "UFIDA",
+      "/portal/apps/",
+      "nccloud"
+    ],
+    "urlKeywords": [
+      "/portal/",
+      "/nc/",
+      "/uap/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "用友 U8",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "用友U8",
+      "UFIDA U8",
+      "yonyou u8"
+    ],
+    "urlKeywords": [
+      "/u8/",
+      "/yyoa/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "金蝶 EAS",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "kingdee",
+      "金蝶",
+      "eas",
+      "EAS"
+    ],
+    "urlKeywords": [
+      "/easportal/",
+      "/eas/",
+      "/portal/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "金蝶云星空",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "kingdee",
+      "金蝶云",
+      "k3cloud"
+    ],
+    "urlKeywords": [
+      "/K3Cloud/",
+      "/k3cloud/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "蓝凌 OA",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "landray",
+      "蓝凌",
+      "蓝凌OA",
+      "Landray"
+    ],
+    "urlKeywords": [
+      "/sys/",
+      "/km/",
+      "/ekp/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "万户 OA",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "wanhu",
+      "万户",
+      "万户OA",
+      "/defaultroot/"
+    ],
+    "urlKeywords": [
+      "/defaultroot/",
+      "/whir_system/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "华天动力 OA",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "华天动力",
+      "htdl",
+      "OA"
+    ],
+    "urlKeywords": [
+      "/OAapp/",
+      "/htoa/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "帆软 FineReport",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "finereport",
+      "FineReport",
+      "帆软"
+    ],
+    "urlKeywords": [
+      "/WebReport/",
+      "/ReportServer/",
+      "/decision/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "海康威视",
+    "category": "iot",
+    "headers": {},
+    "htmlPatterns": [
+      "hikvision",
+      "海康威视",
+      "Hikvision",
+      "/doc/page/"
+    ],
+    "urlKeywords": [
+      "/doc/page/login.asp",
+      "/ISAPI/",
+      "/SDK/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "大华",
+    "category": "iot",
+    "headers": {},
+    "htmlPatterns": [
+      "dahua",
+      "大华",
+      "Dahua",
+      "dahuasecurity"
+    ],
+    "urlKeywords": [
+      "/admin.html",
+      "/RPC2/",
+      "/cgi-bin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "宇视科技",
+    "category": "iot",
+    "headers": {},
+    "htmlPatterns": [
+      "uniview",
+      "宇视",
+      "Uniview"
+    ],
+    "urlKeywords": [
+      "/interface/",
+      "/cgi/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "天地伟业",
+    "category": "iot",
+    "headers": {},
+    "htmlPatterns": [
+      "tiandy",
+      "天地伟业",
+      "Tiandy"
+    ],
+    "urlKeywords": [
+      "/webs/",
+      "/cgi-bin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "D-Link",
+    "category": "iot",
+    "headers": {},
+    "htmlPatterns": [
+      "D-Link",
+      "dlink",
+      "Dlink"
+    ],
+    "urlKeywords": [
+      "/dlink/",
+      "/cgi-bin/",
+      "/login.htm"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "TP-Link",
+    "category": "iot",
+    "headers": {},
+    "htmlPatterns": [
+      "TP-Link",
+      "tplink",
+      "TPLink"
+    ],
+    "urlKeywords": [
+      "/userRpm/",
+      "/login.htm"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "H3C",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "H3C",
+      "h3c",
+      "华三",
+      "H3C-"
+    ],
+    "urlKeywords": [
+      "/login.cgi",
+      "/webui/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "华为",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "huawei",
+      "华为",
+      "Huawei",
+      "HUAWEI"
+    ],
+    "urlKeywords": [
+      "/asp/",
+      "/login.asp",
+      "/webui/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "思科",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "cisco",
+      "Cisco",
+      "思科"
+    ],
+    "urlKeywords": [
+      "/cucm-uds/",
+      "/cs/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "锐捷",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "ruijie",
+      "锐捷",
+      "Ruijie"
+    ],
+    "urlKeywords": [
+      "/web/",
+      "/login.jsp"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "深信服",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "sangfor",
+      "深信服",
+      "SANGFOR",
+      "Sangfor"
+    ],
+    "urlKeywords": [
+      "/logon/",
+      "/portal/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "天融信",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "topsec",
+      "天融信",
+      "Topsec",
+      "TOPSEC"
+    ],
+    "urlKeywords": [
+      "/cgi-bin/",
+      "/vpn/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "奇安信",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "qianxin",
+      "奇安信",
+      "QiAnXin",
+      "360天擎"
+    ],
+    "urlKeywords": [
+      "/admin/",
+      "/api/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "绿盟科技",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "nsfocus",
+      "绿盟",
+      "NSFOCUS"
+    ],
+    "urlKeywords": [
+      "/web/",
+      "/login/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "启明星辰",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "venustech",
+      "启明星辰",
+      "天镜"
+    ],
+    "urlKeywords": [
+      "/login.html",
+      "/cgi/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "山石网科",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "hillstone",
+      "山石",
+      "Hillstone"
+    ],
+    "urlKeywords": [
+      "/html/",
+      "/cgi/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Fortinet",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "fortinet",
+      "Fortinet",
+      "FortiGate"
+    ],
+    "urlKeywords": [
+      "/login/",
+      "/remote/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "PaloAlto",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "paloalto",
+      "Palo Alto",
+      "PAN-OS"
+    ],
+    "urlKeywords": [
+      "/php/login/",
+      "/unauth/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Juniper",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "juniper",
+      "Juniper",
+      "Junos"
+    ],
+    "urlKeywords": [
+      "/dana-na/",
+      "/login.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "phpMyAdmin",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "phpMyAdmin",
+      "pma_theme",
+      "pma_password",
+      "/phpmyadmin/"
+    ],
+    "urlKeywords": [
+      "phpmyadmin/index.php",
+      "pma/index.php",
+      "/phpmyadmin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Adminer",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "Adminer",
+      "adminer"
+    ],
+    "urlKeywords": [
+      "/adminer.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "pgAdmin",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "pgAdmin",
+      "pgadmin"
+    ],
+    "urlKeywords": [
+      "/pgadmin4/",
+      "/browser/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "MongoDB Express",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "Mongo Express",
+      "mongo-express"
+    ],
+    "urlKeywords": [
+      "/db/",
+      "/mongo/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Redis Commander",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "Redis Commander",
+      "redis-commander"
+    ],
+    "urlKeywords": [
+      "/redis/",
+      "/cmd/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "phpRedisAdmin",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "phpRedisAdmin",
+      "redisadmin"
+    ],
+    "urlKeywords": [
+      "/redisadmin/",
+      "/phpredisadmin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Kibana",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "kibana",
+      "Kibana",
+      "kbn-"
+    ],
+    "urlKeywords": [
+      "/app/kibana",
+      "/bundles/",
+      "/elasticsearch/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Grafana",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "grafana",
+      "Grafana",
+      "grafana-app"
+    ],
+    "urlKeywords": [
+      "/login",
+      "/dashboard",
+      "/api/",
+      "/graph/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Prometheus",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "Prometheus",
+      "prometheus",
+      "/graph"
+    ],
+    "urlKeywords": [
+      "/graph",
+      "/targets",
+      "/alerts",
+      "/metrics"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "RabbitMQ",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "RabbitMQ",
+      "rabbitmq",
+      "rabbit"
+    ],
+    "urlKeywords": [
+      "/api/",
+      "/management/",
+      "/rabbitmq/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Jenkins",
+    "category": "app",
+    "headers": {
+      "X-Jenkins": ""
+    },
+    "htmlPatterns": [
+      "Jenkins",
+      "Dashboard [Jenkins]",
+      "jenkins"
+    ],
+    "urlKeywords": [
+      "jenkins/login",
+      "jenkins/script",
+      "/jnlpJars/"
+    ],
+    "faviconHash": "81586312"
+  },
+  {
+    "name": "GitLab",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "GitLab",
+      "gitlab-logo",
+      "meta name=\"gitlab\""
+    ],
+    "urlKeywords": [
+      "users/sign_in",
+      "explore/projects",
+      "/help"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Gitea",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "Gitea",
+      "gitea",
+      "Gitea Version"
+    ],
+    "urlKeywords": [
+      "/user/login",
+      "/explore/repos"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Nexus Repository",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "Nexus Repository",
+      "nexus",
+      "Sonatype Nexus"
+    ],
+    "urlKeywords": [
+      "/nexus/",
+      "/service/rest/",
+      "/repository/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Harbor",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "Harbor",
+      "harbor",
+      "Harbor Registry"
+    ],
+    "urlKeywords": [
+      "/harbor/",
+      "/c/",
+      "/api/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "SonarQube",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "SonarQube",
+      "sonarqube",
+      "sonar"
+    ],
+    "urlKeywords": [
+      "/sonar/",
+      "/dashboard/",
+      "/api/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Kafka",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "kafka",
+      "Kafka",
+      "kafka-ui"
+    ],
+    "urlKeywords": [
+      "/kafka/",
+      "/ui/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Elasticsearch",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "elasticsearch",
+      "Elasticsearch",
+      "cluster_name"
+    ],
+    "urlKeywords": [
+      "/_cluster/health",
+      "/_cat/",
+      "/_nodes/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "MinIO",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "MinIO",
+      "minio",
+      "Minio"
+    ],
+    "urlKeywords": [
+      "/minio/",
+      "/buckets/",
+      "/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Swagger",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "swagger-ui",
+      "swagger.json",
+      "SwaggerUIBundle",
+      "swagger"
+    ],
+    "urlKeywords": [
+      "swagger-ui.html",
+      "swagger-resources",
+      "api-docs",
+      "/swagger/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Kubernetes Dashboard",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "kubernetes",
+      "k8s",
+      "kubernetes-dashboard"
+    ],
+    "urlKeywords": [
+      "/api/v1/",
+      "/dashboard/",
+      "/k8s/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Rancher",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "rancher",
+      "Rancher",
+      "rancher-ui"
+    ],
+    "urlKeywords": [
+      "/v3/",
+      "/dashboard/",
+      "/g/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Portainer",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "portainer",
+      "Portainer"
+    ],
+    "urlKeywords": [
+      "/portainer/",
+      "/api/endpoints/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Nacos",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "nacos",
+      "Nacos",
+      "alibaba.nacos"
+    ],
+    "urlKeywords": [
+      "/nacos/",
+      "/v1/console/",
+      "/nacos/index.html"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Apollo",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "apollo",
+      "Apollo",
+      "ctrip.apollo"
+    ],
+    "urlKeywords": [
+      "/apollo/",
+      "/configs/",
+      "/portal/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "XXL-JOB",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "xxl-job",
+      "XXL-JOB",
+      "任务调度"
+    ],
+    "urlKeywords": [
+      "/xxl-job-admin/",
+      "/toLogin",
+      "/jobinfo/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "YAPI",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "yapi",
+      "YApi",
+      "YApi-"
+    ],
+    "urlKeywords": [
+      "/yapi/",
+      "/api/",
+      "/project/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "JumpServer",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "JumpServer",
+      "jumpserver",
+      "Luna"
+    ],
+    "urlKeywords": [
+      "/core/auth/login/",
+      "/luna/",
+      "/koko/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Confluence",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "confluence",
+      "Confluence",
+      "confluence-base-url"
+    ],
+    "urlKeywords": [
+      "/login.action",
+      "/spaces/",
+      "/pages/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Jira",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "jira",
+      "Jira",
+      "Atlassian Jira"
+    ],
+    "urlKeywords": [
+      "/login.jsp",
+      "/browse/",
+      "/secure/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Zabbix",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "zabbix",
+      "Zabbix",
+      "zabbix.php"
+    ],
+    "urlKeywords": [
+      "/zabbix/",
+      "/zabbix.php",
+      "/history.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Nagios",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "nagios",
+      "Nagios",
+      "Nagios Core"
+    ],
+    "urlKeywords": [
+      "/nagios/",
+      "/cgi-bin/nagios3/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Cacti",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "cacti",
+      "Cacti"
+    ],
+    "urlKeywords": [
+      "/cacti/",
+      "/graph_view.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "禅道",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "zentao",
+      "禅道",
+      "Zentao"
+    ],
+    "urlKeywords": [
+      "/zentao/user-login.html",
+      "/zentao/",
+      "/pro/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Cloudflare",
+    "category": "waf",
+    "headers": {
+      "Server": "cloudflare"
+    },
+    "htmlPatterns": [
+      "cf-browser-verification",
+      "Cloudflare Ray ID",
+      "cloudflare"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "阿里云 WAF",
+    "category": "waf",
+    "headers": {
+      "X-Server": "AliyunWaf"
+    },
+    "htmlPatterns": [
+      "aliyun",
+      "alibaba",
+      "YWAF"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "腾讯云 WAF",
+    "category": "waf",
+    "headers": {},
+    "htmlPatterns": [
+      "tencent",
+      "qcloud",
+      "T-Sec-WAF"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "百度云加速",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "baidu",
+      "yunjiasu"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "安全狗",
+    "category": "waf",
+    "headers": {},
+    "htmlPatterns": [
+      "safedog",
+      "安全狗",
+      "SafeDog"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "云锁",
+    "category": "waf",
+    "headers": {},
+    "htmlPatterns": [
+      "yunsuo",
+      "云锁",
+      "yunsuo_session"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "ModSecurity",
+    "category": "waf",
+    "headers": {},
+    "htmlPatterns": [
+      "mod_security",
+      "ModSecurity",
+      "modsecurity"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "AWS WAF",
+    "category": "waf",
+    "headers": {},
+    "htmlPatterns": [
+      "aws",
+      "AWS WAF",
+      "x-amz-"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Akamai",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "akamai",
+      "Akamai",
+      "akam"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "CloudFront",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "cloudfront",
+      "CloudFront",
+      "cloudfront.net"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Fastly",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "fastly",
+      "Fastly"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Sucuri",
+    "category": "waf",
+    "headers": {
+      "X-Sucuri-ID": ""
+    },
+    "htmlPatterns": [
+      "sucuri",
+      "Sucuri",
+      "CloudProxy"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Imperva",
+    "category": "waf",
+    "headers": {},
+    "htmlPatterns": [
+      "imperva",
+      "Imperva",
+      "incapsula"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "F5 BIG-IP",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "F5",
+      "bigip",
+      "BIG-IP",
+      "f5"
+    ],
+    "urlKeywords": [
+      "/tmui/",
+      "/my.policy",
+      "/vdesk/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Citrix Netscaler",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "netscaler",
+      "Citrix",
+      "NetScaler"
+    ],
+    "urlKeywords": [
+      "/vpn/",
+      "/logon/",
+      "/cgi/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Citrix Gateway",
+    "category": "vpn",
+    "headers": {},
+    "htmlPatterns": [
+      "Citrix Gateway",
+      "NSC_",
+      "citrix"
+    ],
+    "urlKeywords": [
+      "/vpn/index.html",
+      "/logon/LogonPoint/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "OpenVPN",
+    "category": "vpn",
+    "headers": {},
+    "htmlPatterns": [
+      "OpenVPN",
+      "openvpn"
+    ],
+    "urlKeywords": [
+      "/openvpn/",
+      "/vpn/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "AnyConnect",
+    "category": "vpn",
+    "headers": {},
+    "htmlPatterns": [
+      "AnyConnect",
+      "Cisco AnyConnect",
+      "anyconnect"
+    ],
+    "urlKeywords": [
+      "/CACHE/",
+      "/+CSCOE+/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "PulseSecure",
+    "category": "vpn",
+    "headers": {},
+    "htmlPatterns": [
+      "Pulse Secure",
+      "pulsesecure",
+      "pulse"
+    ],
+    "urlKeywords": [
+      "/dana-na/",
+      "/dana/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "深信服 SSL VPN",
+    "category": "vpn",
+    "headers": {},
+    "htmlPatterns": [
+      "sangfor",
+      "深信服",
+      "Sangfor SSL VPN"
+    ],
+    "urlKeywords": [
+      "/por/",
+      "/vpn/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "天融信 VPN",
+    "category": "vpn",
+    "headers": {},
+    "htmlPatterns": [
+      "topsec",
+      "天融信",
+      "Topsec VPN"
+    ],
+    "urlKeywords": [
+      "/vpn/",
+      "/sslvpn/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "FortiGate SSL VPN",
+    "category": "vpn",
+    "headers": {},
+    "htmlPatterns": [
+      "fortigate",
+      "FortiGate",
+      "fortinet"
+    ],
+    "urlKeywords": [
+      "/remote/login",
+      "/remote/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Nginx",
+    "category": "server",
+    "headers": {
+      "Server": "nginx"
+    },
+    "htmlPatterns": [
+      "<center>nginx</center>",
+      "Welcome to nginx",
+      "nginx"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Apache",
+    "category": "server",
+    "headers": {
+      "Server": "Apache"
+    },
+    "htmlPatterns": [
+      "Apache Server at",
+      "<address>Apache",
+      "Apache/2"
+    ],
+    "urlKeywords": [
+      "icons/apache_pb.gif"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "IIS",
+    "category": "server",
+    "headers": {
+      "Server": "Microsoft-IIS"
+    },
+    "htmlPatterns": [
+      "iisstart.htm",
+      "IIS Windows Server",
+      "iis"
+    ],
+    "urlKeywords": [
+      "iisstart.htm",
+      "welcome.png"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Caddy",
+    "category": "server",
+    "headers": {
+      "Server": "Caddy"
+    },
+    "htmlPatterns": [
+      "caddy",
+      "Caddy"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "LiteSpeed",
+    "category": "server",
+    "headers": {
+      "Server": "LiteSpeed"
+    },
+    "htmlPatterns": [
+      "litespeed",
+      "LiteSpeed"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "OpenResty",
+    "category": "server",
+    "headers": {
+      "Server": "openresty"
+    },
+    "htmlPatterns": [
+      "openresty",
+      "OpenResty"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Tengine",
+    "category": "server",
+    "headers": {
+      "Server": "Tengine"
+    },
+    "htmlPatterns": [
+      "tengine",
+      "Tengine"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Gunicorn",
+    "category": "server",
+    "headers": {
+      "Server": "gunicorn"
+    },
+    "htmlPatterns": [],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "HAProxy",
+    "category": "server",
+    "headers": {},
+    "htmlPatterns": [
+      "haproxy",
+      "HAProxy"
+    ],
+    "urlKeywords": [
+      "/haproxy/",
+      "/stats"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Varnish",
+    "category": "server",
+    "headers": {
+      "Via": "Varnish"
+    },
+    "htmlPatterns": [
+      "varnish",
+      "Varnish"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Squid",
+    "category": "server",
+    "headers": {
+      "Server": "squid"
+    },
+    "htmlPatterns": [
+      "squid",
+      "Squid"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Traefik",
+    "category": "server",
+    "headers": {},
+    "htmlPatterns": [
+      "traefik",
+      "Traefik"
+    ],
+    "urlKeywords": [
+      "/traefik/",
+      "/dashboard/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "React",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "<div id=\"root\">",
+      "__reactFiber",
+      "react-root",
+      "react.development"
+    ],
+    "urlKeywords": [
+      "static/js/react",
+      "static/js/main"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Vue.js",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "<div id=\"app\"",
+      "v-bind:",
+      "v-model=",
+      "v-on:",
+      "__vue__",
+      "vue"
+    ],
+    "urlKeywords": [
+      "static/js/vue",
+      "static/js/app"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Angular",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "ng-version",
+      "_ngcontent",
+      "app-root",
+      "angular"
+    ],
+    "urlKeywords": [
+      "polyfills.js",
+      "main.js"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "jQuery",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "jquery",
+      "jquery.min.js",
+      "jQuery"
+    ],
+    "urlKeywords": [
+      "jquery.js",
+      "jquery.min.js"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Bootstrap",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "bootstrap.min.css",
+      "bootstrap.css",
+      "bootstrap-theme",
+      "bootstrap"
+    ],
+    "urlKeywords": [
+      "bootstrap.min.js",
+      "bootstrap.bundle"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Ant Design",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "ant-input",
+      "ant-btn",
+      "ant-table",
+      "ant-layout",
+      "antd"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Element UI",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "el-input",
+      "el-button",
+      "el-table",
+      "el-menu",
+      "element-ui"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Layui",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "layui",
+      "layui.css",
+      "layui.js"
+    ],
+    "urlKeywords": [
+      "layui.js",
+      "layui.css"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "ExtJS",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "extjs",
+      "ExtJS",
+      "ext-all.js"
+    ],
+    "urlKeywords": [
+      "ext-all.js",
+      "ext.js"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Svelte",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "svelte",
+      "__svelte"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Tailwind CSS",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "tailwind",
+      "tailwindcss",
+      "tailwind.css"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Next.js",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "__NEXT_DATA__",
+      "next/dist/",
+      "__next",
+      "next.js"
+    ],
+    "urlKeywords": [
+      "_next/static"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Nuxt.js",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "__NUXT__",
+      "nuxt.config",
+      "nuxt-link",
+      "nuxt"
+    ],
+    "urlKeywords": [
+      "_nuxt/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Vite",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "vite",
+      "Vite",
+      "/@vite/"
+    ],
+    "urlKeywords": [
+      "/@vite/client",
+      "/@vite/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Webpack",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "webpack",
+      "webpackJsonp",
+      "__webpack_require__"
+    ],
+    "urlKeywords": [
+      "webpack-dev-server"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "SAP NetWeaver",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "sap",
+      "SAP",
+      "netweaver"
+    ],
+    "urlKeywords": [
+      "/sap/bc/",
+      "/irj/portal",
+      "/nwbc/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "VMware ESXi",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "vmware",
+      "VMware",
+      "ESXi",
+      "vSphere"
+    ],
+    "urlKeywords": [
+      "/ui/",
+      "/folder/",
+      "/mob/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "VMware vCenter",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "vcenter",
+      "vCenter",
+      "VMware vCenter"
+    ],
+    "urlKeywords": [
+      "/vsphere-client/",
+      "/ui/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Synology NAS",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "synology",
+      "Synology",
+      "DiskStation"
+    ],
+    "urlKeywords": [
+      "/webman/",
+      "/photo/",
+      "/video/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "QNAP NAS",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "qnap",
+      "QNAP",
+      "QTS"
+    ],
+    "urlKeywords": [
+      "/cgi-bin/",
+      "/nas/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "phpinfo",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "PHP Version",
+      "phpinfo",
+      "PHP Extension"
+    ],
+    "urlKeywords": [
+      "phpinfo.php",
+      "info.php",
+      "test.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "IIS Docs",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "IIS Windows Server",
+      "iis-8.png",
+      "iis-7.png"
+    ],
+    "urlKeywords": [
+      "iis-85.png",
+      "iis-8.png"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Directory Listing",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "<title>Index of /",
+      "Directory Listing",
+      "Index of /",
+      "<title>Directory listing for"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Idea",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "IntelliJ IDEA",
+      "idea",
+      "JetBrains IDE"
+    ],
+    "urlKeywords": [
+      "/api/",
+      "/idea/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Actuator",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "actuator",
+      "/actuator/health"
+    ],
+    "urlKeywords": [
+      "/actuator",
+      "/actuator/health",
+      "/actuator/env"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Docker Registry",
+    "category": "app",
+    "headers": {
+      "Docker-Distribution-Api-Version": "registry"
+    },
+    "htmlPatterns": [],
+    "urlKeywords": [
+      "/v2/",
+      "/v2/_catalog"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "WebDAV",
+    "category": "app",
+    "headers": {
+      "DAV": ""
+    },
+    "htmlPatterns": [],
+    "urlKeywords": [
+      "/webdav/",
+      "/dav/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Solr",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "Solr",
+      "Apache Solr",
+      "solr"
+    ],
+    "urlKeywords": [
+      "/solr/",
+      "/solr/admin/",
+      "/solr/#/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "ActiveMQ",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "ActiveMQ",
+      "activemq"
+    ],
+    "urlKeywords": [
+      "/admin/",
+      "/api/",
+      "/activemq/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Webmin",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "Webmin",
+      "webmin"
+    ],
+    "urlKeywords": [
+      "/webmin/",
+      "/session_login.cgi"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Cockpit",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "Cockpit",
+      "cockpit"
+    ],
+    "urlKeywords": [
+      "/cockpit/",
+      "/system/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Proxmox",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "Proxmox",
+      "proxmox",
+      "pve"
+    ],
+    "urlKeywords": [
+      "/pve/",
+      "/api2/",
+      "/pve2/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "RoundCube",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "Roundcube",
+      "roundcube",
+      "roundcube webmail"
+    ],
+    "urlKeywords": [
+      "/roundcube/",
+      "/webmail/",
+      "/roundcubemail/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Drupal",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "drupal",
+      "Drupal"
+    ],
+    "urlKeywords": [
+      "sites/all/modules",
+      "sites/default/files"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "致远 M3",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "seeyon",
+      "M3",
+      "致远M3"
+    ],
+    "urlKeywords": [
+      "/seeyon/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "用友 GRP",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "yonyou",
+      "GRP",
+      "用友政务"
+    ],
+    "urlKeywords": [
+      "/grp/",
+      "/np/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "金和 OA",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "jinher",
+      "金和",
+      "Jinher"
+    ],
+    "urlKeywords": [
+      "/c6/",
+      "/jhsoft/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "红帆 OA",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "ioffice",
+      "红帆",
+      "ioffice2000"
+    ],
+    "urlKeywords": [
+      "/ioffice/",
+      "/redface/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "信呼 OA",
+    "category": "oa",
+    "headers": {},
+    "htmlPatterns": [
+      "xinhu",
+      "信呼",
+      "rockoa"
+    ],
+    "urlKeywords": [
+      "/xinhu/",
+      "/index.php?m=login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "若依管理系统",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "ruoyi",
+      "若依",
+      "RuoYi"
+    ],
+    "urlKeywords": [
+      "/ruoyi/",
+      "/captcha/",
+      "/profile/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Guns",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "guns",
+      "Guns",
+      "stylefeng"
+    ],
+    "urlKeywords": [
+      "/login",
+      "/guns/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "JEECG",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "jeecg",
+      "JEECG",
+      "jeecg-boot"
+    ],
+    "urlKeywords": [
+      "/jeecg-boot/",
+      "/sys/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "JeeSite",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "jeesite",
+      "JeeSite"
+    ],
+    "urlKeywords": [
+      "/js/a/login",
+      "/jeesite/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Halo",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "halo",
+      "Halo",
+      "halo-theme"
+    ],
+    "urlKeywords": [
+      "/halo/",
+      "/admin/",
+      "/archives/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Solo",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "solo",
+      "Solo",
+      "b3log"
+    ],
+    "urlKeywords": [
+      "/start",
+      "/admin-index.do"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Codesys",
+    "category": "iot",
+    "headers": {},
+    "htmlPatterns": [
+      "codesys",
+      "CODESYS",
+      "codesys webvisu"
+    ],
+    "urlKeywords": [
+      "/webvisu/",
+      "/plc/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Siemens PLC",
+    "category": "iot",
+    "headers": {},
+    "htmlPatterns": [
+      "siemens",
+      "西门子",
+      "SIMATIC",
+      "S7-"
+    ],
+    "urlKeywords": [
+      "/Portal/",
+      "/logo/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "iLO",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "iLO",
+      "HP iLO",
+      "iLO 4",
+      "iLO 5"
+    ],
+    "urlKeywords": [
+      "/json/",
+      "/xmldata/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "iDRAC",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "iDRAC",
+      "Dell iDRAC",
+      "idrac"
+    ],
+    "urlKeywords": [
+      "/login.html",
+      "/cgi-bin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "SuperMicro IPMI",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "supermicro",
+      "SuperMicro",
+      "IPMI"
+    ],
+    "urlKeywords": [
+      "/cgi/",
+      "/ipmi/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Metabase",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "metabase",
+      "Metabase"
+    ],
+    "urlKeywords": [
+      "/metabase/",
+      "/auth/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Superset",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "superset",
+      "Superset",
+      "Apache Superset"
+    ],
+    "urlKeywords": [
+      "/superset/",
+      "/login/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "DataEase",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "dataease",
+      "DataEase"
+    ],
+    "urlKeywords": [
+      "/dataease/",
+      "/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "RocketMQ",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "rocketmq",
+      "RocketMQ",
+      "rocketmq-console"
+    ],
+    "urlKeywords": [
+      "/rocketmq/",
+      "/#/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Sentinel",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "sentinel",
+      "Sentinel",
+      "sentinel-dashboard"
+    ],
+    "urlKeywords": [
+      "/sentinel/",
+      "/dashboard/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "SkyWalking",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "skywalking",
+      "SkyWalking"
+    ],
+    "urlKeywords": [
+      "/skywalking/",
+      "/graphql"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Zipkin",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "zipkin",
+      "Zipkin"
+    ],
+    "urlKeywords": [
+      "/zipkin/",
+      "/api/v2/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Graylog",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "graylog",
+      "Graylog"
+    ],
+    "urlKeywords": [
+      "/graylog/",
+      "/search/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "ShowDoc",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "showdoc",
+      "ShowDoc",
+      "showdoc"
+    ],
+    "urlKeywords": [
+      "/showdoc/",
+      "/server/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Etherpad",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "etherpad",
+      "Etherpad",
+      "pad.js"
+    ],
+    "urlKeywords": [
+      "/p/",
+      "/etherpad/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Code-Server",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "code-server",
+      "VS Code",
+      "vscode"
+    ],
+    "urlKeywords": [
+      "/login",
+      "/static/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Filebrowser",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "filebrowser",
+      "File Browser"
+    ],
+    "urlKeywords": [
+      "/files/",
+      "/share/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "FRP",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "frp",
+      "frps",
+      "frpc"
+    ],
+    "urlKeywords": [
+      "/api/proxy/",
+      "/static/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "NPS",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "nps",
+      "nps client"
+    ],
+    "urlKeywords": [
+      "/nps/",
+      "/login/index"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "宝塔面板",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "宝塔",
+      "bt.cn",
+      "bt-panel",
+      "保塔"
+    ],
+    "urlKeywords": [
+      "/login",
+      "/bt-panel/",
+      "/phpmyadmin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "WDCP",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "wdcp",
+      "WDCP",
+      "wdcp.net"
+    ],
+    "urlKeywords": [
+      "/wdcp/",
+      "/login/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "AMH",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "amh",
+      "amh.sh"
+    ],
+    "urlKeywords": [
+      "/amh/",
+      "/index.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "cPanel",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "cpanel",
+      "cPanel",
+      "WHM"
+    ],
+    "urlKeywords": [
+      "/cpanel/",
+      "/webmail/",
+      "/whm/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "DirectAdmin",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "DirectAdmin",
+      "directadmin"
+    ],
+    "urlKeywords": [
+      "/directadmin/",
+      "/CMD_LOGIN"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Plesk",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "plesk",
+      "Plesk"
+    ],
+    "urlKeywords": [
+      "/plesk/",
+      "/smb/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "ISPConfig",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "ispconfig",
+      "ISPConfig"
+    ],
+    "urlKeywords": [
+      "/ispconfig/",
+      "/login/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Moodle",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "moodle",
+      "Moodle"
+    ],
+    "urlKeywords": [
+      "/moodle/",
+      "/login/index.php",
+      "/course/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "ownCloud",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "owncloud",
+      "ownCloud"
+    ],
+    "urlKeywords": [
+      "/owncloud/",
+      "/index.php/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Nextcloud",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "nextcloud",
+      "Nextcloud"
+    ],
+    "urlKeywords": [
+      "/nextcloud/",
+      "/login",
+      "/apps/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Seafile",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "seafile",
+      "Seafile"
+    ],
+    "urlKeywords": [
+      "/seafile/",
+      "/seahub/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "HFS",
+    "category": "app",
+    "headers": {
+      "Server": "HFS"
+    },
+    "htmlPatterns": [
+      "HFS",
+      "HttpFileServer",
+      "hfs"
+    ],
+    "urlKeywords": [
+      "/~login",
+      "/~files"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "AWStats",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "awstats",
+      "AWStats"
+    ],
+    "urlKeywords": [
+      "/awstats/",
+      "/cgi-bin/awstats.pl"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Matomo",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "matomo",
+      "Matomo",
+      "piwik"
+    ],
+    "urlKeywords": [
+      "/matomo/",
+      "/piwik/",
+      "/index.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Umami",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "umami",
+      "Umami"
+    ],
+    "urlKeywords": [
+      "/umami/",
+      "/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Wordfence",
+    "category": "waf",
+    "headers": {},
+    "htmlPatterns": [
+      "wordfence",
+      "Wordfence",
+      "wf-login"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "SiteLock",
+    "category": "waf",
+    "headers": {},
+    "htmlPatterns": [
+      "sitelock",
+      "SiteLock",
+      "sitelock-shield"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Barracuda",
+    "category": "waf",
+    "headers": {},
+    "htmlPatterns": [
+      "barracuda",
+      "Barracuda"
+    ],
+    "urlKeywords": [
+      "/cgi-mod/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "EdgeCast",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "edgecast",
+      "EdgeCast",
+      "verizon"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "KeyCDN",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "keycdn",
+      "KeyCDN"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "BunnyCDN",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "bunnycdn",
+      "BunnyCDN",
+      "bunny.net"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "StackPath",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "stackpath",
+      "StackPath"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "又拍云",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "upyun",
+      "又拍云",
+      "upaiyun"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "七牛云",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "qiniu",
+      "qiniucdn",
+      "qiniudns"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Aruba",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "aruba",
+      "Aruba",
+      "arubanetworks"
+    ],
+    "urlKeywords": [
+      "/screens/",
+      "/mm/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Ubiquiti",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "ubiquiti",
+      "Ubiquiti",
+      "UniFi"
+    ],
+    "urlKeywords": [
+      "/manage/",
+      "/login/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "MikroTik",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "mikrotik",
+      "MikroTik",
+      "RouterOS"
+    ],
+    "urlKeywords": [
+      "/webfig/",
+      "/winbox/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "pfSense",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "pfsense",
+      "pfSense"
+    ],
+    "urlKeywords": [
+      "/pfsense/",
+      "/firewall_rules.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "OPNsense",
+    "category": "device",
+    "headers": {},
+    "htmlPatterns": [
+      "opnsense",
+      "OPNsense"
+    ],
+    "urlKeywords": [
+      "/opnsense/",
+      "/ui/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Sophos",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "sophos",
+      "Sophos",
+      "XG Firewall"
+    ],
+    "urlKeywords": [
+      "/webadmin/",
+      "/userportal/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "WatchGuard",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "watchguard",
+      "WatchGuard"
+    ],
+    "urlKeywords": [
+      "/wgcgi/",
+      "/auth/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "SonicWall",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "sonicwall",
+      "SonicWall"
+    ],
+    "urlKeywords": [
+      "/auth.html",
+      "/cgi-bin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "CheckPoint",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "checkpoint",
+      "CheckPoint"
+    ],
+    "urlKeywords": [
+      "/sslvpn/",
+      "/connect/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "McAfee",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "mcafee",
+      "McAfee",
+      "epo"
+    ],
+    "urlKeywords": [
+      "/epo/",
+      "/orion/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "TrendMicro",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "trendmicro",
+      "Trend Micro",
+      "officescan"
+    ],
+    "urlKeywords": [
+      "/officescan/",
+      "/console/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Laravel Debug",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "Whoops! There was an error.",
+      "laravel error"
+    ],
+    "urlKeywords": [
+      "/debugbar/",
+      "/_debugbar/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Debug Mode",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "Traceback (most recent call last)",
+      "Stack trace:",
+      "ErrorException",
+      "Fatal error:"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": ".env File",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "APP_NAME=",
+      "DB_PASSWORD=",
+      "APP_KEY="
+    ],
+    "urlKeywords": [
+      ".env"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "GraphQL",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "__typename",
+      "GraphQL",
+      "graphql"
+    ],
+    "urlKeywords": [
+      "/graphql",
+      "/gql",
+      "/graphiql"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "SOAP",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "soap:Envelope",
+      "wsdl",
+      "xmlns:soap"
+    ],
+    "urlKeywords": [
+      "/services/",
+      "?wsdl",
+      "/soap/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "XML-RPC",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "methodCall",
+      "methodName",
+      "xmlrpc"
+    ],
+    "urlKeywords": [
+      "/xmlrpc.php",
+      "/api/xmlrpc"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Apache Axis2",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "axis2",
+      "Apache Axis2",
+      "axis2-web"
+    ],
+    "urlKeywords": [
+      "/axis2/",
+      "/axis2-admin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Apache CXF",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "cxf",
+      "Apache CXF"
+    ],
+    "urlKeywords": [
+      "/cxf/",
+      "/services/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Druid Monitor",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "druid",
+      "Druid Monitor"
+    ],
+    "urlKeywords": [
+      "/druid/",
+      "/druid/index.html",
+      "/druid/login.html"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Oracle Database",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "oracle",
+      "Oracle"
+    ],
+    "urlKeywords": [
+      "/apex/",
+      "/em/",
+      "/oracle/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "SQL Server",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "sqlserver",
+      "SQL Server",
+      "mssql"
+    ],
+    "urlKeywords": [
+      "/Reports/",
+      "/ReportServer/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Redis",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "redis",
+      "Redis",
+      "redis_version"
+    ],
+    "urlKeywords": [
+      "/redis/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "MongoDB",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "mongodb",
+      "MongoDB",
+      "mongo"
+    ],
+    "urlKeywords": [
+      "/mongodb/",
+      "/mongo/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "CouchDB",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "couchdb",
+      "CouchDB"
+    ],
+    "urlKeywords": [
+      "/_utils/",
+      "/couchdb/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Neo4j",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "neo4j",
+      "Neo4j"
+    ],
+    "urlKeywords": [
+      "/browser/",
+      "/neo4j/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "InfluxDB",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "influxdb",
+      "InfluxDB"
+    ],
+    "urlKeywords": [
+      "/influxdb/",
+      "/chronograf/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "ClickHouse",
+    "category": "database",
+    "headers": {},
+    "htmlPatterns": [
+      "clickhouse",
+      "ClickHouse"
+    ],
+    "urlKeywords": [
+      "/clickhouse/",
+      "/play"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "CKEditor",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "ckeditor",
+      "CKEditor"
+    ],
+    "urlKeywords": [
+      "ckeditor/",
+      "/ckeditor.js"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "TinyMCE",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "tinymce",
+      "TinyMCE",
+      "tiny_mce"
+    ],
+    "urlKeywords": [
+      "tinymce/",
+      "/tiny_mce.js"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "FCKeditor",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "fckeditor",
+      "FCKeditor"
+    ],
+    "urlKeywords": [
+      "/fckeditor/",
+      "/FCKeditor/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "UEditor",
+    "category": "frontend",
+    "headers": {},
+    "htmlPatterns": [
+      "ueditor",
+      "UEditor"
+    ],
+    "urlKeywords": [
+      "/ueditor/",
+      "/UEditor/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Redmine",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "redmine",
+      "Redmine"
+    ],
+    "urlKeywords": [
+      "/redmine/",
+      "/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "TestLink",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "testlink",
+      "TestLink"
+    ],
+    "urlKeywords": [
+      "/testlink/",
+      "/login.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "MantisBT",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "mantisbt",
+      "MantisBT",
+      "mantis"
+    ],
+    "urlKeywords": [
+      "/mantisbt/",
+      "/login_page.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Bugzilla",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "bugzilla",
+      "Bugzilla"
+    ],
+    "urlKeywords": [
+      "/bugzilla/",
+      "/query.cgi"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Phabricator",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "phabricator",
+      "Phabricator"
+    ],
+    "urlKeywords": [
+      "/phabricator/",
+      "/auth/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Gerrit",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "gerrit",
+      "Gerrit"
+    ],
+    "urlKeywords": [
+      "/gerrit/",
+      "/login/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Rocket.Chat",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "rocket.chat",
+      "Rocket.Chat"
+    ],
+    "urlKeywords": [
+      "/rocketchat/",
+      "/channel/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Mattermost",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "mattermost",
+      "Mattermost"
+    ],
+    "urlKeywords": [
+      "/mattermost/",
+      "/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Limesurvey",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "limesurvey",
+      "Limesurvey"
+    ],
+    "urlKeywords": [
+      "/limesurvey/",
+      "/index.php/admin"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "DokuWiki",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "dokuwiki",
+      "DokuWiki"
+    ],
+    "urlKeywords": [
+      "/dokuwiki/",
+      "/doku.php"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "MediaWiki",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "mediawiki",
+      "MediaWiki"
+    ],
+    "urlKeywords": [
+      "/mediawiki/",
+      "/wiki/",
+      "/index.php/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "XWiki",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "xwiki",
+      "XWiki"
+    ],
+    "urlKeywords": [
+      "/xwiki/",
+      "/bin/view/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Alfresco",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "alfresco",
+      "Alfresco",
+      "share"
+    ],
+    "urlKeywords": [
+      "/alfresco/",
+      "/share/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Liferay",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "liferay",
+      "Liferay"
+    ],
+    "urlKeywords": [
+      "/liferay/",
+      "/web/guest"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "DotNetNuke",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "DotNetNuke",
+      "DNN",
+      "dnn"
+    ],
+    "urlKeywords": [
+      "/dnn/",
+      "/login.aspx"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Umbraco",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "umbraco",
+      "Umbraco"
+    ],
+    "urlKeywords": [
+      "/umbraco/",
+      "/umbraco/login.aspx"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Sitecore",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "sitecore",
+      "Sitecore"
+    ],
+    "urlKeywords": [
+      "/sitecore/",
+      "/sitecore/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Kentico",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "kentico",
+      "Kentico"
+    ],
+    "urlKeywords": [
+      "/kentico/",
+      "/CMSPages/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Adobe AEM",
+    "category": "cms",
+    "headers": {},
+    "htmlPatterns": [
+      "aem",
+      "Adobe Experience Manager",
+      "cq"
+    ],
+    "urlKeywords": [
+      "/aem/",
+      "/crx/",
+      "/libs/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Artifactory",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "artifactory",
+      "Artifactory",
+      "jfrog"
+    ],
+    "urlKeywords": [
+      "/artifactory/",
+      "/ui/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "TeamCity",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "teamcity",
+      "TeamCity"
+    ],
+    "urlKeywords": [
+      "/teamcity/",
+      "/login.html"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Bamboo",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "bamboo",
+      "Bamboo",
+      "Atlassian Bamboo"
+    ],
+    "urlKeywords": [
+      "/bamboo/",
+      "/browse/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "GoCD",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "gocd",
+      "GoCD"
+    ],
+    "urlKeywords": [
+      "/go/",
+      "/go/api/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Drone CI",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "drone",
+      "Drone CI"
+    ],
+    "urlKeywords": [
+      "/drone/",
+      "/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "ArgoCD",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "argocd",
+      "ArgoCD",
+      "argoproj"
+    ],
+    "urlKeywords": [
+      "/argocd/",
+      "/applications"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "KubeSphere",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "kubesphere",
+      "KubeSphere"
+    ],
+    "urlKeywords": [
+      "/kubesphere/",
+      "/login"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "OpenShift",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "openshift",
+      "OpenShift",
+      "okd"
+    ],
+    "urlKeywords": [
+      "/console/",
+      "/openshift/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "AWX",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "awx",
+      "AWX",
+      "ansible tower"
+    ],
+    "urlKeywords": [
+      "/awx/",
+      "/api/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "SaltStack",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "saltstack",
+      "SaltStack",
+      "salt"
+    ],
+    "urlKeywords": [
+      "/salt/",
+      "/minion/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Puppet",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "puppet",
+      "Puppet",
+      "puppetlabs"
+    ],
+    "urlKeywords": [
+      "/puppet/",
+      "/orchestrator/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Chef",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "chef",
+      "Chef"
+    ],
+    "urlKeywords": [
+      "/chef/",
+      "/organizations/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Splunk",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "splunk",
+      "Splunk"
+    ],
+    "urlKeywords": [
+      "/splunk/",
+      "/en-US/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Sentry",
+    "category": "app",
+    "headers": {},
+    "htmlPatterns": [
+      "sentry",
+      "Sentry",
+      "getsentry"
+    ],
+    "urlKeywords": [
+      "/sentry/",
+      "/auth/login/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "PHP Debug Bar",
+    "category": "framework",
+    "headers": {},
+    "htmlPatterns": [
+      "phpdebugbar",
+      "PHP Debug Bar",
+      "php-debugbar"
+    ],
+    "urlKeywords": [
+      "/_debugbar/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "360网站卫士",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "360wzb",
+      "qihoo",
+      "360网站卫士"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Symantec",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "symantec",
+      "Symantec",
+      "broadcom"
+    ],
+    "urlKeywords": [
+      "/sep/",
+      "/console/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Kaspersky",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "kaspersky",
+      "Kaspersky"
+    ],
+    "urlKeywords": [
+      "/kaspersky/",
+      "/admin/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "ESET",
+    "category": "security",
+    "headers": {},
+    "htmlPatterns": [
+      "eset",
+      "ESET",
+      "era"
+    ],
+    "urlKeywords": [
+      "/era/",
+      "/console/"
+    ],
+    "faviconHash": null
+  },
+  {
+    "name": "Alibaba Cloud CDN",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "aliyuncs.com",
+      "alibaba",
+      "kunlun"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Tencent CDN",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "myqcloud.com",
+      "qcloud"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Baidu CDN",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "baiducdn",
+      "bcebos.com"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "Kingsoft CDN",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "ksyun",
+      "kingsoft"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "UCloud",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "ucloud",
+      "UCloud"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "CDN77",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "cdn77",
+      "CDN77"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  },
+  {
+    "name": "ArvanCloud",
+    "category": "cdn",
+    "headers": {},
+    "htmlPatterns": [
+      "arvancloud",
+      "ArvanCloud"
+    ],
+    "urlKeywords": [],
+    "faviconHash": null
+  }
+]
