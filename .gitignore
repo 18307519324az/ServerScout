@@ -1,0 +1,53 @@
+# Java / Maven
+target/
+*.class
+*.jar
+*.war
+
+# Node
+node_modules/
+dist/
+build/
+.vite/
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+tmp/
+temp/
+.cache/
+
+# Reports
+reports/
+exports/
+
+# Secrets
+*.key
+*.pem
+*.p12
+*.jks
+
+# Local runtime artifacts
+backend/*.pid
+backend/*.png
+frontend/*.pid
+frontend/*.png
+frontend/tsconfig.tsbuildinfo
+.github/java-upgrade/
+.github/modernize/

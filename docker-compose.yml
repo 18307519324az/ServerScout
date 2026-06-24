@@ -1,0 +1,105 @@
+name: serverscout
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: serverscout-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-please_change_me}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-serverscout}
+      MYSQL_USER: ${MYSQL_USER:-serverscout}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-please_change_me}
+    ports:
+      - "${MYSQL_PORT_MAPPING:-3307}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./serverscout-init.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+
+  redis:
+    image: redis:7-alpine
+    container_name: serverscout-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT_MAPPING:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: serverscout-backend:latest
+    container_name: serverscout-app
+    restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: "8080"
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-serverscout}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-serverscout}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-please_change_me}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: "6379"
+      JWT_SECRET: ${JWT_SECRET:-please_change_me_at_least_32_chars}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      NMAP_PATH: ${NMAP_PATH:-/usr/bin/nmap}
+      NUCLEI_PATH: ${NUCLEI_PATH:-/usr/bin/nuclei}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:5173,http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      SCANNER_DEMO_MODE: ${SCANNER_DEMO_MODE:-true}
+      SCANNER_ALLOW_PUBLIC_TARGETS: ${SCANNER_ALLOW_PUBLIC_TARGETS:-false}
+      SCANNER_ALLOWED_CIDRS: ${SCANNER_ALLOWED_CIDRS:-127.0.0.1/32,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+      SCANNER_MAX_CONCURRENT_TASKS: ${SCANNER_MAX_CONCURRENT_TASKS:-2}
+      SCANNER_PROCESS_TIMEOUT_SECONDS: ${SCANNER_PROCESS_TIMEOUT_SECONDS:-300}
+      AI_BRIEFING_ENABLED: ${AI_BRIEFING_ENABLED:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      PDF_FONT_PATH: ${PDF_FONT_PATH:-/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    image: serverscout-frontend:latest
+    container_name: serverscout-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mysql_data:
