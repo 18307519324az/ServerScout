@@ -177,7 +177,7 @@ npm run dev
 docker-compose up -d --build
 ```
 
-启动后包含 MySQL 8.0 + Spring Boot 后端 + React 前端三个容器，前端自动代理后端 API。
+启动后包含 MySQL 8.0、Redis、Spring Boot 后端和 React 前端四个服务，前端通过 Nginx 代理后端 API。
 
 ## 演示账号
 
